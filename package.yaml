@@ -1,0 +1,54 @@
+spec-version: 0.30.0
+name: static-ls
+author: Joseph Sumabat
+maintainer: josephrsumabat@gmail.com
+license: MIT
+
+build-type: Simple
+
+dependencies:
+- base
+- directory
+
+ghc-options:
+  - -fwrite-ide-info
+  - -hiedir .hiefiles
+default-extensions:
+- OverloadedRecordDot
+- OverloadedStrings
+- NoFieldSelectors
+- LambdaCase
+
+library:
+  source-dirs: src
+  dependencies:
+    #- aeson
+  - containers
+  - filepath
+  - ghc
+  - ghc-paths
+  - ghcide
+  - hiedb
+  - lsp
+  - lsp-types
+  - mtl
+  - silently
+  - text
+  - transformers
+  - template-haskell
+  - unliftio-core
+
+executable:
+  source-dirs: app
+  main: Main.hs
+  dependencies:
+  - static-ls
+
+tests:
+  static-ls-test:
+    main: Main.hs
+    source-dirs: test
+    dependencies:
+    - static-ls
+      # - hspec
+      # - lsp-types

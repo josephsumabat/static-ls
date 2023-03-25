@@ -1,0 +1,87 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.7.
+--
+-- see: https://github.com/sol/hpack
+
+name:           static-ls
+version:        0.0.0
+author:         Joseph Sumabat
+maintainer:     josephrsumabat@gmail.com
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+
+library
+  exposed-modules:
+      StaticLS.HIE
+      StaticLS.IDE.Definition
+      StaticLS.IDE.Hover
+      StaticLS.IDE.References
+      StaticLS.Monad
+      StaticLS.Server
+  other-modules:
+      Paths_static_ls
+  hs-source-dirs:
+      src
+  default-extensions:
+      OverloadedRecordDot
+      OverloadedStrings
+      NoFieldSelectors
+      LambdaCase
+  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  build-depends:
+      base
+    , containers
+    , directory
+    , filepath
+    , ghc
+    , ghc-paths
+    , ghcide
+    , hiedb
+    , lsp
+    , lsp-types
+    , mtl
+    , silently
+    , template-haskell
+    , text
+    , transformers
+    , unliftio-core
+  default-language: Haskell2010
+
+executable static-ls
+  main-is: Main.hs
+  other-modules:
+      Paths_static_ls
+  hs-source-dirs:
+      app
+  default-extensions:
+      OverloadedRecordDot
+      OverloadedStrings
+      NoFieldSelectors
+      LambdaCase
+  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  build-depends:
+      base
+    , directory
+    , static-ls
+  default-language: Haskell2010
+
+test-suite static-ls-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_static_ls
+  hs-source-dirs:
+      test
+  default-extensions:
+      OverloadedRecordDot
+      OverloadedStrings
+      NoFieldSelectors
+      LambdaCase
+  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  build-depends:
+      base
+    , directory
+    , static-ls
+  default-language: Haskell2010

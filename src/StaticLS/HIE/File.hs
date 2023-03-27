@@ -8,7 +8,8 @@ import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Control.Monad.Trans.Reader (ReaderT (..), ask)
 import Data.List.Extra (dropPrefix)
 import Data.Maybe (catMaybes, mapMaybe)
-import Data.Text
+import qualified Data.Text as T
+import Data.List 
 import HieDb
 import StaticLS.Monad
 import System.Directory (makeAbsolute, doesFileExist)
@@ -34,8 +35,8 @@ hieDir :: FilePath
 hieDir = ".hiefiles/"
 
 -- TODO: make this configurable (use cabal?)
-srcDir :: FilePath
-srcDir = "src/"
+srcDirs :: [FilePath]
+srcDirs = ["src/", "lib/", "test/"]
 
 -- | Retrieve a hie info from a lsp text document identifier
 getHieFile :: HasStaticEnv m => LSP.TextDocumentIdentifier -> m (Maybe GHC.HieFile)
@@ -69,11 +70,12 @@ srcFilePathToHieFilePath srcPath = do
   staticEnv <- getStaticEnv
   absoluteRoot <- liftIO $ makeAbsolute staticEnv.wsRoot
   let absoluteHieDir = absoluteRoot </> hieDir
-      absoluteSrcDir = absoluteRoot </> srcDir
+      absoluteSrcDirs = (absoluteRoot </>) <$> srcDirs
   absoluteSrcPath <- liftIO $ makeAbsolute srcPath
   
       -- Drop all src directory prefixes
-  let noPrefixSrcPath = dropPrefix absoluteSrcDir absoluteSrcPath
+  let noPrefixSrcPath = 
+        foldl' (flip dropPrefix) absoluteSrcPath absoluteSrcDirs
       -- Set the hie directory path and substitute the file extension
       hiePath = absoluteHieDir </> noPrefixSrcPath  -<.> ".hie"
   fileExists <- liftIO $ doesFileExist hiePath 

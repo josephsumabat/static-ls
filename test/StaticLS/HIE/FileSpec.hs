@@ -23,3 +23,13 @@ spec =
 
         relativeHieFile `shouldBe` Just ".hiefiles/StaticLS/HIE/File.hie"
         hieFileExists `shouldBe` True
+      
+      it "returns a valid hie file when called on a test/ file" $ do
+        staticEnv <- initStaticEnv
+        hieFile <- runStaticLsM staticEnv $
+          srcFilePathToHieFilePath "test/StaticLS/HIE/FileSpec.hs"
+        let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
+        hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
+
+        relativeHieFile `shouldBe` Just ".hiefiles/StaticLS/HIE/FileSpec.hie"
+        hieFileExists `shouldBe` True

@@ -34,7 +34,7 @@ findRefs tdi position = do
                         hieAstNodeToIdentifiers
                     )
             namesAtPoint = identifiersToNames identifiersAtPoint
-            occNamesAndModulesAtPoint =
+            occNamesAndModNamesAtPoint =
                 (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
                     <$> namesAtPoint
         refResRows <-
@@ -44,7 +44,7 @@ findRefs tdi position = do
                         ( \(occ, mModName) -> do
                             HieDb.findReferences hieDb False occ mModName Nothing []
                         )
-                        occNamesAndModulesAtPoint
+                        occNamesAndModNamesAtPoint
         lift $ catMaybes <$> mapM refRowToLocation refResRows
     pure $ fromMaybe [] mLocList
 

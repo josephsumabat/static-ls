@@ -14,54 +14,15 @@ import qualified GHC.Types.Name.Cache as GHC
 import HieDb (getHieFilesIn, pointCommand)
 import Language.LSP.Types
 import qualified Language.LSP.Types as LSP
+import StaticLS.HIE.File
 import System.Directory (makeAbsolute)
 import System.FilePath (normalise, (</>))
 
 type HieDbCoords = (Int, Int)
-type SrcFilePath = FilePath
-type HieFilePath = FilePath
-
-data HieInfo = HieInfo
-    { hieFilePath :: HieFilePath
-    , hieFile :: GHC.HieFile
-    }
-
--- TODO: make this configurable (use hie.yaml?)
-hieDir :: FilePath
-hieDir = ".hiefiles"
 
 hieAstNodeToIdentifiers :: GHC.HieAST a -> [GHC.Identifier]
 hieAstNodeToIdentifiers =
     (Set.toList . Map.keysSet) <=< fmap GHC.nodeIdentifiers . Map.elems . GHC.getSourcedNodeInfo . GHC.sourcedNodeInfo
-
--- | TODO: Fix the hie src path indexing so we dont need to do this load on startup
-getHieFileMap :: FilePath -> IO (Map.Map SrcFilePath HieInfo)
-getHieFileMap wsroot = do
-    let hieFullPath = wsroot </> hieDir
-    hieFilePaths <- getHieFilesIn hieFullPath
-    nameCache <- GHC.initNameCache 'a' []
-    srcPathHieInfoPairs <- mapM (srcFileToHieFileInfo nameCache) hieFilePaths
-
-    pure $ Map.fromList srcPathHieInfoPairs
-  where
-    hieFileResultToSrcPath :: GHC.HieFileResult -> SrcFilePath
-    hieFileResultToSrcPath = GHC.hie_hs_file . GHC.hie_file_result
-
-    srcFileToHieFileInfo :: GHC.NameCache -> HieFilePath -> IO (SrcFilePath, HieInfo)
-    srcFileToHieFileInfo nameCache hieFilePath = do
-        hieFileResult <- GHC.readHieFile nameCache hieFilePath
-        absSrcFilePath <- makeAbsolute hieFileResult.hie_file_result.hie_hs_file
-        absHieFilePath <- makeAbsolute hieFilePath
-        let hieInfo =
-                HieInfo
-                    { hieFilePath = absHieFilePath
-                    , hieFile = hieFileResult.hie_file_result
-                    }
-        pure (absSrcFilePath, hieInfo)
-
-hieFileMapToSrcMap :: Map.Map SrcFilePath HieInfo -> Map.Map HieFilePath SrcFilePath
-hieFileMapToSrcMap =
-    Map.fromList . (fmap (\(srcPath, hieInfo) -> (hieInfo.hieFilePath, srcPath))) . Map.toList
 
 identifiersToNames :: [GHC.Identifier] -> [GHC.Name]
 identifiersToNames =

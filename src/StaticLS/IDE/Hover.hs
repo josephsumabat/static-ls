@@ -25,16 +25,17 @@ import qualified GHC.Driver.Session as GHC
 import qualified GHC.Utils.Outputable as GHC
 import HieDb (pointCommand)
 import StaticLS.HIE
+import StaticLS.HIE.File
 import StaticLS.Monad
 
 retrieveHover :: (HasStaticEnv m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
 retrieveHover identifier position = do
     runMaybeT $ do
-        hieInfo <- MaybeT $ getHieInfo identifier
+        hieFile <- MaybeT $ getHieFile identifier
         let identifiers =
                 join
                     ( pointCommand
-                        hieInfo.hieFile
+                        hieFile
                         (lspPositionToHieDbCoords position)
                         Nothing
                         hieAstNodeToIdentifiers

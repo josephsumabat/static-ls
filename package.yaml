@@ -9,6 +9,7 @@ build-type: Simple
 dependencies:
 - base
 - directory
+- lsp
 
 ghc-options:
   - -fwrite-ide-info
@@ -24,12 +25,12 @@ library:
   dependencies:
     #- aeson
   - containers
+  - extra
   - filepath
   - ghc
   - ghc-paths
   - ghcide
   - hiedb
-  - lsp
   - lsp-types
   - mtl
   - silently
@@ -50,5 +51,9 @@ tests:
     source-dirs: test
     dependencies:
     - static-ls
-      # - hspec
+    - hspec
       # - lsp-types
+    - hspec-discover
+    build-tools:
+    - tasty-discover
+    defaults: hspec/hspec@main

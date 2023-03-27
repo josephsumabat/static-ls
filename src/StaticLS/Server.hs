@@ -77,8 +77,8 @@ handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req re
     let hoverParams = req._params
     staticEnv <- lift getStaticEnv
     let unitId = GHC.homeUnitId_ $ GHC.extractDynFlags staticEnv.hscEnv
-    mHieFile <- lift $ getHieInfo hoverParams._textDocument
 
+    --mHieFile <- lift $ getHieFile hoverParams._textDocument
     -- let testStr = maybe "oops" (\hieFile -> show $ hie_hs_file hieFile) mHieFile :: String
     -- let testStr = maybe "" id $ uriToFilePath $ hoverParams._textDocument._uri
     -- let testStr = Prelude.concat $ (fmap show) . Set.toList . Map.keysSet $ staticEnv.hieSrcFileMap
@@ -115,17 +115,12 @@ initServer serverConfig _ = do
             pure ()
         hscEnv <- liftIO $ GHC.runGhc (Just GHC.libdir) GHC.getSession
         nameCache <- liftIO $ GHC.initNameCache 'a' []
-        hieFileMap <- liftIO $ getHieFileMap wsRoot
-        let srcPathMap = hieFileMapToSrcMap hieFileMap
 
         let serverStaticEnv =
                 StaticEnv
                     { hieDbPath = databasePath
-                    , moduleMap = Map.empty
                     , hscEnv = hscEnv
                     , nameCache = nameCache
-                    , hieFileMap = hieFileMap
-                    , srcPathMap = srcPathMap
                     , wsRoot = wsRoot
                     }
         pure $

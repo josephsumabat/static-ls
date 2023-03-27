@@ -13,6 +13,7 @@ import HieDb
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE
+import StaticLS.HIE.File
 import StaticLS.Monad
 import System.Directory (makeAbsolute)
 import System.FilePath ((</>))
@@ -22,12 +23,12 @@ findRefs tdi position = do
     staticEnv <- getStaticEnv
     let databasePath = staticEnv.hieDbPath
     mLocList <- runMaybeT $ do
-        hieInfo <- MaybeT $ getHieInfo tdi
-        let moduleName = GHC.moduleName $ GHC.hie_module $ hieInfo.hieFile
+        hieFile <- MaybeT $ getHieFile tdi
+        let moduleName = GHC.moduleName $ GHC.hie_module hieFile
             identifiers =
                 join
                     ( HieDb.pointCommand
-                        hieInfo.hieFile
+                        hieFile
                         (lspPositionToHieDbCoords position)
                         Nothing
                         hieAstNodeToIdentifiers
@@ -42,17 +43,17 @@ findRefs tdi position = do
                             HieDb.findReferences hieDb False occ Nothing Nothing []
                         )
                         occNames
-        let refRows = (\(mRefrow HieDb.:. _) -> mRefrow) <$> refResRows
-        lift $ catMaybes <$> mapM refRowToLocation refRows
+        lift $ catMaybes <$> mapM refRowToLocation refResRows
     pure $ fromMaybe [] mLocList
 
-refRowToLocation :: HasStaticEnv m => HieDb.RefRow -> m (Maybe LSP.Location)
-refRowToLocation refRow = do
+refRowToLocation :: HasStaticEnv m =>  HieDb.Res HieDb.RefRow ->  m (Maybe LSP.Location)
+refRowToLocation (refRow HieDb.:. modInfo) = do
     staticEnv <- getStaticEnv
     let start = hiedbCoordsToLspPosition (refRow.refSLine, refRow.refSCol)
         end = hiedbCoordsToLspPosition (refRow.refELine, refRow.refECol)
         range = LSP.Range <$> start <*> end
-    hieFilePath <- liftIO (makeAbsolute $ staticEnv.wsRoot </> refRow.refSrc)
+        nameCache = staticEnv.nameCache
+        hieFilePath = refRow.refSrc
     file <- hieFilePathToSrcFilePath hieFilePath
-    let lspUri = LSP.filePathToUri <$> file
-    pure $ LSP.Location <$> lspUri <*> range
+    let lspUri = LSP.filePathToUri file
+    pure $ LSP.Location lspUri <$> range

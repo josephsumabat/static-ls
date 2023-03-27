@@ -2,6 +2,7 @@
 
 module StaticLS.Monad where
 
+import Control.Monad
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.IO.Unlift
 import Control.Monad.Trans (lift)
@@ -15,7 +16,6 @@ import qualified GHC.Types.Name.Cache as GHC
 import qualified GHC.Unit.Types as GHC
 import HieDb
 import qualified Language.LSP.Types as LSP
-import Control.Monad
 
 runStaticLsM :: StaticEnv -> StaticLsM a -> IO a
 runStaticLsM = flip runReaderT

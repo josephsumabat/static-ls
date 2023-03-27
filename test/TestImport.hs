@@ -24,18 +24,19 @@ import StaticLS.HIE
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
 import StaticLS.Monad
-import System.FilePath ((</>))
 import System.Directory
+import System.FilePath ((</>))
 
 initStaticEnv :: IO StaticEnv
 initStaticEnv = do
-  wsRoot <- makeAbsolute "."
-  let dbPath = wsRoot </> ".hiedb"
-  hscEnv <- liftIO $ GHC.runGhc (Just GHC.libdir) GHC.getSession
-  nameCache <- liftIO $ GHC.initNameCache 'a' []
-  pure $ StaticEnv
-                    { hieDbPath = dbPath
-                    , hscEnv = hscEnv
-                    , nameCache = nameCache
-                    , wsRoot = wsRoot
-                    }
+    wsRoot <- makeAbsolute "."
+    let dbPath = wsRoot </> ".hiedb"
+    hscEnv <- liftIO $ GHC.runGhc (Just GHC.libdir) GHC.getSession
+    nameCache <- liftIO $ GHC.initNameCache 'a' []
+    pure $
+        StaticEnv
+            { hieDbPath = dbPath
+            , hscEnv = hscEnv
+            , nameCache = nameCache
+            , wsRoot = wsRoot
+            }

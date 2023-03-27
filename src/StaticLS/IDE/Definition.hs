@@ -7,7 +7,6 @@ import StaticLS.HIE
 import StaticLS.Monad
 import System.FilePath ((</>))
 
-
 -- nameToLocation :: StaticLsM m => Name -> m (Maybe [Location])
 -- nameToLocation name =
 --  runMaybeT $ do

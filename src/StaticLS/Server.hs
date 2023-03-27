@@ -100,7 +100,6 @@ initStaticEnv serverConfig =
 initServer :: LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
 initServer serverConfig _ = do
     runExceptT $ do
-
         serverStaticEnv <- ExceptT $ initStaticEnv serverConfig
 
         pure $

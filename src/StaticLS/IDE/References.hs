@@ -35,20 +35,20 @@ findRefs tdi position = do
                     )
             namesAtPoint = identifiersToNames identifiersAtPoint
             occNamesAndModulesAtPoint =
-              (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
-                <$> namesAtPoint
+                (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
+                    <$> namesAtPoint
         refResRows <-
             lift $ runHieDb $ \hieDb -> do
                 join
                     <$> mapM
-                        ( \(occ,mModName) -> do
+                        ( \(occ, mModName) -> do
                             HieDb.findReferences hieDb False occ mModName Nothing []
                         )
                         occNamesAndModulesAtPoint
         lift $ catMaybes <$> mapM refRowToLocation refResRows
     pure $ fromMaybe [] mLocList
 
-refRowToLocation :: HasStaticEnv m =>  HieDb.Res HieDb.RefRow ->  m (Maybe LSP.Location)
+refRowToLocation :: HasStaticEnv m => HieDb.Res HieDb.RefRow -> m (Maybe LSP.Location)
 refRowToLocation (refRow HieDb.:. modInfo) = do
     staticEnv <- getStaticEnv
     let start = hiedbCoordsToLspPosition (refRow.refSLine, refRow.refSCol)

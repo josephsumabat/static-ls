@@ -7,9 +7,23 @@ license: MIT
 build-type: Simple
 
 dependencies:
-- base
-- directory
-- lsp
+  - base
+  - containers
+  - directory
+  - extra
+  - filepath
+  - ghc
+  - ghc-paths
+  - ghcide
+  - hiedb
+  - lsp
+  - lsp-types
+  - mtl
+  - silently
+  - template-haskell
+  - text
+  - transformers
+  - unliftio-core
 
 ghc-options:
   - -fwrite-ide-info
@@ -22,22 +36,6 @@ default-extensions:
 
 library:
   source-dirs: src
-  dependencies:
-    #- aeson
-  - containers
-  - extra
-  - filepath
-  - ghc
-  - ghc-paths
-  - ghcide
-  - hiedb
-  - lsp-types
-  - mtl
-  - silently
-  - text
-  - transformers
-  - template-haskell
-  - unliftio-core
 
 executable:
   source-dirs: app
@@ -52,8 +50,5 @@ tests:
     dependencies:
     - static-ls
     - hspec
-      # - lsp-types
     - hspec-discover
-    build-tools:
-    - tasty-discover
     defaults: hspec/hspec@main

@@ -65,9 +65,23 @@ executable static-ls
   ghc-options: -fwrite-ide-info -hiedir .hiefiles
   build-depends:
       base
+    , containers
     , directory
+    , extra
+    , filepath
+    , ghc
+    , ghc-paths
+    , ghcide
+    , hiedb
     , lsp
+    , lsp-types
+    , mtl
+    , silently
     , static-ls
+    , template-haskell
+    , text
+    , transformers
+    , unliftio-core
   default-language: Haskell2010
 
 test-suite static-ls-test
@@ -75,6 +89,7 @@ test-suite static-ls-test
   main-is: Main.hs
   other-modules:
       StaticLS.HIE.FileSpec
+      TestImport
       Paths_static_ls
   hs-source-dirs:
       test
@@ -87,9 +102,23 @@ test-suite static-ls-test
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       base
+    , containers
     , directory
+    , extra
+    , filepath
+    , ghc
+    , ghc-paths
+    , ghcide
+    , hiedb
     , hspec
     , hspec-discover
     , lsp
+    , lsp-types
+    , mtl
+    , silently
     , static-ls
+    , template-haskell
+    , text
+    , transformers
+    , unliftio-core
   default-language: Haskell2010

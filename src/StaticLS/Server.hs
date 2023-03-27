@@ -78,10 +78,6 @@ handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req re
     staticEnv <- lift getStaticEnv
     let unitId = GHC.homeUnitId_ $ GHC.extractDynFlags staticEnv.hscEnv
 
-    --mHieFile <- lift $ getHieFile hoverParams._textDocument
-    -- let testStr = maybe "oops" (\hieFile -> show $ hie_hs_file hieFile) mHieFile :: String
-    -- let testStr = maybe "" id $ uriToFilePath $ hoverParams._textDocument._uri
-    -- let testStr = Prelude.concat $ (fmap show) . Set.toList . Map.keysSet $ staticEnv.hieSrcFileMap
     hover <- lift $ retrieveHover hoverParams._textDocument hoverParams._position
     resp (Right hover)
   where
@@ -93,26 +89,19 @@ handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req re
                     (HoverContents $ MarkupContent MkMarkdown s)
                     Nothing
 
--- handleDefinitionRequest :: Handlers (LspT c IO)
--- handleDefinitionRequest = requestHandler STextDocumentDefinition $ req res ->
---
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler STextDocumentReferences $ \req res -> do
     let refParams = req._params
     refs <- lift $ findRefs refParams._textDocument refParams._position
     res $ Right . List $ refs
 
-{- | Test123
-abc
--}
-initServer :: LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
-initServer serverConfig _ = do
+initStaticEnv :: LanguageContextEnv config -> IO (Either ResponseError StaticEnv)
+initStaticEnv serverConfig =
     runExceptT $ do
         wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
+        -- TODO: make configurable?
         let databasePath = wsRoot </> ".hiedb"
-        _ <- liftIO $ withHieDb databasePath $ \hieDb -> do
-            _ <- initConn hieDb
-            pure ()
+        -- TODO: find out if this is safe to do or if we should just use GhcT
         hscEnv <- liftIO $ GHC.runGhc (Just GHC.libdir) GHC.getSession
         -- TODO: not sure what the first parameter to name cache is - find out
         nameCache <- liftIO $ GHC.initNameCache 'a' []
@@ -124,11 +113,7 @@ initServer serverConfig _ = do
                     , nameCache = nameCache
                     , wsRoot = wsRoot
                     }
-        pure $
-            LspEnv
-                { staticEnv = serverStaticEnv
-                , config = serverConfig
-                }
+        pure serverStaticEnv
   where
     getWsRoot :: LSP.LspM config (Either ResponseError FilePath)
     getWsRoot = do
@@ -136,6 +121,18 @@ initServer serverConfig _ = do
         pure $ case mRootPath of
             Nothing -> Left $ ResponseError InvalidRequest "No root workspace was found" Nothing
             Just p -> Right p
+
+initServer :: LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
+initServer serverConfig _ = do
+    runExceptT $ do
+
+        serverStaticEnv <- ExceptT $ initStaticEnv serverConfig
+
+        pure $
+            LspEnv
+                { staticEnv = serverStaticEnv
+                , config = serverConfig
+                }
 
 serverDef :: ServerDefinition ()
 serverDef =

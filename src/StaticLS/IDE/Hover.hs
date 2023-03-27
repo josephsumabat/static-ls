@@ -28,6 +28,7 @@ import StaticLS.HIE
 import StaticLS.HIE.File
 import StaticLS.Monad
 
+-- | Retrive hover information. Incomplete
 retrieveHover :: (HasStaticEnv m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
 retrieveHover identifier position = do
     runMaybeT $ do

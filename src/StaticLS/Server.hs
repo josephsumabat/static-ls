@@ -41,31 +41,6 @@ data LspEnv config = LspEnv
     , config :: LanguageContextEnv config
     }
 
--- hieInit :: LanguageContextEnv a -> IO (Either ResponseError (LanguageContextEnv a))
--- hieInit env = runExceptT $ do
---  wsroot <- getWsRootInit
---  let database = wsroot </> ".hiedb"
---  lift . withHieDb database $ \hiedb -> do
---    initConn hiedb
---    hieFiles <- getHieFilesIn (wsroot </> ".hiefiles")
---    let options =
---          Options
---            { trace = False,
---              quiet = True,
---              colour = True,
---              context = Nothing,
---              reindex = False,
---              keepMissing = False,
---              database
---            }
---    doIndex hiedb options stderr hieFiles
---    pure env
---  where
---    getWsRootInit =
---      case resRootPath env of
---        Nothing -> throwE $ ResponseError InvalidRequest "No root workspace was found" Nothing
---        Just wsroot -> pure wsroot
-
 handleChangeConfiguration :: Handlers (LspT c StaticLsM)
 handleChangeConfiguration = LSP.notificationHandler SWorkspaceDidChangeConfiguration $ pure $ pure ()
 

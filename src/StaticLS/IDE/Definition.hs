@@ -7,9 +7,6 @@ import StaticLS.HIE
 import StaticLS.Monad
 import System.FilePath ((</>))
 
-data DefinitionInfo = DefinitionInfo
-    {
-    }
 
 -- nameToLocation :: StaticLsM m => Name -> m (Maybe [Location])
 -- nameToLocation name =

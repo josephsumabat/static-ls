@@ -10,8 +10,6 @@ spec :: Spec
 spec =
   describe "Can convert from src to hie file and vice versa" $ do
     describe "src file to hie file" $ do
-      hiePath <- runIO $ srcFilePathToHieFilePath "." "src/StaticLS/HIE/File.hs"
-      runIO $ print "TEST"
-      runIO $ print hiePath
+      --TODO: test for file fn
       runIO $ 1 `shouldBe` 1
     

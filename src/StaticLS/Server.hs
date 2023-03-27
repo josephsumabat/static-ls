@@ -114,6 +114,7 @@ initServer serverConfig _ = do
             _ <- initConn hieDb
             pure ()
         hscEnv <- liftIO $ GHC.runGhc (Just GHC.libdir) GHC.getSession
+        -- TODO: not sure what the first parameter to name cache is - find out
         nameCache <- liftIO $ GHC.initNameCache 'a' []
 
         let serverStaticEnv =

@@ -25,7 +25,7 @@ findRefs tdi position = do
     mLocList <- runMaybeT $ do
         hieFile <- MaybeT $ getHieFile tdi
         let moduleName = GHC.moduleName $ GHC.hie_module hieFile
-            identifiers =
+            identifiersAtPoint =
                 join
                     ( HieDb.pointCommand
                         hieFile
@@ -33,16 +33,18 @@ findRefs tdi position = do
                         Nothing
                         hieAstNodeToIdentifiers
                     )
-            names = identifiersToNames identifiers
-            occNames = GHC.occName <$> names
+            namesAtPoint = identifiersToNames identifiersAtPoint
+            occNamesAndModulesAtPoint =
+              (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
+                <$> namesAtPoint
         refResRows <-
             lift $ runHieDb $ \hieDb -> do
                 join
                     <$> mapM
-                        ( \occ -> do
-                            HieDb.findReferences hieDb False occ Nothing Nothing []
+                        ( \(occ,mModName) -> do
+                            HieDb.findReferences hieDb False occ mModName Nothing []
                         )
-                        occNames
+                        occNamesAndModulesAtPoint
         lift $ catMaybes <$> mapM refRowToLocation refResRows
     pure $ fromMaybe [] mLocList
 
@@ -52,7 +54,6 @@ refRowToLocation (refRow HieDb.:. modInfo) = do
     let start = hiedbCoordsToLspPosition (refRow.refSLine, refRow.refSCol)
         end = hiedbCoordsToLspPosition (refRow.refELine, refRow.refECol)
         range = LSP.Range <$> start <*> end
-        nameCache = staticEnv.nameCache
         hieFilePath = refRow.refSrc
     file <- hieFilePathToSrcFilePath hieFilePath
     let lspUri = LSP.filePathToUri file

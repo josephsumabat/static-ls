@@ -53,11 +53,14 @@ getHieFile tdi = do
 hieFilePathToSrcFilePath :: HasStaticEnv m => HieFilePath -> m SrcFilePath
 hieFilePathToSrcFilePath hiePath = do
   staticEnv <- getStaticEnv
+  -- TODO: handle failure here
   hieFileResult <- liftIO $ GHC.readHieFile staticEnv.nameCache hiePath
   liftIO $ makeAbsolute hieFileResult.hie_file_result.hie_hs_file
 
--- | Retrieve a hie file path by reading a src path - fragile but works decently
--- in practice
+-- | Retrieve a hie file path from a src path
+--
+-- Substitutes the src directory with the hie directory and the src file extension with
+-- the hie file extension. Fragile, but works well in practice.
 --
 -- Presently necessary because hiedb does not currently index the hs_src file location
 -- in the `mods` table
@@ -71,7 +74,7 @@ srcFilePathToHieFilePath srcPath = do
   
       -- Drop all src directory prefixes
   let noPrefixSrcPath = dropPrefix absoluteSrcDir absoluteSrcPath
-      -- Set the hie directory path and the file extension
+      -- Set the hie directory path and substitute the file extension
       hiePath = absoluteHieDir </> noPrefixSrcPath  -<.> ".hie"
   fileExists <- liftIO $ doesFileExist hiePath 
   

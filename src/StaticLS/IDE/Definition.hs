@@ -4,6 +4,7 @@ import GHC.Plugins
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE
+import StaticLS.HIE.File
 import StaticLS.Monad
 import System.FilePath ((</>))
 
@@ -17,5 +18,7 @@ defRowToLocation defRow = do
     let start = hiedbCoordsToLspPosition (defRow.defSLine, defRow.defSCol)
         end = hiedbCoordsToLspPosition (defRow.defELine, defRow.defECol)
         range = LSP.Range <$> start <*> end
-        file = LSP.filePathToUri $ staticEnv.wsRoot </> defRow.defSrc
-    pure $ LSP.Location file <$> range
+        hieFilePath = defRow.defSrc
+    file <- hieFilePathToSrcFilePath hieFilePath
+    let lspUri = LSP.filePathToUri <$> file
+    pure $ LSP.Location <$> lspUri <*> range

@@ -32,8 +32,9 @@ import StaticLS.Monad
 retrieveHover :: (HasStaticEnv m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
 retrieveHover identifier position = do
     runMaybeT $ do
-        hieFile <- MaybeT $ getHieFile identifier
+        hieFile <- MaybeT $ getHieFileFromTdi identifier
         let identifiers =
+              -- TODO: catch/handle db errors
                 join
                     ( pointCommand
                         hieFile

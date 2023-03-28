@@ -23,9 +23,10 @@ findRefs tdi position = do
     staticEnv <- getStaticEnv
     let databasePath = staticEnv.hieDbPath
     mLocList <- runMaybeT $ do
-        hieFile <- MaybeT $ getHieFile tdi
+        hieFile <- MaybeT $ getHieFileFromTdi tdi
         let moduleName = GHC.moduleName $ GHC.hie_module hieFile
             identifiersAtPoint =
+              -- TODO: catch/handle db errors
                 join
                     ( HieDb.pointCommand
                         hieFile
@@ -56,5 +57,5 @@ refRowToLocation (refRow HieDb.:. modInfo) = do
         range = LSP.Range <$> start <*> end
         hieFilePath = refRow.refSrc
     file <- hieFilePathToSrcFilePath hieFilePath
-    let lspUri = LSP.filePathToUri file
-    pure $ LSP.Location lspUri <$> range
+    let lspUri = LSP.filePathToUri <$> file
+    pure $ LSP.Location <$> lspUri <*> range

@@ -1,5 +1,6 @@
 module StaticLS.HIE.File where
 
+import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.IO.Unlift
@@ -25,10 +26,6 @@ import System.FilePath (normalise, (-<.>), (</>))
 
 type SrcFilePath = FilePath
 type HieFilePath = FilePath
-data HieInfo = HieInfo
-    { hieFilePath :: HieFilePath
-    , hieFile :: GHC.HieFile
-    }
 
 -- TODO: make this configurable (use hie.yaml?)
 hieDir :: FilePath
@@ -39,24 +36,32 @@ srcDirs :: [FilePath]
 srcDirs = ["src/", "lib/", "test/"]
 
 -- | Retrieve a hie info from a lsp text document identifier
-getHieFile :: HasStaticEnv m => LSP.TextDocumentIdentifier -> m (Maybe GHC.HieFile)
-getHieFile tdi = do
+getHieFileFromTdi :: HasStaticEnv m => LSP.TextDocumentIdentifier -> m (Maybe GHC.HieFile)
+getHieFileFromTdi tdi = do
     staticEnv <- getStaticEnv
-    hieFilePath <- runMaybeT $ do
+    runMaybeT $ do
         srcFilePath <- MaybeT $ pure $ LSP.uriToFilePath tdi._uri
-        MaybeT $ srcFilePathToHieFilePath srcFilePath
-    liftIO $ mapM (pure . GHC.hie_file_result <=< GHC.readHieFile staticEnv.nameCache) hieFilePath
+        hieFilePath <- MaybeT $ srcFilePathToHieFilePath srcFilePath
+        MaybeT $ getHieFile hieFilePath
+
+getHieFile :: HasStaticEnv m => HieFilePath -> m (Maybe GHC.HieFile)
+getHieFile hieFilePath = do
+    staticEnv <- getStaticEnv
+    liftIO $
+        (Just <$> (pure . GHC.hie_file_result <=< GHC.readHieFile staticEnv.nameCache) hieFilePath)
+            -- Return nothing if the file failed to read
+            `catch` (\e -> let _ = (e :: IOException) in pure Nothing)
 
 -----------------------------------------------------------------------------------
 -- File/Directory method for getting hie files - faster but somewhat "hacky"
 -----------------------------------------------------------------------------------
 
-hieFilePathToSrcFilePath :: HasStaticEnv m => HieFilePath -> m SrcFilePath
+hieFilePathToSrcFilePath :: HasStaticEnv m => HieFilePath -> m (Maybe SrcFilePath)
 hieFilePathToSrcFilePath hiePath = do
     staticEnv <- getStaticEnv
-    -- TODO: handle failure here
-    hieFileResult <- liftIO $ GHC.readHieFile staticEnv.nameCache hiePath
-    liftIO $ makeAbsolute hieFileResult.hie_file_result.hie_hs_file
+    runMaybeT $ do
+        hieFile <- MaybeT (getHieFile hiePath)
+        liftIO $ makeAbsolute (hieFile.hie_hs_file)
 
 {- | Retrieve a hie file path from a src path
 
@@ -90,6 +95,10 @@ srcFilePathToHieFilePath srcPath = do
 -- Map index method for getting hie files - too slow in practice on startup but makes
 -- finding references for functions that are used a lot much faster
 -----------------------------------------------------------------------------------
+data HieInfo = HieInfo
+    { hieFilePath :: HieFilePath
+    , hieFile :: GHC.HieFile
+    }
 
 -- | TODO: Fix the hie src path indexing so we dont need to do this load on startup
 getHieFileMap :: FilePath -> IO (Map.Map SrcFilePath HieInfo)

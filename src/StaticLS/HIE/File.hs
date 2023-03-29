@@ -23,6 +23,7 @@ import qualified Language.LSP.Types as LSP
 import StaticLS.Monad
 import System.Directory (doesFileExist, makeAbsolute)
 import System.FilePath (normalise, (-<.>), (</>))
+import Data.Either (fromRight)
 
 type SrcFilePath = FilePath
 type HieFilePath = FilePath
@@ -52,9 +53,25 @@ getHieFile hieFilePath = do
             -- Return nothing if the file failed to read
             `catch` (\e -> let _ = (e :: IOException) in pure Nothing)
 
+modToHieFile :: HasStaticEnv m => GHC.ModuleName -> m (Maybe GHC.HieFile)
+modToHieFile = runMaybeT . (MaybeT . getHieFile <=< MaybeT . modToHieFilePath)
+
+modToSrcFile :: HasStaticEnv m => GHC.ModuleName -> m (Maybe SrcFilePath)
+modToSrcFile = runMaybeT . (MaybeT . hieFilePathToSrcFilePath <=< MaybeT . modToHieFilePath)
+
 -----------------------------------------------------------------------------------
 -- File/Directory method for getting hie files - faster but somewhat "hacky"
 -----------------------------------------------------------------------------------
+
+modToHieFilePath :: HasStaticEnv m => GHC.ModuleName -> m (Maybe HieFilePath)
+modToHieFilePath modName =
+  runHieDb $ \hieDb -> do
+    runMaybeT $ do
+      unitId <- MaybeT $
+            either (const Nothing) Just
+        <$> resolveUnitId hieDb modName
+      hieModRow <- MaybeT $ lookupHieFile hieDb modName unitId
+      pure hieModRow.hieModuleHieFile
 
 hieFilePathToSrcFilePath :: HasStaticEnv m => HieFilePath -> m (Maybe SrcFilePath)
 hieFilePathToSrcFilePath hiePath = do

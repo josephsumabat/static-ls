@@ -15,6 +15,7 @@ import HieDb (
     initConn,
     withHieDb,
  )
+import StaticLS.IDE.Definition
 import Language.LSP.Server (
     Handlers,
     LanguageContextEnv,
@@ -63,6 +64,12 @@ handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req re
                 Hover
                     (HoverContents $ MarkupContent MkMarkdown s)
                     Nothing
+
+handleDefinitionRequest :: Handlers (LspT c StaticLsM)
+handleDefinitionRequest = LSP.requestHandler STextDocumentDefinition $ \req res -> do
+    let defParams = req._params
+    defs <- lift $ locationsAtPoint defParams._textDocument defParams._position
+    res $ Right . InR . InL . List $ defs
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler STextDocumentReferences $ \req res -> do
@@ -118,6 +125,7 @@ serverDef =
                 [ handleInitialized
                 , handleChangeConfiguration
                 , handleTextDocumentHoverRequest
+                , handleDefinitionRequest
                 , handleReferencesRequest
                 ]
         , interpretHandler = \env -> Iso (runStaticLsM env.staticEnv . LSP.runLspT env.config) liftIO

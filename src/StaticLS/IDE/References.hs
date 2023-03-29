@@ -26,7 +26,6 @@ findRefs tdi position = do
         hieFile <- MaybeT $ getHieFileFromTdi tdi
         let moduleName = GHC.moduleName $ GHC.hie_module hieFile
             identifiersAtPoint =
-              -- TODO: catch/handle db errors
                 join
                     ( HieDb.pointCommand
                         hieFile

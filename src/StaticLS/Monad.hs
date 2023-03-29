@@ -14,6 +14,7 @@ import qualified GHC.Iface.Ext.Binary as GHC
 import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Types.Name.Cache as GHC
 import qualified GHC.Unit.Types as GHC
+import Control.Exception
 import HieDb
 import qualified Language.LSP.Types as LSP
 
@@ -43,5 +44,9 @@ instance HasStaticEnv StaticLsM where
     getStaticEnv = ask
 
 -- | Run an hiedb action
-runHieDb :: HasStaticEnv m => (HieDb -> IO a) -> m a
-runHieDb hieDbFn = getStaticEnv >>= \staticEnv -> liftIO $ HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn
+runHieDb :: (HasStaticEnv m, MonadFail f) => (HieDb -> IO (f a)) -> m (f a)
+runHieDb hieDbFn = getStaticEnv >>=
+  \staticEnv ->
+    liftIO $ do
+      HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn
+        `catch` \e -> let s = e :: IOException in fail (show s)

@@ -49,4 +49,4 @@ runHieDb hieDbFn = getStaticEnv >>=
   \staticEnv ->
     liftIO $ do
       HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn
-        `catch` \e -> let s = e :: IOException in fail (show s)
+        `catch` \e -> let s = e :: IOException in pure $ fail (show s)

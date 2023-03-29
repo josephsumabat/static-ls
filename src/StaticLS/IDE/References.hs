@@ -56,5 +56,5 @@ refRowToLocation (refRow HieDb.:. modInfo) = do
         range = LSP.Range <$> start <*> end
         hieFilePath = refRow.refSrc
     file <- hieFilePathToSrcFilePath hieFilePath
-    let lspUri = LSP.filePathToUri <$> file
+    let lspUri = LSP.fromNormalizedUri . LSP.normalizedFilePathToUri . LSP.toNormalizedFilePath <$> file
     pure $ LSP.Location <$> lspUri <*> range

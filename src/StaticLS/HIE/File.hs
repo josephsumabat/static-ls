@@ -7,6 +7,7 @@ import Control.Monad.IO.Unlift
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Control.Monad.Trans.Reader (ReaderT (..), ask)
+import Data.Either (fromRight)
 import Data.List
 import Data.List.Extra (dropPrefix)
 import qualified Data.Map as Map
@@ -23,7 +24,6 @@ import qualified Language.LSP.Types as LSP
 import StaticLS.Monad
 import System.Directory (doesFileExist, makeAbsolute)
 import System.FilePath (normalise, (-<.>), (</>))
-import Data.Either (fromRight)
 
 type SrcFilePath = FilePath
 type HieFilePath = FilePath
@@ -65,13 +65,14 @@ modToSrcFile = runMaybeT . (MaybeT . hieFilePathToSrcFilePath <=< MaybeT . modTo
 
 modToHieFilePath :: HasStaticEnv m => GHC.ModuleName -> m (Maybe HieFilePath)
 modToHieFilePath modName =
-  runHieDb $ \hieDb -> do
-    runMaybeT $ do
-      unitId <- MaybeT $
-            either (const Nothing) Just
-        <$> resolveUnitId hieDb modName
-      hieModRow <- MaybeT $ lookupHieFile hieDb modName unitId
-      pure hieModRow.hieModuleHieFile
+    runHieDb $ \hieDb -> do
+        runMaybeT $ do
+            unitId <-
+                MaybeT $
+                    either (const Nothing) Just
+                        <$> resolveUnitId hieDb modName
+            hieModRow <- MaybeT $ lookupHieFile hieDb modName unitId
+            pure hieModRow.hieModuleHieFile
 
 hieFilePathToSrcFilePath :: HasStaticEnv m => HieFilePath -> m (Maybe SrcFilePath)
 hieFilePathToSrcFilePath hiePath = do

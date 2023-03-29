@@ -15,7 +15,6 @@ import HieDb (
     initConn,
     withHieDb,
  )
-import StaticLS.IDE.Definition
 import Language.LSP.Server (
     Handlers,
     LanguageContextEnv,
@@ -26,6 +25,7 @@ import Language.LSP.Server (
 import qualified Language.LSP.Server as LSP
 import Language.LSP.Types
 import StaticLS.HIE
+import StaticLS.IDE.Definition
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
 import StaticLS.Monad

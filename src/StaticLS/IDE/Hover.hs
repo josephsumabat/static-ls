@@ -1,10 +1,11 @@
-module StaticLS.IDE.Hover -- (retrieveHover)
-where
+module StaticLS.IDE.Hover where
 
 import Control.Monad.IO.Class (liftIO)
+import Data.Maybe (listToMaybe)
 import Data.Text (intercalate)
 import Development.IDE.Spans.Common
 import Development.IDE.Spans.Documentation
+import qualified GHC.Iface.Ext.Types as GHC
 import Language.LSP.Types (
     Hover (..),
     HoverContents (..),
@@ -14,6 +15,7 @@ import Language.LSP.Types (
     TextDocumentIdentifier,
     sectionSeparator,
  )
+import StaticLS.IDE.Hover.Info
 
 import Control.Monad (join)
 import Control.Monad.Trans.Class (lift)
@@ -41,34 +43,21 @@ retrieveHover identifier position = do
                         Nothing
                         hieAstNodeToIdentifiers
                     )
-        case identifiers of
-            ((Left moduleName) : xs) -> lift $ hoverFromModule moduleName
-            ((Right name) : xs) -> MaybeT $ hoverFromName name
-            _ -> MaybeT $ pure Nothing
-
-hoverFromModule :: (HasStaticEnv m) => GHC.ModuleName -> m Hover
-hoverFromModule modName = do
-    output <- showGhc modName
-    pure $
+        let info =
+                listToMaybe $
+                    pointCommand
+                        hieFile
+                        (lspPositionToHieDbCoords position)
+                        Nothing
+                        (hoverInfo (GHC.hie_types hieFile))
+        MaybeT $ pure $ hoverInfoToHover <$> info
+  where
+    -- hoverInfoToHover :: (Maybe Range,
+    hoverInfoToHover (mRange, contents) =
         Hover
-            { _range = Nothing
-            , _contents = HoverContents $ MarkupContent MkMarkdown $ T.pack output
+            { _range = mRange
+            , _contents = HoverContents $ MarkupContent MkMarkdown $ intercalate sectionSeparator contents
             }
-
-hoverFromName :: (HasStaticEnv m) => GHC.Name -> m (Maybe Hover)
-hoverFromName name = do
-    staticEnv <- getStaticEnv
-    spanDoc <- liftIO $ getDocumentationTryGhc staticEnv.hscEnv name
-    output <- showGhc name
-    let
-        contents = spanDocToMarkdown spanDoc
-        hoverInfo =
-            Hover
-                { _range = Nothing
-                , -- , _contents = HoverContents $ MarkupContent MkMarkdown $ intercalate sectionSeparator contents
-                  _contents = HoverContents $ MarkupContent MkMarkdown $ T.pack output
-                }
-    pure $ Just hoverInfo
 
 showGhc :: (HasStaticEnv m, GHC.Outputable o) => o -> m String
 showGhc outputable = do

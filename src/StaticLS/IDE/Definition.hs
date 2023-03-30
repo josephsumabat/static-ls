@@ -1,6 +1,7 @@
 module StaticLS.IDE.Definition where
 
 import Control.Monad (guard, join)
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe
 import Data.List (isSuffixOf)
@@ -17,12 +18,12 @@ import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE
 import StaticLS.HIE.File
-import StaticLS.Monad
+import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.FilePath ((</>))
 
 locationsAtPoint ::
-    HasStaticEnv m =>
+    (HasStaticEnv m, MonadIO m) =>
     LSP.TextDocumentIdentifier ->
     LSP.Position ->
     m [LSP.Location]
@@ -39,13 +40,13 @@ locationsAtPoint tdi pos = do
         join <$> mapM (MaybeT . fmap Just . identifierToLocation) identifiersAtPoint
     pure $ fromMaybe [] mLocs
   where
-    identifierToLocation :: HasStaticEnv m => GHC.Identifier -> m [LSP.Location]
+    identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [LSP.Location]
     identifierToLocation =
         either
             (fmap maybeToList . modToLocation)
             nameToLocation
 
-    modToLocation :: HasStaticEnv m => ModuleName -> m (Maybe LSP.Location)
+    modToLocation :: (HasStaticEnv m, MonadIO m) => ModuleName -> m (Maybe LSP.Location)
     modToLocation modName =
         let zeroPos = LSP.Position 0 0
             zeroRange = LSP.Range zeroPos zeroPos
@@ -58,7 +59,7 @@ locationsAtPoint tdi pos = do
 ---------------------------------------------------------------------
 
 -- | Given a 'Name' attempt to find the location where it is defined.
-nameToLocation :: HasStaticEnv m => Name -> m [LSP.Location]
+nameToLocation :: (HasStaticEnv m, MonadIO m) => Name -> m [LSP.Location]
 nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
     case nameSrcSpan name of
         sp@(RealSrcSpan rsp _)
@@ -75,7 +76,7 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
                             fallbackToDb sp
         sp -> fallbackToDb sp
   where
-    fallbackToDb :: HasStaticEnv m => SrcSpan -> MaybeT m [LSP.Location]
+    fallbackToDb :: (HasStaticEnv m, MonadIO m) => SrcSpan -> MaybeT m [LSP.Location]
     fallbackToDb sp = do
         guard (sp /= wiredInSrcSpan)
         -- This case usually arises when the definition is in an external package.
@@ -104,7 +105,7 @@ srcSpanToLocation src =
         -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
         pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath fs) rng
 
-defRowToLocation :: HasStaticEnv m => HieDb.Res HieDb.DefRow -> m (Maybe LSP.Location)
+defRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> m (Maybe LSP.Location)
 defRowToLocation (defRow HieDb.:. _) = do
     staticEnv <- getStaticEnv
     let start = hiedbCoordsToLspPosition (defRow.defSLine, defRow.defSCol)

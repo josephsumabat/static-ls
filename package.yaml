@@ -30,6 +30,7 @@ dependencies:
 ghc-options:
   - -fwrite-ide-info
 default-extensions:
+- FlexibleContexts
 - OverloadedRecordDot
 - OverloadedStrings
 - NoFieldSelectors

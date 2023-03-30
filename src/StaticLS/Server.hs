@@ -28,7 +28,7 @@ import StaticLS.HIE
 import StaticLS.IDE.Definition
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
-import StaticLS.Monad
+import StaticLS.StaticEnv
 import System.FilePath ((</>))
 import System.IO.Silently
 
@@ -42,13 +42,13 @@ data LspEnv config = LspEnv
     , config :: LanguageContextEnv config
     }
 
-handleChangeConfiguration :: Handlers (LspT c StaticLsM)
+handleChangeConfiguration :: Handlers (LspT c StaticLs)
 handleChangeConfiguration = LSP.notificationHandler SWorkspaceDidChangeConfiguration $ pure $ pure ()
 
-handleInitialized :: Handlers (LspT c StaticLsM)
+handleInitialized :: Handlers (LspT c StaticLs)
 handleInitialized = LSP.notificationHandler SInitialized $ pure $ pure ()
 
-handleTextDocumentHoverRequest :: Handlers (LspT c StaticLsM)
+handleTextDocumentHoverRequest :: Handlers (LspT c StaticLs)
 handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req resp -> do
     let hoverParams = req._params
     staticEnv <- lift getStaticEnv
@@ -65,37 +65,28 @@ handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req re
                     (HoverContents $ MarkupContent MkMarkdown s)
                     Nothing
 
-handleDefinitionRequest :: Handlers (LspT c StaticLsM)
+handleDefinitionRequest :: Handlers (LspT c StaticLs)
 handleDefinitionRequest = LSP.requestHandler STextDocumentDefinition $ \req res -> do
     let defParams = req._params
     defs <- lift $ locationsAtPoint defParams._textDocument defParams._position
     res $ Right . InR . InL . List $ defs
 
-handleReferencesRequest :: Handlers (LspT c StaticLsM)
+handleReferencesRequest :: Handlers (LspT c StaticLs)
 handleReferencesRequest = LSP.requestHandler STextDocumentReferences $ \req res -> do
     let refParams = req._params
     refs <- lift $ findRefs refParams._textDocument refParams._position
     res $ Right . List $ refs
 
-initStaticEnv :: LanguageContextEnv config -> IO (Either ResponseError StaticEnv)
-initStaticEnv serverConfig =
+initServer :: LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
+initServer serverConfig _ = do
     runExceptT $ do
         wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
-        -- TODO: make configurable?
-        let databasePath = wsRoot </> ".hiedb"
-        -- TODO: find out if this is safe to do or if we should just use GhcT
-        hscEnv <- liftIO $ GHC.runGhc (Just GHC.libdir) GHC.getSession
-        -- TODO: not sure what the first parameter to name cache is - find out
-        nameCache <- liftIO $ GHC.initNameCache 'a' []
-
-        let serverStaticEnv =
-                StaticEnv
-                    { hieDbPath = databasePath
-                    , hscEnv = hscEnv
-                    , nameCache = nameCache
-                    , wsRoot = wsRoot
-                    }
-        pure serverStaticEnv
+        serverStaticEnv <- ExceptT $ Right <$> initStaticEnv wsRoot
+        pure $
+            LspEnv
+                { staticEnv = serverStaticEnv
+                , config = serverConfig
+                }
   where
     getWsRoot :: LSP.LspM config (Either ResponseError FilePath)
     getWsRoot = do
@@ -103,17 +94,6 @@ initStaticEnv serverConfig =
         pure $ case mRootPath of
             Nothing -> Left $ ResponseError InvalidRequest "No root workspace was found" Nothing
             Just p -> Right p
-
-initServer :: LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
-initServer serverConfig _ = do
-    runExceptT $ do
-        serverStaticEnv <- ExceptT $ initStaticEnv serverConfig
-
-        pure $
-            LspEnv
-                { staticEnv = serverStaticEnv
-                , config = serverConfig
-                }
 
 serverDef :: ServerDefinition ()
 serverDef =
@@ -128,7 +108,7 @@ serverDef =
                 , handleDefinitionRequest
                 , handleReferencesRequest
                 ]
-        , interpretHandler = \env -> Iso (runStaticLsM env.staticEnv . LSP.runLspT env.config) liftIO
+        , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO
         , options = LSP.defaultOptions
         , defaultConfig = ()
         }

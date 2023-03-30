@@ -1,7 +1,7 @@
 module StaticLS.IDE.References where
 
 import Control.Monad (join)
-import Control.Monad.IO.Class (liftIO)
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import qualified Data.Map as Map
@@ -14,11 +14,11 @@ import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE
 import StaticLS.HIE.File
-import StaticLS.Monad
+import StaticLS.StaticEnv
 import System.Directory (makeAbsolute)
 import System.FilePath ((</>))
 
-findRefs :: HasStaticEnv m => LSP.TextDocumentIdentifier -> LSP.Position -> m [LSP.Location]
+findRefs :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> LSP.Position -> m [LSP.Location]
 findRefs tdi position = do
     staticEnv <- getStaticEnv
     let databasePath = staticEnv.hieDbPath
@@ -48,7 +48,7 @@ findRefs tdi position = do
         lift $ catMaybes <$> mapM refRowToLocation refResRows
     pure $ fromMaybe [] mLocList
 
-refRowToLocation :: HasStaticEnv m => HieDb.Res HieDb.RefRow -> m (Maybe LSP.Location)
+refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.RefRow -> m (Maybe LSP.Location)
 refRowToLocation (refRow HieDb.:. modInfo) = do
     staticEnv <- getStaticEnv
     let start = hiedbCoordsToLspPosition (refRow.refSLine, refRow.refSCol)

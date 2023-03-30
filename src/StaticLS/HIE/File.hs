@@ -21,7 +21,7 @@ import qualified GHC.Types.Name.Cache as GHC
 import qualified GHC.Unit.Types as GHC
 import HieDb
 import qualified Language.LSP.Types as LSP
-import StaticLS.Monad
+import StaticLS.StaticEnv
 import System.Directory (doesFileExist, makeAbsolute)
 import System.FilePath (normalise, (-<.>), (</>))
 
@@ -37,7 +37,7 @@ srcDirs :: [FilePath]
 srcDirs = ["src/", "lib/", "test/"]
 
 -- | Retrieve a hie info from a lsp text document identifier
-getHieFileFromTdi :: HasStaticEnv m => LSP.TextDocumentIdentifier -> m (Maybe GHC.HieFile)
+getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> m (Maybe GHC.HieFile)
 getHieFileFromTdi tdi = do
     staticEnv <- getStaticEnv
     runMaybeT $ do
@@ -45,7 +45,7 @@ getHieFileFromTdi tdi = do
         hieFilePath <- MaybeT $ srcFilePathToHieFilePath srcFilePath
         MaybeT $ getHieFile hieFilePath
 
-getHieFile :: HasStaticEnv m => HieFilePath -> m (Maybe GHC.HieFile)
+getHieFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> m (Maybe GHC.HieFile)
 getHieFile hieFilePath = do
     staticEnv <- getStaticEnv
     liftIO $
@@ -53,17 +53,17 @@ getHieFile hieFilePath = do
             -- Return nothing if the file failed to read
             `catch` (\e -> let _ = (e :: IOException) in pure Nothing)
 
-modToHieFile :: HasStaticEnv m => GHC.ModuleName -> m (Maybe GHC.HieFile)
+modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe GHC.HieFile)
 modToHieFile = runMaybeT . (MaybeT . getHieFile <=< MaybeT . modToHieFilePath)
 
-modToSrcFile :: HasStaticEnv m => GHC.ModuleName -> m (Maybe SrcFilePath)
+modToSrcFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe SrcFilePath)
 modToSrcFile = runMaybeT . (MaybeT . hieFilePathToSrcFilePath <=< MaybeT . modToHieFilePath)
 
 -----------------------------------------------------------------------------------
 -- File/Directory method for getting hie files - faster but somewhat "hacky"
 -----------------------------------------------------------------------------------
 
-modToHieFilePath :: HasStaticEnv m => GHC.ModuleName -> m (Maybe HieFilePath)
+modToHieFilePath :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe HieFilePath)
 modToHieFilePath modName =
     runHieDb $ \hieDb -> do
         runMaybeT $ do
@@ -74,7 +74,7 @@ modToHieFilePath modName =
             hieModRow <- MaybeT $ lookupHieFile hieDb modName unitId
             pure hieModRow.hieModuleHieFile
 
-hieFilePathToSrcFilePath :: HasStaticEnv m => HieFilePath -> m (Maybe SrcFilePath)
+hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> m (Maybe SrcFilePath)
 hieFilePathToSrcFilePath hiePath = do
     staticEnv <- getStaticEnv
     runMaybeT $ do
@@ -89,7 +89,7 @@ the hie file extension. Fragile, but works well in practice.
 Presently necessary because hiedb does not currently index the hs_src file location
 in the `mods` table
 -}
-srcFilePathToHieFilePath :: HasStaticEnv m => SrcFilePath -> m (Maybe HieFilePath)
+srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> m (Maybe HieFilePath)
 srcFilePathToHieFilePath srcPath = do
     staticEnv <- getStaticEnv
     absoluteRoot <- liftIO $ makeAbsolute staticEnv.wsRoot

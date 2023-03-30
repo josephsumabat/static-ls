@@ -20,13 +20,14 @@ library
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.References
-      StaticLS.Monad
       StaticLS.Server
+      StaticLS.StaticEnv
   other-modules:
       Paths_static_ls
   hs-source-dirs:
       src
   default-extensions:
+      FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
@@ -61,6 +62,7 @@ executable static-ls
   hs-source-dirs:
       app
   default-extensions:
+      FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
@@ -99,6 +101,7 @@ test-suite static-ls-test
   hs-source-dirs:
       test
   default-extensions:
+      FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors

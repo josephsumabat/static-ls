@@ -1,6 +1,5 @@
 module StaticLS.IDE.Hover where
 
-import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (listToMaybe)
 import Data.Text (intercalate)
 import Development.IDE.Spans.Common
@@ -18,6 +17,7 @@ import Language.LSP.Types (
 import StaticLS.IDE.Hover.Info
 
 import Control.Monad (join)
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import qualified Data.Text as T
@@ -28,10 +28,10 @@ import qualified GHC.Utils.Outputable as GHC
 import HieDb (pointCommand)
 import StaticLS.HIE
 import StaticLS.HIE.File
-import StaticLS.Monad
+import StaticLS.StaticEnv
 
 -- | Retrive hover information. Incomplete
-retrieveHover :: (HasStaticEnv m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
+retrieveHover :: (HasStaticEnv m, MonadIO m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
 retrieveHover identifier position = do
     runMaybeT $ do
         hieFile <- MaybeT $ getHieFileFromTdi identifier

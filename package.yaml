@@ -7,6 +7,7 @@ license: MIT
 build-type: Simple
 
 dependencies:
+  - Cabal-syntax
   - array
   - base
   - containers
@@ -28,7 +29,6 @@ dependencies:
 
 ghc-options:
   - -fwrite-ide-info
-  - -hiedir .hiefiles
 default-extensions:
 - OverloadedRecordDot
 - OverloadedStrings
@@ -46,7 +46,6 @@ executable:
 
 tests:
   static-ls-test:
-    main: Main.hs
     source-dirs: test
     dependencies:
     - static-ls

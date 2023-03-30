@@ -31,9 +31,10 @@ library
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  ghc-options: -fwrite-ide-info
   build-depends:
-      array
+      Cabal-syntax
+    , array
     , base
     , containers
     , directory
@@ -64,9 +65,10 @@ executable static-ls
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  ghc-options: -fwrite-ide-info
   build-depends:
-      array
+      Cabal-syntax
+    , array
     , base
     , containers
     , directory
@@ -89,7 +91,7 @@ executable static-ls
 
 test-suite static-ls-test
   type: exitcode-stdio-1.0
-  main-is: Main.hs
+  main-is: Spec.hs
   other-modules:
       StaticLS.HIE.FileSpec
       TestImport
@@ -101,10 +103,11 @@ test-suite static-ls-test
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  ghc-options: -fwrite-ide-info
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
-      array
+      Cabal-syntax
+    , array
     , base
     , containers
     , directory

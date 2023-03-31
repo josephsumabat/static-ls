@@ -15,6 +15,7 @@ import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified GHC
+import GHC.Data.Maybe (firstJusts)
 import qualified GHC.Iface.Ext.Binary as GHC
 import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Types.Name.Cache as GHC
@@ -24,7 +25,6 @@ import qualified Language.LSP.Types as LSP
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist, makeAbsolute)
 import System.FilePath (normalise, (-<.>), (</>))
-import GHC.Data.Maybe (firstJusts)
 
 type SrcFilePath = FilePath
 type HieFilePath = FilePath
@@ -52,14 +52,15 @@ modToHieFile = runMaybeT . (MaybeT . getHieFile <=< MaybeT . modToHieFilePath)
 modToSrcFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe SrcFilePath)
 modToSrcFile = runMaybeT . (MaybeT . hieFilePathToSrcFilePath <=< MaybeT . modToHieFilePath)
 
--- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
--- if not indexed
+{- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
+if not indexed
+-}
 srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> m (Maybe HieFilePath)
 srcFilePathToHieFilePath srcPath = do
     t1 <- srcFilePathToHieFilePathHieDb srcPath
     t2 <- srcFilePathToHieFilePathFromFile srcPath
-    pure $ firstJusts [t1,t2]
-  
+    pure $ firstJusts [t1, t2]
+
 hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> m (Maybe SrcFilePath)
 hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 
@@ -69,10 +70,10 @@ hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 
 srcFilePathToHieFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> m (Maybe HieFilePath)
 srcFilePathToHieFilePathHieDb srcPath = do
-  runHieDb $ \hieDb -> do
-    absSrcPath <- makeAbsolute srcPath
-    hieModRow <- lookupHieFileFromSource hieDb absSrcPath
-    pure $ hieModuleHieFile <$> hieModRow
+    runHieDb $ \hieDb -> do
+        absSrcPath <- makeAbsolute srcPath
+        hieModRow <- lookupHieFileFromSource hieDb absSrcPath
+        pure $ hieModuleHieFile <$> hieModRow
 
 modToHieFilePath :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe HieFilePath)
 modToHieFilePath modName =
@@ -96,7 +97,7 @@ hieDir = ".hiefiles/"
 
 -- TODO: make this configurable (use cabal?)
 srcDirs :: [FilePath]
-srcDirs = ["src/", "lib/","app/", "test/"]
+srcDirs = ["src/", "lib/", "app/", "test/"]
 
 hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> m (Maybe SrcFilePath)
 hieFilePathToSrcFilePathFromFile hiePath = do

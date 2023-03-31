@@ -29,6 +29,7 @@ dependencies:
 
 ghc-options:
   - -fwrite-ide-info
+  - -hiedir .hiefiles
 default-extensions:
 - FlexibleContexts
 - OverloadedRecordDot

@@ -24,17 +24,10 @@ import qualified Language.LSP.Types as LSP
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist, makeAbsolute)
 import System.FilePath (normalise, (-<.>), (</>))
+import GHC.Data.Maybe (firstJusts)
 
 type SrcFilePath = FilePath
 type HieFilePath = FilePath
-
--- TODO: make this configurable (use hie.yaml?)
-hieDir :: FilePath
-hieDir = ".hiefiles/"
-
--- TODO: make this configurable (use cabal?)
-srcDirs :: [FilePath]
-srcDirs = ["src/", "lib/", "test/"]
 
 -- | Retrieve a hie info from a lsp text document identifier
 getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> m (Maybe GHC.HieFile)
@@ -59,9 +52,27 @@ modToHieFile = runMaybeT . (MaybeT . getHieFile <=< MaybeT . modToHieFilePath)
 modToSrcFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe SrcFilePath)
 modToSrcFile = runMaybeT . (MaybeT . hieFilePathToSrcFilePath <=< MaybeT . modToHieFilePath)
 
+-- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
+-- if not indexed
+srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> m (Maybe HieFilePath)
+srcFilePathToHieFilePath srcPath = do
+    t1 <- srcFilePathToHieFilePathHieDb srcPath
+    t2 <- srcFilePathToHieFilePathFromFile srcPath
+    pure $ firstJusts [t1,t2]
+  
+hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> m (Maybe SrcFilePath)
+hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
+
 -----------------------------------------------------------------------------------
--- File/Directory method for getting hie files - faster but somewhat "hacky"
+-- HieDb Method of file lookups - requires hiedb to be indexed using --src-base-dirs from 0.4.4.0
 -----------------------------------------------------------------------------------
+
+srcFilePathToHieFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> m (Maybe HieFilePath)
+srcFilePathToHieFilePathHieDb srcPath = do
+  runHieDb $ \hieDb -> do
+    absSrcPath <- makeAbsolute srcPath
+    hieModRow <- lookupHieFileFromSource hieDb absSrcPath
+    pure $ hieModuleHieFile <$> hieModRow
 
 modToHieFilePath :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe HieFilePath)
 modToHieFilePath modName =
@@ -74,8 +85,21 @@ modToHieFilePath modName =
             hieModRow <- MaybeT $ lookupHieFile hieDb modName unitId
             pure hieModRow.hieModuleHieFile
 
-hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> m (Maybe SrcFilePath)
-hieFilePathToSrcFilePath hiePath = do
+-----------------------------------------------------------------------------------
+-- File/Directory method for getting hie files - faster but somewhat "hacky"
+-- Useful as a fallback
+-----------------------------------------------------------------------------------
+
+-- TODO: make this configurable (use hie.yaml?)
+hieDir :: FilePath
+hieDir = ".hiefiles/"
+
+-- TODO: make this configurable (use cabal?)
+srcDirs :: [FilePath]
+srcDirs = ["src/", "lib/","app/", "test/"]
+
+hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> m (Maybe SrcFilePath)
+hieFilePathToSrcFilePathFromFile hiePath = do
     staticEnv <- getStaticEnv
     runMaybeT $ do
         hieFile <- MaybeT (getHieFile hiePath)
@@ -89,8 +113,8 @@ the hie file extension. Fragile, but works well in practice.
 Presently necessary because hiedb does not currently index the hs_src file location
 in the `mods` table
 -}
-srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> m (Maybe HieFilePath)
-srcFilePathToHieFilePath srcPath = do
+srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> m (Maybe HieFilePath)
+srcFilePathToHieFilePathFromFile srcPath = do
     staticEnv <- getStaticEnv
     absoluteRoot <- liftIO $ makeAbsolute staticEnv.wsRoot
     let absoluteHieDir = absoluteRoot </> hieDir

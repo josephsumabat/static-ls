@@ -1,4 +1,4 @@
-module StaticLS.HIE.FileSpec where
+module StaticLS.HIE.FileSpec (spec) where
 
 import Control.Monad.Trans.Maybe (runMaybeT)
 import StaticLS.HIE.File
@@ -10,7 +10,7 @@ import qualified TestImport as Test
 
 spec :: Spec
 spec =
-    describe "Can convert from src to hie file and vice versa" $ do
+    describe "Can convert from src to hie file" $ do
         describe "src file to hie file" $ do
             it "returns a valid hie file when called on a src file" $ do
                 staticEnv <- Test.initStaticEnv

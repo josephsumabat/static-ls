@@ -40,7 +40,7 @@ handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req re
 handleDefinitionRequest :: Handlers (LspT c StaticLs)
 handleDefinitionRequest = LSP.requestHandler STextDocumentDefinition $ \req res -> do
     let defParams = req._params
-    defs <- lift $ locationsAtPoint defParams._textDocument defParams._position
+    defs <- lift $ getDefinition defParams._textDocument defParams._position
     res $ Right . InR . InL . List $ defs
 
 handleReferencesRequest :: Handlers (LspT c StaticLs)

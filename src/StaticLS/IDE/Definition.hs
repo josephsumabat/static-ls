@@ -1,4 +1,5 @@
-module StaticLS.IDE.Definition where
+module StaticLS.IDE.Definition (getDefinition)
+where
 
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class
@@ -23,12 +24,12 @@ import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.FilePath ((</>))
 
-locationsAtPoint ::
+getDefinition ::
     (HasStaticEnv m, MonadIO m) =>
     LSP.TextDocumentIdentifier ->
     LSP.Position ->
     m [LSP.Location]
-locationsAtPoint tdi pos = do
+getDefinition tdi pos = do
     mLocs <- runMaybeT $ do
         hieFile <- exceptToMaybeT $ getHieFileFromTdi tdi
         let identifiersAtPoint =

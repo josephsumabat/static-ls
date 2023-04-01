@@ -1,19 +1,19 @@
 module StaticLS.IDE.References where
 
-import StaticLS.Except
 import Control.Monad (join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT, exceptToMaybeT)
-import GHC.Data.Maybe (liftMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import qualified Data.Map as Map
 import Data.Maybe
+import GHC.Data.Maybe (liftMaybeT)
 import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Plugins as GHC
 import qualified GHC.Unit.Types as GHC
 import HieDb
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
+import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File
 import StaticLS.StaticEnv
@@ -44,7 +44,7 @@ findRefs tdi position = do
                 join
                     <$> mapM
                         ( \(occ, mModName) -> do
-                              HieDb.findReferences hieDb False occ mModName Nothing []
+                            HieDb.findReferences hieDb False occ mModName Nothing []
                         )
                         occNamesAndModNamesAtPoint
         lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refResRows

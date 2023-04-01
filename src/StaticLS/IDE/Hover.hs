@@ -19,7 +19,7 @@ import StaticLS.IDE.Hover.Info
 import Control.Monad (join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT, exceptToMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import qualified Data.Text as T
 import qualified GHC
 import qualified GHC.Driver.Ppr as GHC

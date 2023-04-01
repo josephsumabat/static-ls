@@ -3,8 +3,8 @@
 module StaticLS.StaticEnv where
 
 import Control.Exception (IOException)
-import Control.Monad.Exception
 import Control.Monad
+import Control.Monad.Exception
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.IO.Unlift
 import Control.Monad.Reader (MonadReader (..))
@@ -14,12 +14,12 @@ import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import qualified Data.Map as Map
 import qualified GHC
+import GHC.Data.Maybe (liftMaybeT, tryMaybeT)
 import qualified GHC.Iface.Ext.Binary as GHC
 import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Paths as GHC
 import qualified GHC.Types.Name.Cache as GHC
 import qualified GHC.Unit.Types as GHC
-import GHC.Data.Maybe (liftMaybeT, tryMaybeT)
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import System.Directory
@@ -31,7 +31,7 @@ runStaticLs = flip runReaderT
 type HieDbPath = FilePath
 
 newtype HieDbException = HieDbException IOException
-  deriving Show
+    deriving (Show)
 
 instance Exception HieDbException
 
@@ -85,6 +85,6 @@ runHieDbExceptT hieDbFn =
 -- | Run an hiedb action with the MaybeT Monad
 runHieDbMaybeT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> MaybeT m a
 runHieDbMaybeT hieDbFn =
-  (MaybeT . fmap Just $ getStaticEnv)
+    (MaybeT . fmap Just $ getStaticEnv)
         >>= \staticEnv ->
-              MaybeT $ liftIO . runMaybeT $ tryMaybeT (HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn)
+            MaybeT $ liftIO . runMaybeT $ tryMaybeT (HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn)

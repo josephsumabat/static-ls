@@ -3,8 +3,8 @@
 module StaticLS.HIE where
 
 import Control.Exception
-import Control.Monad.Trans.Except
 import Control.Monad
+import Control.Monad.Trans.Except
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
@@ -23,7 +23,7 @@ import System.FilePath (normalise, (</>))
 type HieDbCoords = (Int, Int)
 
 data UIntConversionException = UIntConversionException
-  deriving Show
+    deriving (Show)
 
 instance Exception UIntConversionException
 

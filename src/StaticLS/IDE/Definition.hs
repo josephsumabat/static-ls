@@ -1,6 +1,5 @@
 module StaticLS.IDE.Definition where
 
-import StaticLS.Except
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
@@ -12,17 +11,18 @@ import Development.IDE.GHC.Error (
     srcSpanToRange,
  )
 import qualified GHC.Data.FastString as GHC
+import GHC.Data.Maybe (liftMaybeT)
 import qualified GHC.Iface.Ext.Types as GHC
 import GHC.Plugins
 import GHC.Utils.Monad (mapMaybeM)
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
+import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.FilePath ((</>))
-import GHC.Data.Maybe (liftMaybeT)
 
 locationsAtPoint ::
     (HasStaticEnv m, MonadIO m) =>
@@ -100,11 +100,11 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
 
 srcSpanToLocation :: HasStaticEnv m => SrcSpan -> MaybeT m LSP.Location
 srcSpanToLocation src = do
-        staticEnv <- lift getStaticEnv
-        fs <- MaybeT . pure $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
-        rng <- MaybeT . pure $ srcSpanToRange src
-        -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
-        pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath fs) rng
+    staticEnv <- lift getStaticEnv
+    fs <- MaybeT . pure $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
+    rng <- MaybeT . pure $ srcSpanToRange src
+    -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
+    pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath fs) rng
 
 defRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m LSP.Location
 defRowToLocation (defRow HieDb.:. _) = do

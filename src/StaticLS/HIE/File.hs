@@ -1,11 +1,13 @@
 module StaticLS.HIE.File where
 
+import Control.Error.Util (maybeT)
 import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.IO.Unlift
 import Control.Monad.Trans (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT, exceptToMaybeT)
+import Control.Monad.Trans.Except
+import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Control.Monad.Trans.Reader (ReaderT (..), ask)
 import Data.Either (fromRight)
 import Data.List
@@ -22,13 +24,11 @@ import qualified GHC.Types.Name.Cache as GHC
 import qualified GHC.Unit.Types as GHC
 import HieDb
 import qualified Language.LSP.Types as LSP
+import StaticLS.HIE.File.Except
+import StaticLS.Maybe
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist, makeAbsolute)
 import System.FilePath (normalise, (-<.>), (</>))
-import Control.Monad.Trans.Except
-import Control.Error.Util (maybeT)
-import StaticLS.HIE.File.Except
-import StaticLS.Maybe
 
 type SrcFilePath = FilePath
 type HieFilePath = FilePath
@@ -38,7 +38,7 @@ getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -
 getHieFileFromTdi tdi = do
     staticEnv <- getStaticEnv
     do
-        srcFilePath <-  maybe (throwE HieTdiSrcNotFoundException) pure $ LSP.uriToFilePath tdi._uri
+        srcFilePath <- maybe (throwE HieTdiSrcNotFoundException) pure $ LSP.uriToFilePath tdi._uri
         hieFilePath <- maybeT (throwE HieTdiHieNotFoundException) pure $ srcFilePathToHieFilePath srcFilePath
         withExceptT HieTdiReadException $ getHieFile hieFilePath
 
@@ -82,7 +82,7 @@ srcFilePathToHieFilePathHieDb srcPath = do
 modToHieFilePath :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m HieFilePath
 modToHieFilePath modName =
     flatMaybeT $ runHieDbMaybeT $ \hieDb ->
-      runMaybeT $ do
+        runMaybeT $ do
             unitId <-
                 MaybeT $
                     either (const Nothing) Just

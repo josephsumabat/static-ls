@@ -26,7 +26,7 @@ as well as possibly other static sources of information
 2. Index your project in hiedb running `hiedb -D .hiedb index .hiefiles --src-base-dir .`
     from your workspace root
 4. Point your language client to the `static-ls` binary and begin editting!
-    (See [Editor Setup](## Editor Setup) for instructions if you're not sure how)
+    (See [Editor Setup](#editor-setup) for instructions if you're not sure how)
 
 `ghcid` is recommended to refresh hie files
 

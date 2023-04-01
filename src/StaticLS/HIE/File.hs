@@ -31,7 +31,7 @@ import qualified Language.LSP.Types as LSP
 import StaticLS.HIE.File.Except
 import StaticLS.Maybe (flatMaybeT)
 import StaticLS.StaticEnv
-import System.Directory (doesFileExist, makeAbsolute)
+import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))
 
 type SrcFilePath = FilePath
@@ -79,7 +79,7 @@ hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 
 srcFilePathToHieFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 srcFilePathToHieFilePathHieDb srcPath = do
-    absSrcPath <- MaybeT . fmap Just . liftIO $ makeAbsolute srcPath
+    absSrcPath <- MaybeT . fmap Just . liftIO $ Dir.makeAbsolute srcPath
     hieModRow <- flatMaybeT $ runHieDbMaybeT $ \hieDb -> do
         HieDb.lookupHieFileFromSource hieDb absSrcPath
     pure $ HieDb.hieModuleHieFile hieModRow
@@ -111,7 +111,7 @@ srcDirs = ["src/", "lib/", "app/", "test/"]
 hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
 hieFilePathToSrcFilePathFromFile hiePath = do
     hieFile <- exceptToMaybeT (getHieFile hiePath)
-    liftIO $ makeAbsolute (hieFile.hie_hs_file)
+    liftIO $ Dir.makeAbsolute (hieFile.hie_hs_file)
 
 {- | Retrieve a hie file path from a src path
 
@@ -124,17 +124,17 @@ in the `mods` table
 srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 srcFilePathToHieFilePathFromFile srcPath = do
     staticEnv <- getStaticEnv
-    absoluteRoot <- liftIO $ makeAbsolute staticEnv.wsRoot
+    absoluteRoot <- liftIO $ Dir.makeAbsolute staticEnv.wsRoot
     let absoluteHieDir = absoluteRoot </> hieDir
         absoluteSrcDirs = (absoluteRoot </>) <$> srcDirs
-    absoluteSrcPath <- liftIO $ makeAbsolute srcPath
+    absoluteSrcPath <- liftIO $ Dir.makeAbsolute srcPath
 
     -- Drop all src directory prefixes
     let noPrefixSrcPath =
             List.foldl' (flip List.dropPrefix) absoluteSrcPath absoluteSrcDirs
         -- Set the hie directory path and substitute the file extension
         hiePath = absoluteHieDir </> noPrefixSrcPath -<.> ".hie"
-    fileExists <- liftIO $ doesFileExist hiePath
+    fileExists <- liftIO $ Dir.doesFileExist hiePath
 
     MaybeT . pure $
         if fileExists
@@ -162,8 +162,8 @@ getHieFileMap wsroot = do
     srcFileToHieFileInfo :: GHC.NameCache -> HieFilePath -> IO (SrcFilePath, HieInfo)
     srcFileToHieFileInfo nameCache hieFilePath = do
         hieFileResult <- GHC.readHieFile nameCache hieFilePath
-        absSrcFilePath <- makeAbsolute hieFileResult.hie_file_result.hie_hs_file
-        absHieFilePath <- makeAbsolute hieFilePath
+        absSrcFilePath <- Dir.makeAbsolute hieFileResult.hie_file_result.hie_hs_file
+        absHieFilePath <- Dir.makeAbsolute hieFilePath
         let hieInfo =
                 HieInfo
                     { hieFilePath = absHieFilePath

@@ -13,4 +13,5 @@ spec =
             staticEnv <- Test.initStaticEnv
             locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
             defnLoc <- Test.assertHead "no definition loc found" locs
-            Test.myFunDefLocation `shouldBe` defnLoc
+            expectedLoc <- Test.myFunDefLocation
+            defnLoc `shouldBe` expectedLoc

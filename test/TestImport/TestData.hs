@@ -3,6 +3,7 @@
 module TestImport.TestData where
 
 import qualified Language.LSP.Types as LSP
+import qualified System.Directory as Dir
 
 myFunDefTdiAndPosition :: (LSP.TextDocumentIdentifier, LSP.Position)
 myFunDefTdiAndPosition =
@@ -15,24 +16,26 @@ myFunDefTdiAndPosition =
             LSP.TextDocumentIdentifier $ LSP.filePathToUri "test/TestData/Mod2.hs"
      in (tdi, pos)
 
-myFunDefLocation :: LSP.Location
-myFunDefLocation =
-    LSP.Location
-        { LSP._uri = LSP.filePathToUri "test/TestData/Mod1.hs"
-        , LSP._range =
-            LSP.Range
-                { _start =
-                    LSP.Position
-                        { LSP._line = 4
-                        , LSP._character = 0
-                        }
-                , LSP._end =
-                    LSP.Position
-                        { LSP._line = 4
-                        , LSP._character = 5
-                        }
-                }
-        }
+myFunDefLocation :: IO LSP.Location
+myFunDefLocation = do
+    absDir <- Dir.makeAbsolute "test/TestData/Mod2.hs"
+    pure $
+        LSP.Location
+            { LSP._uri = LSP.filePathToUri absDir
+            , LSP._range =
+                LSP.Range
+                    { _start =
+                        LSP.Position
+                            { LSP._line = 4
+                            , LSP._character = 0
+                            }
+                    , LSP._end =
+                        LSP.Position
+                            { LSP._line = 4
+                            , LSP._character = 5
+                            }
+                    }
+            }
 
 myFunRef1TdiAndPosition :: (LSP.TextDocumentIdentifier, LSP.Position)
 myFunRef1TdiAndPosition =

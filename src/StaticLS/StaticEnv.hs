@@ -6,7 +6,7 @@ import Control.Exception (IOException, catch)
 import Control.Monad.Exception (Exception)
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (..))
-import Control.Monad.Trans.Except
+import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import qualified GHC
@@ -14,7 +14,7 @@ import GHC.Data.Maybe (tryMaybeT)
 import qualified GHC.Paths as GHC
 import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
-import System.FilePath
+import System.FilePath ((</>))
 
 runStaticLs :: StaticEnv -> StaticLs a -> IO a
 runStaticLs = flip runReaderT

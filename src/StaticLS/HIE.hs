@@ -1,6 +1,14 @@
 {-# LANGUAGE TypeApplications #-}
 
-module StaticLS.HIE where
+module StaticLS.HIE (
+    hieAstNodeToIdentifiers,
+    identifiersToNames,
+    hieAstToNames,
+    hieAstsAtPoint,
+    hiedbCoordsToLspPosition,
+    lspPositionToHieDbCoords,
+)
+where
 
 import Control.Exception (Exception)
 import Control.Monad ((<=<))

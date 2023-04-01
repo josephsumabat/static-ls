@@ -1,4 +1,16 @@
-module StaticLS.HIE.File where
+module StaticLS.HIE.File (
+    getHieFileFromTdi,
+    getHieFile,
+    modToHieFile,
+    modToSrcFile,
+    srcFilePathToHieFilePath,
+    hieFilePathToSrcFilePath,
+    -- | An alternate way of getting file information by pre-indexing hie files -
+    -- far slower on startup and currently unused
+    getHieFileMap,
+    hieFileMapToSrcMap,
+)
+where
 
 import Control.Error.Util (maybeT)
 import Control.Exception (catch)
@@ -32,6 +44,7 @@ getHieFileFromTdi tdi = do
     hieFilePath <- maybeT (throwE HieTdiHieNotFoundException) pure $ srcFilePathToHieFilePath srcFilePath
     withExceptT HieTdiReadException $ getHieFile hieFilePath
 
+-- | Retrieve an hie file from a hie filepath
 getHieFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
 getHieFile hieFilePath = do
     staticEnv <- getStaticEnv
@@ -39,9 +52,11 @@ getHieFile hieFilePath = do
         (pure . Right . GHC.hie_file_result <=< GHC.readHieFile staticEnv.nameCache) hieFilePath
             `catch` (pure . Left . HieFileReadException)
 
+-- | Retrieve an hie file from a module name
 modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile
 modToHieFile = exceptToMaybeT . getHieFile <=< modToHieFilePath
 
+-- | Retrieve a src file from a module name
 modToSrcFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m SrcFilePath
 modToSrcFile = hieFilePathToSrcFilePath <=< modToHieFilePath
 
@@ -54,6 +69,7 @@ srcFilePathToHieFilePath srcPath = do
     t2 <- runMaybeT $ srcFilePathToHieFilePathFromFile srcPath
     MaybeT $ pure $ firstJusts [t1, t2]
 
+-- | Fetch an hie file from a src file
 hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
 hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 
@@ -134,7 +150,6 @@ data HieInfo = HieInfo
     , hieFile :: GHC.HieFile
     }
 
--- | TODO: Fix the hie src path indexing so we dont need to do this load on startup
 getHieFileMap :: FilePath -> IO (Map.Map SrcFilePath HieInfo)
 getHieFileMap wsroot = do
     let hieFullPath = wsroot </> hieDir

@@ -1,4 +1,4 @@
-# Revision history for haskell-mini-lsp
+# Revision history for static-ls
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

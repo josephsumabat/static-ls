@@ -2,7 +2,8 @@
 
 module StaticLS.StaticEnv where
 
-import Control.Exception
+import Control.Exception (IOException)
+import Control.Monad.Exception
 import Control.Monad
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.IO.Unlift
@@ -18,7 +19,8 @@ import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Paths as GHC
 import qualified GHC.Types.Name.Cache as GHC
 import qualified GHC.Unit.Types as GHC
-import HieDb
+import GHC.Data.Maybe (liftMaybeT, tryMaybeT)
+import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import System.Directory
 import System.FilePath
@@ -27,6 +29,11 @@ runStaticLs :: StaticEnv -> StaticLs a -> IO a
 runStaticLs = flip runReaderT
 
 type HieDbPath = FilePath
+
+newtype HieDbException = HieDbException IOException
+  deriving Show
+
+instance Exception HieDbException
 
 -- | Static environment used to fetch data
 data StaticEnv = StaticEnv
@@ -66,11 +73,18 @@ initStaticEnv wsRoot =
                     }
         pure serverStaticEnv
 
--- | Run an hiedb action
-runHieDb :: (HasStaticEnv m, MonadFail f, MonadIO m) => (HieDb -> IO (f a)) -> m (f a)
-runHieDb hieDbFn =
+-- | Run an hiedb action in an exceptT
+runHieDbExceptT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> ExceptT HieDbException IO a) -> ExceptT HieDbException m a
+runHieDbExceptT hieDbFn =
     getStaticEnv
         >>= \staticEnv ->
-            liftIO $ do
-                HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn
-                    `catch` \e -> let s = e :: IOException in pure $ fail (show s)
+            ExceptT . liftIO $ do
+                HieDb.withHieDb (staticEnv.hieDbPath) (runExceptT . hieDbFn)
+                    `catch` (throw . HieDbException)
+
+-- | Run an hiedb action with the MaybeT Monad
+runHieDbMaybeT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> MaybeT m a
+runHieDbMaybeT hieDbFn =
+  (MaybeT . fmap Just $ getStaticEnv)
+        >>= \staticEnv ->
+              MaybeT $ liftIO . runMaybeT $ tryMaybeT (HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn)

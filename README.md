@@ -8,6 +8,9 @@ haskell-language-server tends to take up too much memory on recompilation).
 Haskell-language-server is recommended if you are not experiencing these
 issues. `static-ls` is meant to work on enterprise size projects.
 
+In the future we plan to use interface files to fetch documentation information
+as well as possibly other static sources of information
+
 ## Usage
 
 1. Compile your project with ide info `-fwrite-ide-info` and `-hiedir .hiefiles`

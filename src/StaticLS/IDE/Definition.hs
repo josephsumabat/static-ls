@@ -1,5 +1,6 @@
 module StaticLS.IDE.Definition where
 
+import StaticLS.Except
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
@@ -21,6 +22,7 @@ import StaticLS.HIE.File
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.FilePath ((</>))
+import GHC.Data.Maybe (liftMaybeT)
 
 locationsAtPoint ::
     (HasStaticEnv m, MonadIO m) =>
@@ -29,7 +31,7 @@ locationsAtPoint ::
     m [LSP.Location]
 locationsAtPoint tdi pos = do
     mLocs <- runMaybeT $ do
-        hieFile <- MaybeT $ getHieFileFromTdi tdi
+        hieFile <- exceptToMaybeT $ getHieFileFromTdi tdi
         let identifiersAtPoint =
                 join $
                     HieDb.pointCommand
@@ -51,7 +53,7 @@ locationsAtPoint tdi pos = do
         let zeroPos = LSP.Position 0 0
             zeroRange = LSP.Range zeroPos zeroPos
          in runMaybeT $ do
-                srcFile <- MaybeT (modToSrcFile modName)
+                srcFile <- modToSrcFile modName
                 pure $ LSP.Location (LSP.filePathToUri srcFile) zeroRange
 
 ---------------------------------------------------------------------
@@ -69,7 +71,7 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
                 do
                     itExists <- liftIO $ doesFileExist fs
                     if itExists
-                        then MaybeT $ pure . maybeToList <$> srcSpanToLocation sp
+                        then MaybeT $ pure . maybeToList <$> (runMaybeT . srcSpanToLocation) sp
                         else -- When reusing .hie files from a cloud cache,
                         -- the paths may not match the local file system.
                         -- Let's fall back to the hiedb in case it contains local paths
@@ -83,35 +85,34 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
         -- In this case the interface files contain garbage source spans
         -- so we instead read the .hie files to get useful source spans.
         mod <- MaybeT $ return $ nameModule_maybe name
-        erow <- lift $ runHieDb (\hieDb -> HieDb.findDef hieDb (nameOccName name) (Just $ moduleName mod) (Just $ moduleUnit mod))
+        erow <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (nameOccName name) (Just $ moduleName mod) (Just $ moduleUnit mod))
         case erow of
             [] -> do
                 -- If the lookup failed, try again without specifying a unit-id.
                 -- This is a hack to make find definition work better with ghcide's nascent multi-component support,
                 -- where names from a component that has been indexed in a previous session but not loaded in this
                 -- session may end up with different unit ids
-                erow <- lift $ runHieDb (\hieDb -> HieDb.findDef hieDb (nameOccName name) (Just $ moduleName mod) Nothing)
+                erow <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (nameOccName name) (Just $ moduleName mod) Nothing)
                 case erow of
                     [] -> MaybeT $ pure Nothing
-                    xs -> lift $ mapMaybeM defRowToLocation xs
-            xs -> lift $ mapMaybeM defRowToLocation xs
+                    xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
+            xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
 
-srcSpanToLocation :: HasStaticEnv m => SrcSpan -> m (Maybe LSP.Location)
-srcSpanToLocation src =
-    runMaybeT $ do
+srcSpanToLocation :: HasStaticEnv m => SrcSpan -> MaybeT m LSP.Location
+srcSpanToLocation src = do
         staticEnv <- lift getStaticEnv
         fs <- MaybeT . pure $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
         rng <- MaybeT . pure $ srcSpanToRange src
         -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
         pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath fs) rng
 
-defRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> m (Maybe LSP.Location)
+defRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m LSP.Location
 defRowToLocation (defRow HieDb.:. _) = do
     staticEnv <- getStaticEnv
-    let start = hiedbCoordsToLspPosition (defRow.defSLine, defRow.defSCol)
-        end = hiedbCoordsToLspPosition (defRow.defELine, defRow.defECol)
+    let start = exceptToMaybe $ hiedbCoordsToLspPosition (defRow.defSLine, defRow.defSCol)
+        end = exceptToMaybe $ hiedbCoordsToLspPosition (defRow.defELine, defRow.defECol)
         range = LSP.Range <$> start <*> end
         hieFilePath = defRow.defSrc
     file <- hieFilePathToSrcFilePath hieFilePath
-    let lspUri = LSP.filePathToUri <$> file
-    pure $ LSP.Location <$> lspUri <*> range
+    let lspUri = LSP.filePathToUri file
+    MaybeT . pure $ LSP.Location lspUri <$> range

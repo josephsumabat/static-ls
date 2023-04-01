@@ -19,7 +19,7 @@ import StaticLS.IDE.Hover.Info
 import Control.Monad (join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT, exceptToMaybeT)
 import qualified Data.Text as T
 import qualified GHC
 import qualified GHC.Driver.Ppr as GHC
@@ -34,7 +34,7 @@ import StaticLS.StaticEnv
 retrieveHover :: (HasStaticEnv m, MonadIO m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
 retrieveHover identifier position = do
     runMaybeT $ do
-        hieFile <- MaybeT $ getHieFileFromTdi identifier
+        hieFile <- exceptToMaybeT $ getHieFileFromTdi identifier
         let identifiers =
                 join
                     ( pointCommand

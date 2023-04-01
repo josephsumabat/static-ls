@@ -12,6 +12,8 @@ dependencies:
   - base
   - containers
   - directory
+  - errors
+  - exception-transformers
   - extra
   - filepath
   - ghc

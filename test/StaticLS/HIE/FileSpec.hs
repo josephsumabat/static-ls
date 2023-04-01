@@ -9,6 +9,7 @@ import System.Directory
 import System.FilePath
 import Test.Hspec
 import qualified TestImport as Test
+import Control.Monad.Trans.Maybe (runMaybeT)
 
 spec :: Spec
 spec =
@@ -18,7 +19,7 @@ spec =
                 staticEnv <- Test.initStaticEnv
                 hieFile <-
                     runStaticLs staticEnv $
-                        srcFilePathToHieFilePath "src/StaticLS/HIE/File.hs"
+                        runMaybeT $ srcFilePathToHieFilePath "src/StaticLS/HIE/File.hs"
                 let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
                 hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
 
@@ -29,7 +30,7 @@ spec =
                 staticEnv <- Test.initStaticEnv
                 hieFile <-
                     runStaticLs staticEnv $
-                        srcFilePathToHieFilePath "test/StaticLS/HIE/FileSpec.hs"
+                        runMaybeT $ srcFilePathToHieFilePath "test/StaticLS/HIE/FileSpec.hs"
                 let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
                 hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
 

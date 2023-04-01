@@ -103,6 +103,8 @@ test-suite static-ls-test
   main-is: Spec.hs
   other-modules:
       StaticLS.HIE.FileSpec
+      TestData.Mod1
+      TestData.Mod2
       TestImport
       Paths_static_ls
   hs-source-dirs:

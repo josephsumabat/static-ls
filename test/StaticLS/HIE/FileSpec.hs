@@ -1,8 +1,6 @@
 module StaticLS.HIE.FileSpec where
 
 import Control.Monad.Trans.Maybe (runMaybeT)
-import Data.Maybe
-import qualified Language.LSP.Server as LSP
 import StaticLS.HIE.File
 import StaticLS.StaticEnv
 import System.Directory
@@ -31,9 +29,9 @@ spec =
                 hieFile <-
                     runStaticLs staticEnv $
                         runMaybeT $
-                            srcFilePathToHieFilePath "test/StaticLS/HIE/FileSpec.hs"
+                            srcFilePathToHieFilePath "test/TestData/Mod1.hs"
                 let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
                 hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
 
-                relativeHieFile `shouldBe` Just ".hiefiles/StaticLS/HIE/FileSpec.hie"
+                relativeHieFile `shouldBe` Just ".hiefiles/TestData/Mod1.hie"
                 hieFileExists `shouldBe` True

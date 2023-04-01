@@ -1,12 +1,12 @@
-module StaticLS.IDE.References where
+module StaticLS.IDE.References (findRefs) where
 
 import Control.Monad (join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
-import Data.Maybe
+import Data.Maybe (catMaybes, fromMaybe)
 import qualified GHC.Plugins as GHC
-import HieDb
+import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.Except
 import StaticLS.HIE

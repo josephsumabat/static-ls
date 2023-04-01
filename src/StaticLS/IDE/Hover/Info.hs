@@ -1,4 +1,4 @@
-module StaticLS.IDE.Hover.Info where
+module StaticLS.IDE.Hover.Info (hoverInfo) where
 
 import Data.Array
 import Data.List.Extra (dropEnd1)

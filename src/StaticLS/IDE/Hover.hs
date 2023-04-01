@@ -1,8 +1,14 @@
-module StaticLS.IDE.Hover where
+module StaticLS.IDE.Hover (
+    retrieveHover,
+)
+where
 
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Data.Maybe (listToMaybe)
 import Data.Text (intercalate)
 import qualified GHC.Iface.Ext.Types as GHC
+import HieDb (pointCommand)
 import Language.LSP.Types (
     Hover (..),
     HoverContents (..),
@@ -12,16 +18,9 @@ import Language.LSP.Types (
     TextDocumentIdentifier,
     sectionSeparator,
  )
-import StaticLS.IDE.Hover.Info
-
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
-import qualified GHC.Driver.Ppr as GHC
-import qualified GHC.Driver.Session as GHC
-import qualified GHC.Utils.Outputable as GHC
-import HieDb (pointCommand)
 import StaticLS.HIE
 import StaticLS.HIE.File
+import StaticLS.IDE.Hover.Info
 import StaticLS.StaticEnv
 
 -- | Retrive hover information. Incomplete
@@ -44,9 +43,3 @@ retrieveHover identifier position = do
             { _range = mRange
             , _contents = HoverContents $ MarkupContent MkMarkdown $ intercalate sectionSeparator contents
             }
-
-showGhc :: (HasStaticEnv m, GHC.Outputable o) => o -> m String
-showGhc outputable = do
-    staticEnv <- getStaticEnv
-    let dynFlags = GHC.extractDynFlags staticEnv.hscEnv
-    pure $ GHC.showSDoc dynFlags (GHC.ppr outputable)

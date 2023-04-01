@@ -7,10 +7,9 @@ import Control.Monad.Exception (Exception)
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (..))
 import Control.Monad.Trans.Except (ExceptT (..))
-import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import qualified GHC
-import GHC.Data.Maybe (tryMaybeT)
 import qualified GHC.Paths as GHC
 import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
@@ -75,7 +74,4 @@ runHieDbExceptT hieDbFn =
 
 -- | Run an hiedb action with the MaybeT Monad
 runHieDbMaybeT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> MaybeT m a
-runHieDbMaybeT hieDbFn =
-    (MaybeT . fmap Just $ getStaticEnv)
-        >>= \staticEnv ->
-            MaybeT . liftIO . runMaybeT $ tryMaybeT (HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn)
+runHieDbMaybeT = exceptToMaybeT . runHieDbExceptT

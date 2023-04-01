@@ -4,4 +4,5 @@ import qualified StaticLS.Server as StaticLS
 
 main :: IO ()
 main = do
-    StaticLS.runServer
+    _ <- StaticLS.runServer
+    pure ()

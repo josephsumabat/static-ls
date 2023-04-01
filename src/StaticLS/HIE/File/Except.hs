@@ -1,7 +1,6 @@
 module StaticLS.HIE.File.Except where
 
 import Control.Exception
-import Control.Monad.Trans.Except
 
 newtype HieFileReadException
     = HieFileReadException IOException

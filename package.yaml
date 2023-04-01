@@ -32,6 +32,8 @@ dependencies:
 ghc-options:
   - -fwrite-ide-info
   - -hiedir .hiefiles
+  - -Wall
+  - -Werror
 default-extensions:
 - FlexibleContexts
 - OverloadedRecordDot
@@ -50,9 +52,6 @@ executable:
 
 tests:
   static-ls-test:
-    source-dirs: test
     dependencies:
     - static-ls
-    - hspec
-    - hspec-discover
     defaults: hspec/hspec@main

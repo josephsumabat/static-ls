@@ -2,27 +2,18 @@
 
 module StaticLS.StaticEnv where
 
-import Control.Exception (IOException)
-import Control.Monad
-import Control.Monad.Exception
-import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.IO.Unlift
+import Control.Exception (IOException, catch)
+import Control.Monad.Exception (Exception)
+import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (..))
-import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Except
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Control.Monad.Trans.Reader (ReaderT (..))
-import qualified Data.Map as Map
 import qualified GHC
-import GHC.Data.Maybe (liftMaybeT, tryMaybeT)
-import qualified GHC.Iface.Ext.Binary as GHC
-import qualified GHC.Iface.Ext.Types as GHC
+import GHC.Data.Maybe (tryMaybeT)
 import qualified GHC.Paths as GHC
 import qualified GHC.Types.Name.Cache as GHC
-import qualified GHC.Unit.Types as GHC
 import qualified HieDb
-import qualified Language.LSP.Types as LSP
-import System.Directory
 import System.FilePath
 
 runStaticLs :: StaticEnv -> StaticLs a -> IO a
@@ -74,17 +65,17 @@ initStaticEnv wsRoot =
         pure serverStaticEnv
 
 -- | Run an hiedb action in an exceptT
-runHieDbExceptT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> ExceptT HieDbException IO a) -> ExceptT HieDbException m a
+runHieDbExceptT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> ExceptT HieDbException m a
 runHieDbExceptT hieDbFn =
     getStaticEnv
         >>= \staticEnv ->
-            ExceptT . liftIO $ do
-                HieDb.withHieDb (staticEnv.hieDbPath) (runExceptT . hieDbFn)
-                    `catch` (throw . HieDbException)
+            ExceptT . liftIO $
+                HieDb.withHieDb (staticEnv.hieDbPath) (fmap Right . hieDbFn)
+                    `catch` (pure . Left . HieDbException)
 
 -- | Run an hiedb action with the MaybeT Monad
 runHieDbMaybeT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> MaybeT m a
 runHieDbMaybeT hieDbFn =
     (MaybeT . fmap Just $ getStaticEnv)
         >>= \staticEnv ->
-            MaybeT $ liftIO . runMaybeT $ tryMaybeT (HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn)
+            MaybeT . liftIO . runMaybeT $ tryMaybeT (HieDb.withHieDb (staticEnv.hieDbPath) hieDbFn)

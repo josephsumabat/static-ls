@@ -1,6 +1,5 @@
 module StaticLS.HIE.FileSpec where
 
-import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Maybe
 import qualified Language.LSP.Server as LSP

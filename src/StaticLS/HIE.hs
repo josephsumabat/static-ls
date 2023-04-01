@@ -2,23 +2,16 @@
 
 module StaticLS.HIE where
 
-import Control.Exception
-import Control.Monad
-import Control.Monad.Trans.Except
+import Control.Exception (Exception)
+import Control.Monad ((<=<))
+import Control.Monad.Trans.Except (Except, throwE)
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
-import Data.Text
 import qualified GHC
-import qualified GHC.Iface.Ext.Binary as GHC
 import qualified GHC.Iface.Ext.Types as GHC
-import qualified GHC.Types.Name.Cache as GHC
-import HieDb (getHieFilesIn, pointCommand)
-import Language.LSP.Types
+import HieDb (pointCommand)
 import qualified Language.LSP.Types as LSP
-import StaticLS.HIE.File
-import System.Directory (makeAbsolute)
-import System.FilePath (normalise, (</>))
 
 type HieDbCoords = (Int, Int)
 
@@ -48,17 +41,17 @@ hieAstsAtPoint :: GHC.HieFile -> HieDbCoords -> Maybe HieDbCoords -> [GHC.HieAST
 hieAstsAtPoint hiefile start end = pointCommand hiefile start end id
 
 hiedbCoordsToLspPosition :: HieDbCoords -> Except UIntConversionException LSP.Position
-hiedbCoordsToLspPosition (line, col) = Position <$> intToUInt (line - 1) <*> intToUInt (col - 1)
+hiedbCoordsToLspPosition (line, col) = LSP.Position <$> intToUInt (line - 1) <*> intToUInt (col - 1)
 
 lspPositionToHieDbCoords :: LSP.Position -> HieDbCoords
 lspPositionToHieDbCoords position = (fromIntegral position._line + 1, fromIntegral position._character + 1)
 
 -- | Use 'fromIntegral' when it is safe to do so
-intToUInt :: Int -> Except UIntConversionException UInt
+intToUInt :: Int -> Except UIntConversionException LSP.UInt
 intToUInt x =
     if minBoundAsInt <= x && x <= maxBoundAsInt
         then pure $ fromIntegral x
         else throwE UIntConversionException
   where
-    minBoundAsInt = fromIntegral $ minBound @UInt
-    maxBoundAsInt = fromIntegral $ maxBound @UInt
+    minBoundAsInt = fromIntegral $ minBound @LSP.UInt
+    maxBoundAsInt = fromIntegral $ maxBound @LSP.UInt

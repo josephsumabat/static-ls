@@ -11,7 +11,6 @@ import Development.IDE.GHC.Error (
     srcSpanToRange,
  )
 import qualified GHC.Data.FastString as GHC
-import GHC.Data.Maybe (liftMaybeT)
 import qualified GHC.Iface.Ext.Types as GHC
 import GHC.Plugins
 import GHC.Utils.Monad (mapMaybeM)
@@ -84,16 +83,16 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
         -- This case usually arises when the definition is in an external package.
         -- In this case the interface files contain garbage source spans
         -- so we instead read the .hie files to get useful source spans.
-        mod <- MaybeT $ return $ nameModule_maybe name
-        erow <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (nameOccName name) (Just $ moduleName mod) (Just $ moduleUnit mod))
+        mod' <- MaybeT $ return $ nameModule_maybe name
+        erow <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (nameOccName name) (Just $ moduleName mod') (Just $ moduleUnit mod'))
         case erow of
             [] -> do
                 -- If the lookup failed, try again without specifying a unit-id.
                 -- This is a hack to make find definition work better with ghcide's nascent multi-component support,
                 -- where names from a component that has been indexed in a previous session but not loaded in this
                 -- session may end up with different unit ids
-                erow <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (nameOccName name) (Just $ moduleName mod) Nothing)
-                case erow of
+                erow' <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (nameOccName name) (Just $ moduleName mod') Nothing)
+                case erow' of
                     [] -> MaybeT $ pure Nothing
                     xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
             xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
@@ -108,7 +107,6 @@ srcSpanToLocation src = do
 
 defRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m LSP.Location
 defRowToLocation (defRow HieDb.:. _) = do
-    staticEnv <- getStaticEnv
     let start = exceptToMaybe $ hiedbCoordsToLspPosition (defRow.defSLine, defRow.defSCol)
         end = exceptToMaybe $ hiedbCoordsToLspPosition (defRow.defELine, defRow.defECol)
         range = LSP.Range <$> start <*> end

@@ -35,7 +35,7 @@ library
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  ghc-options: -fwrite-ide-info -hiedir .hiefiles -Wall -Werror
   build-depends:
       Cabal-syntax
     , array
@@ -72,7 +72,7 @@ executable static-ls
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  ghc-options: -fwrite-ide-info -hiedir .hiefiles -Wall -Werror
   build-depends:
       Cabal-syntax
     , array
@@ -113,7 +113,7 @@ test-suite static-ls-test
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles
+  ghc-options: -fwrite-ide-info -hiedir .hiefiles -Wall -Werror
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       Cabal-syntax
@@ -129,8 +129,7 @@ test-suite static-ls-test
     , ghc-paths
     , ghcide
     , hiedb
-    , hspec
-    , hspec-discover
+    , hspec ==2.*
     , lsp
     , lsp-types
     , mtl

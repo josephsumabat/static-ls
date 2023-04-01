@@ -4,30 +4,20 @@ import Control.Monad (join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
-import qualified Data.Map as Map
 import Data.Maybe
-import GHC.Data.Maybe (liftMaybeT)
-import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Plugins as GHC
-import qualified GHC.Unit.Types as GHC
 import HieDb
-import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File
 import StaticLS.StaticEnv
-import System.Directory (makeAbsolute)
-import System.FilePath ((</>))
 
 findRefs :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> LSP.Position -> m [LSP.Location]
 findRefs tdi position = do
-    staticEnv <- getStaticEnv
-    let databasePath = staticEnv.hieDbPath
     mLocList <- runMaybeT $ do
         hieFile <- exceptToMaybeT $ getHieFileFromTdi tdi
-        let moduleName = GHC.moduleName $ GHC.hie_module hieFile
-            identifiersAtPoint =
+        let identifiersAtPoint =
                 join
                     ( HieDb.pointCommand
                         hieFile
@@ -51,8 +41,7 @@ findRefs tdi position = do
     pure $ fromMaybe [] mLocList
 
 refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.RefRow -> MaybeT m LSP.Location
-refRowToLocation (refRow HieDb.:. modInfo) = do
-    staticEnv <- getStaticEnv
+refRowToLocation (refRow HieDb.:. _) = do
     let start = exceptToMaybe $ hiedbCoordsToLspPosition (refRow.refSLine, refRow.refSCol)
         end = exceptToMaybe $ hiedbCoordsToLspPosition (refRow.refELine, refRow.refECol)
         range = LSP.Range <$> start <*> end

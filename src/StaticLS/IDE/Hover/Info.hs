@@ -1,38 +1,27 @@
 module StaticLS.IDE.Hover.Info where
 
-import Control.Monad (guard)
-import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Maybe
 import Data.Array
-import Data.Containers.ListUtils (nubOrd)
-import Data.List (isSuffixOf)
 import Data.List.Extra (dropEnd1)
 import qualified Data.Map as M
-import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Text as T
 import Development.IDE.GHC.Error (realSrcSpanToRange)
 import GHC
-import qualified GHC.Data.FastString as FS
 import GHC.Iface.Ext.Types
 import GHC.Iface.Ext.Utils
 import GHC.Plugins hiding ((<>))
-import GHC.Utils.Monad (mapMaybeM)
-import HieDb hiding (pointCommand)
 import Language.LSP.Types
-import System.FilePath ((</>))
 
 -------------------------------------------------------------------
 -- Code taken from halfsp
 -------------------------------------------------------------------
 hoverInfo :: Array TypeIndex HieTypeFlat -> HieAST TypeIndex -> (Maybe Range, [T.Text])
-hoverInfo typeLookup ast = (Just range, prettyNames ++ pTypes)
+hoverInfo typeLookup ast = (Just spanRange, prettyNames ++ pTypes)
   where
     pTypes
         | Prelude.length names == 1 = dropEnd1 $ map wrapHaskell prettyTypes
         | otherwise = map wrapHaskell prettyTypes
 
-    range = realSrcSpanToRange $ nodeSpan ast
+    spanRange = realSrcSpanToRange $ nodeSpan ast
 
     wrapHaskell x = "\n```haskell\n" <> x <> "\n```\n"
     info = sourcedNodeInfo ast

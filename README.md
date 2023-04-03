@@ -1,13 +1,13 @@
 # static-ls
 
-static-ls is a hie and hiedb based language server heavily inspired by halfsp.
+static-ls is a hie and hiedb based language server heavily inspired by `halfsp`.
 
 The goal of static-ls is to provide a high-speed, low-memory solution for large
-projects which make extensive use of template Haskell (and thus where
-haskell-language-server tends to take up too much memory on recompilation) for
-machine which may be more memory constrained. Haskell-language-server is
-recommended if you are not experiencing these issues. `static-ls` is meant to
-work on enterprise size projects.
+projects for which haskell-language-server tends to take up too much memory on
+recompilation. Haskell-language-server is recommended if you are not
+experiencing these issues. `static-ls` is meant to work on enterprise size
+projects. `static-ls` tends to work better as a code navigation tool since
+project edits require re-indexing of hie files.
 
 In the future we plan to use interface files to fetch documentation information
 as well as possibly other static sources of information

@@ -58,9 +58,14 @@ getDefinition tdi pos = do
 
 ---------------------------------------------------------------------
 -- The following code is largely taken from ghcide with slight modifications
+-- to use the HasStaticEnv monad instead of the module map that ghcide indexes
+-- See: https://hackage.haskell.org/package/ghcide-1.10.0.0/docs/src/Development.IDE.Spans.AtPoint.html
+-- for the original code
 ---------------------------------------------------------------------
 
 -- | Given a 'Name' attempt to find the location where it is defined.
+-- See: https://hackage.haskell.org/package/ghcide-1.10.0.0/docs/src/Development.IDE.Spans.AtPoint.html#nameToLocation
+-- for original code
 nameToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Name -> m [LSP.Location]
 nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
     case GHC.nameSrcSpan name of

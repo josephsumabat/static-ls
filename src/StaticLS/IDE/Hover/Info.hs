@@ -12,7 +12,9 @@ import GHC.Plugins hiding ((<>))
 import Language.LSP.Types
 
 -------------------------------------------------------------------
--- Code taken from halfsp
+-- The following code is taken from halfsp
+-- See: https://github.com/masaeedu/halfsp/blob/master/lib/GhcideSteal.hs
+-- for the original source
 -------------------------------------------------------------------
 hoverInfo :: Array TypeIndex HieTypeFlat -> HieAST TypeIndex -> (Maybe Range, [T.Text])
 hoverInfo typeLookup ast = (Just spanRange, prettyNames ++ pTypes)

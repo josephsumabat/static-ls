@@ -48,9 +48,8 @@ getHieFileFromTdi tdi = do
 getHieFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
 getHieFile hieFilePath = do
     staticEnv <- getStaticEnv
-    ExceptT . liftIO $
-        (pure . Right . GHC.hie_file_result <=< GHC.readHieFile staticEnv.nameCache) hieFilePath
-            `catch` (pure . Left . HieFileReadException)
+    result <- liftIO (try (GHC.readHieFile staticEnv.nameCache hieFilePath))
+    return (bimap HieFileReadException GHC.hie_file_result result)
 
 -- | Retrieve an hie file from a module name
 modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile
@@ -64,10 +63,9 @@ modToSrcFile = hieFilePathToSrcFilePath <=< modToHieFilePath
 if not indexed
 -}
 srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
-srcFilePathToHieFilePath srcPath = do
-    t1 <- runMaybeT $ srcFilePathToHieFilePathHieDb srcPath
-    t2 <- runMaybeT $ srcFilePathToHieFilePathFromFile srcPath
-    MaybeT $ pure $ firstJusts [t1, t2]
+srcFilePathToHieFilePath srcPath =
+        srcFilePathToHieFilePathHieDb srcPath
+    <|> srcFilePathToHieFilePathFromFile srcPath
 
 -- | Fetch an hie file from a src file
 hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
@@ -79,8 +77,8 @@ hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 
 srcFilePathToHieFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 srcFilePathToHieFilePathHieDb srcPath = do
-    absSrcPath <- MaybeT . fmap Just . liftIO $ Dir.makeAbsolute srcPath
-    hieModRow <- flatMaybeT $ runHieDbMaybeT $ \hieDb -> do
+    absSrcPath <- liftIO $ Dir.makeAbsolute srcPath
+    Just hieModRow <- runHieDbMaybeT $ \hieDb -> do
         HieDb.lookupHieFileFromSource hieDb absSrcPath
     pure $ HieDb.hieModuleHieFile hieModRow
 
@@ -136,10 +134,8 @@ srcFilePathToHieFilePathFromFile srcPath = do
         hiePath = absoluteHieDir </> noPrefixSrcPath -<.> ".hie"
     fileExists <- liftIO $ Dir.doesFileExist hiePath
 
-    MaybeT . pure $
-        if fileExists
-            then Just hiePath
-            else Nothing
+    guard fileExists
+    pure hiePath
 
 -----------------------------------------------------------------------------------
 -- Map index method for getting hie files - too slow in practice on startup but makes

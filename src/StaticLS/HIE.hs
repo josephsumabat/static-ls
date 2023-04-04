@@ -48,14 +48,14 @@ hieAstToNames =
 hieAstsAtPoint :: GHC.HieFile -> HieDbCoords -> Maybe HieDbCoords -> [GHC.HieAST GHC.TypeIndex]
 hieAstsAtPoint hiefile start end = pointCommand hiefile start end id
 
-hiedbCoordsToLspPosition :: HieDbCoords -> Except UIntConversionException LSP.Position
+hiedbCoordsToLspPosition :: Monad m => HieDbCoords -> ExceptT UIntConversionException m LSP.Position
 hiedbCoordsToLspPosition (line, col) = LSP.Position <$> intToUInt (line - 1) <*> intToUInt (col - 1)
 
 lspPositionToHieDbCoords :: LSP.Position -> HieDbCoords
 lspPositionToHieDbCoords position = (fromIntegral position._line + 1, fromIntegral position._character + 1)
 
 -- | Use 'fromIntegral' when it is safe to do so
-intToUInt :: Int -> Except UIntConversionException LSP.UInt
+intToUInt :: Monad m => Int -> ExceptT UIntConversionException m LSP.UInt
 intToUInt x =
     if minBoundAsInt <= x && x <= maxBoundAsInt
         then pure $ fromIntegral x

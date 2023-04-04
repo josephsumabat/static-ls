@@ -39,7 +39,7 @@ getDefinition tdi pos = do
                         (lspPositionToHieDbCoords pos)
                         Nothing
                         hieAstNodeToIdentifiers
-        join <$> mapM (MaybeT . fmap Just . identifierToLocation) identifiersAtPoint
+        join <$> mapM (lift . identifierToLocation) identifiersAtPoint
     pure $ fromMaybe [] mLocs
   where
     identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [LSP.Location]

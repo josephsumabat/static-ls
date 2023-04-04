@@ -4,7 +4,7 @@ where
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.List (isSuffixOf)
 import Data.Maybe (fromMaybe, maybeToList)
 import Development.IDE.GHC.Error (
@@ -31,7 +31,7 @@ getDefinition ::
     m [LSP.Location]
 getDefinition tdi pos = do
     mLocs <- runMaybeT $ do
-        hieFile <- exceptToMaybeT $ getHieFileFromTdi tdi
+        hieFile <- getHieFileFromTdi tdi
         let identifiersAtPoint =
                 join $
                     HieDb.pointCommand

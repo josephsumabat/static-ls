@@ -3,7 +3,7 @@ module StaticLS.IDE.References (findRefs) where
 import Control.Monad (join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.Maybe (catMaybes, fromMaybe)
 import qualified GHC.Plugins as GHC
 import qualified HieDb
@@ -16,7 +16,7 @@ import StaticLS.StaticEnv
 findRefs :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> LSP.Position -> m [LSP.Location]
 findRefs tdi position = do
     mLocList <- runMaybeT $ do
-        hieFile <- exceptToMaybeT $ getHieFileFromTdi tdi
+        hieFile <- getHieFileFromTdi tdi
         let identifiersAtPoint =
                 join
                     ( HieDb.pointCommand

@@ -4,13 +4,14 @@ module StaticLS.IDE.Hover (
 where
 
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.Maybe (listToMaybe)
-import Data.Text (intercalate)
+import Data.Text (Text, intercalate)
 import qualified GHC.Iface.Ext.Types as GHC
 import HieDb (pointCommand)
 import Language.LSP.Types (
     Hover (..),
+    Range (..),
     HoverContents (..),
     MarkupContent (..),
     MarkupKind (..),
@@ -27,7 +28,7 @@ import StaticLS.StaticEnv
 retrieveHover :: (HasStaticEnv m, MonadIO m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
 retrieveHover identifier position = do
     runMaybeT $ do
-        hieFile <- exceptToMaybeT $ getHieFileFromTdi identifier
+        hieFile <- getHieFileFromTdi identifier
         let info =
                 listToMaybe $
                     pointCommand
@@ -37,7 +38,7 @@ retrieveHover identifier position = do
                         (hoverInfo (GHC.hie_types hieFile))
         MaybeT $ pure $ hoverInfoToHover <$> info
   where
-    -- hoverInfoToHover :: (Maybe Range,
+    hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
     hoverInfoToHover (mRange, contents) =
         Hover
             { _range = mRange

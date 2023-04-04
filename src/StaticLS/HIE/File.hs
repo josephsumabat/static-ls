@@ -13,9 +13,8 @@ module StaticLS.HIE.File (
 where
 
 import Control.Applicative ((<|>))
-import Control.Error.Util (hush)
 import Control.Exception (try)
-import Control.Monad (guard, (<=<))
+import Control.Monad ((<=<))
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Trans.Except (ExceptT (..), withExceptT)
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
@@ -41,7 +40,7 @@ type HieFilePath = FilePath
 -- | Retrieve a hie info from a lsp text document identifier
 getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> ExceptT HieFileTdiException m GHC.HieFile
 getHieFileFromTdi tdi = do
-    srcFilePath <- (LSP.uriToFilePath tdi._uri) `orDie` HieTdiSrcNotFoundException
+    srcFilePath <- LSP.uriToFilePath tdi._uri `orDie` HieTdiSrcNotFoundException
     hieFilePath <- srcFilePathToHieFilePath srcFilePath `orDieT` HieTdiHieNotFoundException
     withExceptT HieTdiReadException $ getHieFile hieFilePath
 
@@ -87,11 +86,8 @@ modToHieFilePath :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m Hi
 modToHieFilePath modName =
     flatMaybeT $ runHieDbMaybeT $ \hieDb ->
         runMaybeT $ do
-            unitId <-
-                MaybeT $
-                    hush
-                        <$> HieDb.resolveUnitId hieDb modName
-            hieModRow <- MaybeT $ HieDb.lookupHieFile hieDb modName unitId
+            Right unitId <- liftIO (HieDb.resolveUnitId hieDb modName)
+            Just hieModRow <- liftIO $ HieDb.lookupHieFile hieDb modName unitId
             pure $ hieModRow.hieModuleHieFile
 
 -----------------------------------------------------------------------------------
@@ -133,9 +129,7 @@ srcFilePathToHieFilePathFromFile srcPath = do
             List.foldl' (flip List.dropPrefix) absoluteSrcPath absoluteSrcDirs
         -- Set the hie directory path and substitute the file extension
         hiePath = absoluteHieDir </> noPrefixSrcPath -<.> ".hie"
-    fileExists <- liftIO $ Dir.doesFileExist hiePath
-
-    guard fileExists
+    True <- liftIO $ Dir.doesFileExist hiePath
     pure hiePath
 
 -----------------------------------------------------------------------------------

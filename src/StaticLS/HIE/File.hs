@@ -12,24 +12,25 @@ module StaticLS.HIE.File (
 )
 where
 
-import Control.Error.Util (maybeT)
-import Control.Exception (catch)
-import Control.Monad ((<=<))
+import Control.Applicative ((<|>))
+import Control.Error.Util (hush)
+import Control.Exception (try)
+import Control.Monad (guard, (<=<))
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
-import Control.Monad.Trans.Except (ExceptT (..), throwE, withExceptT)
+import Control.Monad.Trans.Except (ExceptT (..), withExceptT)
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
+import Data.Bifunctor (bimap)
 import qualified Data.List as List
 import qualified Data.List.Extra as List
 import qualified Data.Map as Map
 import qualified GHC
-import GHC.Data.Maybe (firstJusts)
 import qualified GHC.Iface.Ext.Binary as GHC
 import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE.File.Except
-import StaticLS.Maybe (flatMaybeT)
+import StaticLS.Maybe (flatMaybeT, orDie, orDieT)
 import StaticLS.StaticEnv
 import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))
@@ -40,8 +41,8 @@ type HieFilePath = FilePath
 -- | Retrieve a hie info from a lsp text document identifier
 getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> ExceptT HieFileTdiException m GHC.HieFile
 getHieFileFromTdi tdi = do
-    srcFilePath <- maybe (throwE HieTdiSrcNotFoundException) pure $ LSP.uriToFilePath tdi._uri
-    hieFilePath <- maybeT (throwE HieTdiHieNotFoundException) pure $ srcFilePathToHieFilePath srcFilePath
+    srcFilePath <- (LSP.uriToFilePath tdi._uri) `orDie` HieTdiSrcNotFoundException
+    hieFilePath <- srcFilePathToHieFilePath srcFilePath `orDieT` HieTdiHieNotFoundException
     withExceptT HieTdiReadException $ getHieFile hieFilePath
 
 -- | Retrieve an hie file from a hie filepath
@@ -49,7 +50,7 @@ getHieFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadE
 getHieFile hieFilePath = do
     staticEnv <- getStaticEnv
     result <- liftIO (try (GHC.readHieFile staticEnv.nameCache hieFilePath))
-    return (bimap HieFileReadException GHC.hie_file_result result)
+    ExceptT $ pure (bimap HieFileReadException GHC.hie_file_result result)
 
 -- | Retrieve an hie file from a module name
 modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile
@@ -64,8 +65,8 @@ if not indexed
 -}
 srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 srcFilePathToHieFilePath srcPath =
-        srcFilePathToHieFilePathHieDb srcPath
-    <|> srcFilePathToHieFilePathFromFile srcPath
+    srcFilePathToHieFilePathHieDb srcPath
+        <|> srcFilePathToHieFilePathFromFile srcPath
 
 -- | Fetch an hie file from a src file
 hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
@@ -88,7 +89,7 @@ modToHieFilePath modName =
         runMaybeT $ do
             unitId <-
                 MaybeT $
-                    either (const Nothing) Just
+                    hush
                         <$> HieDb.resolveUnitId hieDb modName
             hieModRow <- MaybeT $ HieDb.lookupHieFile hieDb modName unitId
             pure $ hieModRow.hieModuleHieFile

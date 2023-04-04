@@ -1,7 +1,7 @@
 module StaticLS.Except where
 
+import Control.Error.Util
 import Control.Monad.Trans.Except
-import Data.Either.Extra
 
 exceptToMaybe :: Except a b -> Maybe b
-exceptToMaybe = eitherToMaybe . runExcept
+exceptToMaybe = hush . runExcept

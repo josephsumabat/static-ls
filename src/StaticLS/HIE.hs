@@ -10,9 +10,10 @@ module StaticLS.HIE (
 )
 where
 
+import Control.Error.Util (hush)
 import Control.Exception (Exception)
 import Control.Monad ((<=<))
-import Control.Monad.Trans.Except (Except, throwE)
+import Control.Monad.Trans.Except (ExceptT, throwE)
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
@@ -34,12 +35,7 @@ hieAstNodeToIdentifiers =
 
 identifiersToNames :: [GHC.Identifier] -> [GHC.Name]
 identifiersToNames =
-    mapMaybe eitherToMaybe
-  where
-    eitherToMaybe =
-        \case
-            Left _ -> Nothing
-            Right a -> Just a
+    mapMaybe hush
 
 hieAstToNames :: GHC.HieAST a -> [GHC.Name]
 hieAstToNames =

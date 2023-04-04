@@ -1,17 +1,18 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module StaticLS.HIE.File.Except where
 
 import Control.Exception
 
 newtype HieFileReadException
     = HieFileReadException IOException
-    deriving (Show)
-
-instance Exception HieFileReadException
+    deriving stock (Show)
+    deriving newtype Exception
 
 data HieFileTdiException
     = HieTdiReadException HieFileReadException
     | HieTdiSrcNotFoundException
     | HieTdiHieNotFoundException
-    deriving (Show)
+    deriving stock (Show)
 
 instance Exception HieFileTdiException

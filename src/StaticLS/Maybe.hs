@@ -9,9 +9,8 @@ import Control.Monad.Trans.Maybe
 flatMaybeT :: (Monad m) => MaybeT m (Maybe a) -> MaybeT m a
 flatMaybeT = MaybeT . fmap join . runMaybeT
 
-maybeToAlt :: Alternative f => Maybe a -> f a
-maybeToAlt (Just x) = pure x
-maybeToAlt Nothing = empty
+toAlt :: (Functor f, Foldable f, Alternative g) => f a -> g a
+toAlt as = asum (fmap pure as)
 
 orDie :: Monad m => Maybe a -> e -> ExceptT e m a
 x `orDie` e = maybe (throwE e) pure x

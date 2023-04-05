@@ -49,4 +49,4 @@ refRowToLocation (refRow HieDb.:. _) = do
         hieFilePath = refRow.refSrc
     file <- hieFilePathToSrcFilePath hieFilePath
     let lspUri = LSP.fromNormalizedUri . LSP.normalizedFilePathToUri . LSP.toNormalizedFilePath $ file
-    maybeToAlt $ LSP.Location lspUri <$> range
+    toAlt $ LSP.Location lspUri <$> range

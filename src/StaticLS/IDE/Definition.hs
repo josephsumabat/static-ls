@@ -108,8 +108,8 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
 srcSpanToLocation :: HasStaticEnv m => GHC.SrcSpan -> MaybeT m LSP.Location
 srcSpanToLocation src = do
     staticEnv <- lift getStaticEnv
-    fs <- maybeToAlt $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
-    rng <- maybeToAlt $ srcSpanToRange src
+    fs <- toAlt $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
+    rng <- toAlt $ srcSpanToRange src
     -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
     pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath fs) rng
 

@@ -37,7 +37,7 @@ retrieveHover identifier position = do
                         (lspPositionToHieDbCoords position)
                         Nothing
                         (hoverInfo (GHC.hie_types hieFile))
-        maybeToAlt $ hoverInfoToHover <$> info
+        toAlt $ hoverInfoToHover <$> info
   where
     hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
     hoverInfoToHover (mRange, contents) =

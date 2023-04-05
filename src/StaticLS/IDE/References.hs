@@ -11,6 +11,7 @@ import qualified Language.LSP.Types as LSP
 import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File
+import StaticLS.Maybe
 import StaticLS.StaticEnv
 
 findRefs :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> LSP.Position -> m [LSP.Location]
@@ -48,4 +49,4 @@ refRowToLocation (refRow HieDb.:. _) = do
         hieFilePath = refRow.refSrc
     file <- hieFilePathToSrcFilePath hieFilePath
     let lspUri = LSP.fromNormalizedUri . LSP.normalizedFilePathToUri . LSP.toNormalizedFilePath $ file
-    MaybeT . pure $ LSP.Location lspUri <$> range
+    maybeToAlt $ LSP.Location lspUri <$> range

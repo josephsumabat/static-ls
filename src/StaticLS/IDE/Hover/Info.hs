@@ -17,7 +17,7 @@ import Language.LSP.Types
 -- for the original source
 -------------------------------------------------------------------
 hoverInfo :: Array TypeIndex HieTypeFlat -> HieAST TypeIndex -> (Maybe Range, [T.Text])
-hoverInfo typeLookup ast = (Just spanRange, prettyNames ++ pTypes)
+hoverInfo typeLookup ast = (Just spanRange, map prettyName names ++ pTypes)
   where
     pTypes
         | Prelude.length names == 1 = dropEnd1 $ map wrapHaskell prettyTypes
@@ -29,9 +29,6 @@ hoverInfo typeLookup ast = (Just spanRange, prettyNames ++ pTypes)
     info = sourcedNodeInfo ast
     names = M.assocs $ sourcedNodeIdents info
     types = concatMap nodeType (M.elems $ getSourcedNodeInfo info)
-
-    prettyNames :: [T.Text]
-    prettyNames = map prettyName names
 
     prettyName :: (Identifier, IdentifierDetails TypeIndex) -> T.Text
     prettyName (Right n, dets) =
@@ -55,10 +52,10 @@ showGhc :: Outputable a => a -> T.Text
 showGhc = showSD . ppr
 
 showSD :: SDoc -> T.Text
-showSD = T.pack . unsafePrintSDoc
+showSD = T.pack . printSDocSimple
 
-unsafePrintSDoc :: SDoc -> String
-unsafePrintSDoc = renderWithContext sdocContext
+printSDocSimple :: SDoc -> String
+printSDocSimple = renderWithContext sdocContext
   where
     sdocContext = pprStyleToSDocContext $ mkUserStyle neverQualify AllTheWay
 

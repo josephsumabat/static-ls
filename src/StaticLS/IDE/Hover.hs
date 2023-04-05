@@ -11,17 +11,18 @@ import qualified GHC.Iface.Ext.Types as GHC
 import HieDb (pointCommand)
 import Language.LSP.Types (
     Hover (..),
-    Range (..),
     HoverContents (..),
     MarkupContent (..),
     MarkupKind (..),
     Position,
+    Range (..),
     TextDocumentIdentifier,
     sectionSeparator,
  )
 import StaticLS.HIE
 import StaticLS.HIE.File
 import StaticLS.IDE.Hover.Info
+import StaticLS.Maybe
 import StaticLS.StaticEnv
 
 -- | Retrive hover information. Incomplete
@@ -36,7 +37,7 @@ retrieveHover identifier position = do
                         (lspPositionToHieDbCoords position)
                         Nothing
                         (hoverInfo (GHC.hie_types hieFile))
-        MaybeT $ pure $ hoverInfoToHover <$> info
+        maybeToAlt $ hoverInfoToHover <$> info
   where
     hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
     hoverInfoToHover (mRange, contents) =

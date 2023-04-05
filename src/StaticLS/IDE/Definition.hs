@@ -20,6 +20,7 @@ import qualified Language.LSP.Types as LSP
 import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File
+import StaticLS.Maybe
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.FilePath ((</>))
@@ -63,9 +64,10 @@ getDefinition tdi pos = do
 -- for the original code
 ---------------------------------------------------------------------
 
--- | Given a 'Name' attempt to find the location where it is defined.
--- See: https://hackage.haskell.org/package/ghcide-1.10.0.0/docs/src/Development.IDE.Spans.AtPoint.html#nameToLocation
--- for original code
+{- | Given a 'Name' attempt to find the location where it is defined.
+See: https://hackage.haskell.org/package/ghcide-1.10.0.0/docs/src/Development.IDE.Spans.AtPoint.html#nameToLocation
+for original code
+-}
 nameToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Name -> m [LSP.Location]
 nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
     case GHC.nameSrcSpan name of
@@ -106,8 +108,8 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
 srcSpanToLocation :: HasStaticEnv m => GHC.SrcSpan -> MaybeT m LSP.Location
 srcSpanToLocation src = do
     staticEnv <- lift getStaticEnv
-    fs <- MaybeT . pure $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
-    rng <- MaybeT . pure $ srcSpanToRange src
+    fs <- maybeToAlt $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
+    rng <- maybeToAlt $ srcSpanToRange src
     -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
     pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath fs) rng
 

@@ -1,5 +1,6 @@
 module StaticLS.Maybe where
 
+import Control.Applicative
 import Control.Error.Util (maybeT)
 import Control.Monad
 import Control.Monad.Trans.Except (ExceptT (..), throwE)
@@ -7,6 +8,10 @@ import Control.Monad.Trans.Maybe
 
 flatMaybeT :: (Monad m) => MaybeT m (Maybe a) -> MaybeT m a
 flatMaybeT = MaybeT . fmap join . runMaybeT
+
+maybeToAlt :: Alternative f => Maybe a -> f a
+maybeToAlt (Just x) = pure x
+maybeToAlt Nothing = empty
 
 orDie :: Monad m => Maybe a -> e -> ExceptT e m a
 x `orDie` e = maybe (throwE e) pure x

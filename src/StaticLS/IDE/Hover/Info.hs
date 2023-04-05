@@ -20,7 +20,7 @@ hoverInfo :: Array TypeIndex HieTypeFlat -> HieAST TypeIndex -> (Maybe Range, [T
 hoverInfo typeLookup ast = (Just spanRange, map prettyName names ++ pTypes)
   where
     pTypes
-        | Prelude.length names == 1 = dropEnd1 $ map wrapHaskell prettyTypes
+        | [_] <- names = dropEnd1 $ map wrapHaskell prettyTypes
         | otherwise = map wrapHaskell prettyTypes
 
     spanRange = realSrcSpanToRange $ nodeSpan ast

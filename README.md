@@ -38,8 +38,20 @@ as well as possibly other static sources of information
 
 static-ls supports the following lsp methods:
 - `textDocument/references`
+  - Note that find references only works on top level definitions and can be
+    slow for functions which are used frequently
+
+![Find references](./docs/gifs/find-references.gif)
+
 - `textDocument/hover`
+  - Provides type information and definition location on hover
+
+![Type on hover](./docs/gifs/hover.gif)
+
 - `textDocument/definition`
+  - Works on both local and top level definitions
+
+![Find definition](./docs/gifs/find-definition.gif)
 
 ## Limitations
 - Must be compiled on the same version of ghc as the project

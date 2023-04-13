@@ -5,12 +5,18 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           static-ls
-version:        0.0.0
+version:        0.1
+homepage:       https://github.com/josephsumabat/static-ls#readme
+bug-reports:    https://github.com/josephsumabat/static-ls/issues
 author:         Joseph Sumabat
 maintainer:     josephrsumabat@gmail.com
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/josephsumabat/static-ls
 
 library
   exposed-modules:
@@ -25,6 +31,7 @@ library
       StaticLS.Maybe
       StaticLS.Server
       StaticLS.StaticEnv
+      StaticLS.StaticEnv.Options
   other-modules:
       Paths_static_ls
   hs-source-dirs:
@@ -35,7 +42,7 @@ library
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Wall -Werror
   build-depends:
       Cabal-syntax
     , array
@@ -54,6 +61,7 @@ library
     , lsp-types
     , mtl
     , silently
+    , sqlite-simple
     , template-haskell
     , text
     , transformers
@@ -72,7 +80,7 @@ executable static-ls
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Wall -Werror
   build-depends:
       Cabal-syntax
     , array
@@ -91,6 +99,7 @@ executable static-ls
     , lsp-types
     , mtl
     , silently
+    , sqlite-simple
     , static-ls
     , template-haskell
     , text
@@ -104,9 +113,11 @@ test-suite static-ls-test
   other-modules:
       StaticLS.HIE.FileSpec
       StaticLS.IDE.DefinitionSpec
+      StaticLS.IDE.HoverSpec
       TestData.Mod1
       TestData.Mod2
       TestImport
+      TestImport.Assert
       TestImport.TestData
       Paths_static_ls
   hs-source-dirs:
@@ -117,7 +128,7 @@ test-suite static-ls-test
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Wall -Werror
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       Cabal-syntax
@@ -138,6 +149,7 @@ test-suite static-ls-test
     , lsp-types
     , mtl
     , silently
+    , sqlite-simple
     , static-ls
     , template-haskell
     , text

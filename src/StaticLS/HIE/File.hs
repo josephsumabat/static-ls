@@ -13,29 +13,29 @@ module StaticLS.HIE.File (
 where
 
 import Control.Applicative ((<|>))
-import Control.Exception (try)
+import Control.Exception (SomeException, catch)
 import Control.Monad ((<=<))
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
-import Data.Bifunctor (bimap)
+import Data.Bifunctor (second)
 import qualified Data.List as List
 import qualified Data.List.Extra as List
 import qualified Data.Map as Map
 import qualified GHC
 import qualified GHC.Iface.Ext.Binary as GHC
 import qualified GHC.Iface.Ext.Types as GHC
+import GHC.Stack (HasCallStack)
 import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE.File.Except
-import StaticLS.Maybe (flatMaybeT)
+import StaticLS.Maybe (flatMaybeT, toAlt)
 import StaticLS.StaticEnv
 import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))
 
 type SrcFilePath = FilePath
-type HieFilePath = FilePath
 
 -- | Retrieve a hie info from a lsp text document identifier
 getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m GHC.HieFile
@@ -69,11 +69,11 @@ hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 -----------------------------------------------------------------------------------
 
 -- | Retrieve an hie file from a hie filepath
-getHieFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
+getHieFile :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
 getHieFile hieFilePath = do
     staticEnv <- getStaticEnv
-    result <- liftIO (try (GHC.readHieFile staticEnv.nameCache hieFilePath))
-    ExceptT $ pure (bimap HieFileReadException GHC.hie_file_result result)
+    result <- liftIO (fmap Right (GHC.readHieFile staticEnv.nameCache hieFilePath) `catch` (\e -> let _ = e :: SomeException in (pure . Left $ HieFileReadException)))
+    ExceptT $ pure (second GHC.hie_file_result result)
 
 -----------------------------------------------------------------------------------
 -- HieDb Method of file lookups - requires hiedb to be indexed using --src-base-dirs from 0.4.4.0
@@ -99,10 +99,6 @@ modToHieFilePath modName =
 -- Useful as a fallback
 -----------------------------------------------------------------------------------
 
--- TODO: make this configurable (use hie.yaml?)
-hieDir :: FilePath
-hieDir = ".hiefiles/"
-
 -- TODO: make this configurable (use cabal?)
 srcDirs :: [FilePath]
 srcDirs = ["src/", "lib/", "app/", "test/"]
@@ -124,6 +120,7 @@ srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => SrcFilePath -
 srcFilePathToHieFilePathFromFile srcPath = do
     staticEnv <- getStaticEnv
     absoluteRoot <- liftIO $ Dir.makeAbsolute staticEnv.wsRoot
+    hieDir <- toAlt staticEnv.hieFilesPath
     let absoluteHieDir = absoluteRoot </> hieDir
         absoluteSrcDirs = (absoluteRoot </>) <$> srcDirs
     absoluteSrcPath <- liftIO $ Dir.makeAbsolute srcPath
@@ -145,8 +142,8 @@ data HieInfo = HieInfo
     , hieFile :: GHC.HieFile
     }
 
-getHieFileMap :: FilePath -> IO (Map.Map SrcFilePath HieInfo)
-getHieFileMap wsroot = do
+getHieFileMap :: FilePath -> HieFilePath -> IO (Map.Map SrcFilePath HieInfo)
+getHieFileMap wsroot hieDir = do
     let hieFullPath = wsroot </> hieDir
     hieFilePaths <- HieDb.getHieFilesIn hieFullPath
     nameCache <- GHC.initNameCache 'a' []

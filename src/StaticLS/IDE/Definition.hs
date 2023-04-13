@@ -14,6 +14,7 @@ import Development.IDE.GHC.Error (
 import qualified GHC.Data.FastString as GHC
 import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Plugins as GHC
+import GHC.Stack (HasCallStack)
 import GHC.Utils.Monad (mapMaybeM)
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
@@ -26,7 +27,7 @@ import System.Directory (doesFileExist)
 import System.FilePath ((</>))
 
 getDefinition ::
-    (HasStaticEnv m, MonadIO m) =>
+    (HasCallStack, HasStaticEnv m, MonadIO m) =>
     LSP.TextDocumentIdentifier ->
     LSP.Position ->
     m [LSP.Location]
@@ -68,7 +69,7 @@ getDefinition tdi pos = do
 See: https://hackage.haskell.org/package/ghcide-1.10.0.0/docs/src/Development.IDE.Spans.AtPoint.html#nameToLocation
 for original code
 -}
-nameToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Name -> m [LSP.Location]
+nameToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.Name -> m [LSP.Location]
 nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
     case GHC.nameSrcSpan name of
         sp@(GHC.RealSrcSpan rsp _)
@@ -85,7 +86,7 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
                             fallbackToDb sp
         sp -> fallbackToDb sp
   where
-    fallbackToDb :: (HasStaticEnv m, MonadIO m) => GHC.SrcSpan -> MaybeT m [LSP.Location]
+    fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.SrcSpan -> MaybeT m [LSP.Location]
     fallbackToDb sp = do
         guard (sp /= GHC.wiredInSrcSpan)
         -- This case usually arises when the definition is in an external package.
@@ -105,7 +106,7 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
                     xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
             xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
 
-srcSpanToLocation :: HasStaticEnv m => GHC.SrcSpan -> MaybeT m LSP.Location
+srcSpanToLocation :: (HasCallStack, HasStaticEnv m) => GHC.SrcSpan -> MaybeT m LSP.Location
 srcSpanToLocation src = do
     staticEnv <- lift getStaticEnv
     fs <- toAlt $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
@@ -113,7 +114,7 @@ srcSpanToLocation src = do
     -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
     pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath fs) rng
 
-defRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m LSP.Location
+defRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m LSP.Location
 defRowToLocation (defRow HieDb.:. _) = do
     let start = exceptToMaybe $ hiedbCoordsToLspPosition (defRow.defSLine, defRow.defSCol)
         end = exceptToMaybe $ hiedbCoordsToLspPosition (defRow.defELine, defRow.defECol)

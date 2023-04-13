@@ -19,6 +19,7 @@ import StaticLS.IDE.Definition
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
 import StaticLS.StaticEnv
+import StaticLS.StaticEnv.Options
 
 data LspEnv config = LspEnv
     { staticEnv :: StaticEnv
@@ -53,7 +54,7 @@ initServer :: LanguageContextEnv config -> Message 'Initialize -> IO (Either Res
 initServer serverConfig _ = do
     runExceptT $ do
         wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
-        serverStaticEnv <- ExceptT $ Right <$> initStaticEnv wsRoot
+        serverStaticEnv <- ExceptT $ Right <$> initStaticEnv wsRoot defaultStaticEnvOptions
         pure $
             LspEnv
                 { staticEnv = serverStaticEnv

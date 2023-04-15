@@ -6,6 +6,9 @@ cabal-version: 1.12
 
 name:           static-ls
 version:        0.1
+synopsis:       See README on Github for more information
+description:    static-ls ("static language server") reads static project information to provide IDE functionality through the language server protocol. static-ls will not generate this information on its own and instead will rely on the user to generate this information via separate programs
+category:       Development
 homepage:       https://github.com/josephsumabat/static-ls#readme
 bug-reports:    https://github.com/josephsumabat/static-ls/issues
 author:         Joseph Sumabat
@@ -42,7 +45,7 @@ library
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Werror=deferred-type-errors -Wall -Werror
   build-depends:
       Cabal-syntax
     , array
@@ -80,7 +83,7 @@ executable static-ls
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Werror=deferred-type-errors -Wall -Werror
   build-depends:
       Cabal-syntax
     , array
@@ -128,7 +131,7 @@ test-suite static-ls-test
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Werror=deferred-type-errors -Wall -Werror
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       Cabal-syntax

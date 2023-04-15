@@ -1,42 +1,72 @@
 # static-ls
 
-static-ls is a hie and hiedb based language server heavily inspired by `halfsp`.
+static-ls ("static language server") is a [hie files](https://gitlab.haskell.org/ghc/ghc/-/wikis/hie-files) and
+[hiedb](https://github.com/wz1000/HieDb/) based language server heavily
+inspired by [halfsp](https://githubcom/masaeedu/halfsp), which reads static
+project information to provide IDE functionality through the language server
+protocol. `static-ls` will not generate this information on its own and instead
+will rely on the user to generate this information via separate programs
 
-The goal of static-ls is to provide a high-speed, low-memory solution for
-large projects for which haskell-language-server tends to take up too much
-memory on recompilation. Haskell-language-server is recommended if you are
-not experiencing these issues. `static-ls` is meant to work on enterprise
-size projects. `static-ls` tends to work better standalone as a code navigation tool
-since project edits require re-indexing of hie files but also works
-reasonably well for editing with a program such as `ghcid` to watch files for
-compilation and the `-fdefer-type-errors flag`.
+Supported static sources of information currently include:
+- hiefiles
+- hiedb
 
-In the future we plan to use interface files to fetch documentation information
-as well as possibly other static sources of information
+The goal of `static-ls` is to provide a high-speed, low-memory solution for large
+projects for which
+[haskell-language-server](https://github.com/haskell/haskell-language-server)
+tends to take up too much memory on recompilation.
+[Haskell-language-server](https://github.com/haskell/haskell-language-server)
+is recommended if you are not experiencing these issues. `static-ls` is meant
+to work on enterprise size projects where aforementioned constraints can be an
+issue. `static-ls` tends to work better standalone as a code navigation tool
+since project edits require re-indexing of hie files but also works reasonably
+well for editing with a program such as
+[ghcid](https://github.com/ndmitchell/ghcid) to watch files for compilation and
+the `-fdefer-type-errors flag`.
+
+In the future we plan to use more sources of static information such as interface files
+to fetch documentation or ghcid's output to fetch diagnostics
+
+Currently only ghc 9.4.4 is supported but I'm happy to add support for other versions of ghc if desired
 
 ## Usage
 
 1. Compile your project with ide info `-fwrite-ide-info` and `-hiedir .hiefiles`
-  - If you're using hpack you can add:
-    ```
-      ghc-options:
-        - -fwrite-ide-info
-        - -hiedir .hiefiles
-    ```
-    to  your `package.yaml`
-    See this project's `package.yaml` or `static-ls.cabal` for examples
+    
+    For a better UX, `-fdefer-type-errors` and `-Werror=deferred-type-errors` are also both *strongly* recommended.
+    These flags will allow hie files to be refreshed even if compilation fails to
+    type check and will ensure that type check failures are still thrown as
+    errors
 
-    For better re-indexing while editing `-fdefer-type-errors` is also recommended - note however that this will cause type errors to be surfaced as warnings but will allow hie files to be regenerated on a failed compile
-2. Index your project in hiedb running `hiedb -D .hiedb index .hiefiles --src-base-dir .`
-    from your workspace root
+    - If you're using hpack you can add:
+      ```
+        ghc-options:
+          - -fwrite-ide-info
+          - -hiedir .hiefiles
+          - -fdefer-type-errors
+          - -Werror=deferred-type-errors
+      ```
+    to  your `package.yaml`
+    
+    See this project's `package.yaml` or `static-ls.cabal` for examples
+2. Index your project in hiedb running:
+      ```
+        hiedb -D .hiedb index .hiefiles --src-base-dir .
+      ```
+
+    from your workspace root. If you're on an older version of `hiedb` where the `--src-base-dir` argument is not available use:
+    
+      ```
+        hiedb -D .hiedb index .hiefiles
+      ```
 3. Point your language client to the `static-ls` binary and begin editing!
     (See [Editor Setup](#editor-setup) for instructions if you're not sure how)
 
-`ghcid` is recommended to refresh hie files
+[ghcid](https://github.com/ndmitchell/ghcid) is recommended to refresh hie files but compiling with `cabal build` should work as well
 
 ## Features
 
-static-ls supports the following lsp methods:
+`static-ls` supports the following lsp methods:
 - `textDocument/references`
   - Note that find references only works on top level definitions and can be
     slow for functions which are used frequently

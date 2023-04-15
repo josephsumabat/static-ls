@@ -1,13 +1,15 @@
 module TestImport where
 
-import Data.Maybe (listToMaybe)
 import StaticLS.StaticEnv as StaticEnv
+import StaticLS.StaticEnv.Options as StaticEnv
 import System.Directory (makeAbsolute)
 
 initStaticEnv :: IO StaticEnv
 initStaticEnv = do
     wsRoot <- makeAbsolute "."
-    StaticEnv.initStaticEnv wsRoot
+    StaticEnv.initStaticEnv wsRoot StaticEnv.defaultStaticEnvOptions
 
-assertHead :: (MonadFail m) => String -> [a] -> m a
-assertHead msg = maybe (fail msg) pure . listToMaybe
+initStaticEnvOpts :: StaticEnvOptions -> IO StaticEnv
+initStaticEnvOpts options = do
+    wsRoot <- makeAbsolute "."
+    StaticEnv.initStaticEnv wsRoot options

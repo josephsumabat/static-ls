@@ -1,6 +1,6 @@
 # static-ls
 
-static-ls ("static language server") is a hie and
+static-ls ("static language server") is a [hie files](https://gitlab.haskell.org/ghc/ghc/-/wikis/hie-files) and
 [hiedb](https://github.com/wz1000/HieDb/) based language server heavily
 inspired by [halfsp](https://githubcom/masaeedu/halfsp), which reads static
 project information to provide IDE functionality through the language server
@@ -32,26 +32,37 @@ Currently only ghc 9.4.4 is supported but I'm happy to add support for other ver
 ## Usage
 
 1. Compile your project with ide info `-fwrite-ide-info` and `-hiedir .hiefiles`
-  - If you're using hpack you can add:
-    ```
-      ghc-options:
-        - -fwrite-ide-info
-        - -hiedir .hiefiles
-    ```
-    to  your `package.yaml`
-    See this project's `package.yaml` or `static-ls.cabal` for examples
+    
+    For a better UX, `-fdefer-type-errors` and `-Werror=deferred-type-errors` are also both *strongly* recommended.
+    These flags will allow hie files to be refreshed even if compilation fails to
+    type check and will ensure that type check failures are still thrown as
+    errors
 
-    For better re-indexing while editing `-fdefer-type-errors` is also
-    recommended - note however that this will cause type errors to be surfaced
-    as warnings if you don't have `-Werr` but will allow hie files to be
-    regenerated on a failed compile
-2. Index your project in hiedb running `hiedb -D .hiedb index .hiefiles
-   --src-base-dir .`
-    from your workspace root. If you're on an older version of `hiedb` use `hiedb -D .hiedb index .hiefiles --src-base-dir .`
+    - If you're using hpack you can add:
+      ```
+        ghc-options:
+          - -fwrite-ide-info
+          - -hiedir .hiefiles
+          - -fdefer-type-errors
+          - -Werror=deferred-type-errors
+      ```
+    to  your `package.yaml`
+    
+    See this project's `package.yaml` or `static-ls.cabal` for examples
+2. Index your project in hiedb running:
+      ```
+        hiedb -D .hiedb index .hiefiles --src-base-dir .
+      ```
+
+    from your workspace root. If you're on an older version of `hiedb` where the `--src-base-dir` argument is not available use:
+    
+      ```
+        hiedb -D .hiedb index .hiefiles
+      ```
 3. Point your language client to the `static-ls` binary and begin editing!
     (See [Editor Setup](#editor-setup) for instructions if you're not sure how)
 
-`ghcid` is recommended to refresh hie files
+[ghcid](https://github.com/ndmitchell/ghcid) is recommended to refresh hie files but compiling with `cabal build` should work as well
 
 ## Features
 

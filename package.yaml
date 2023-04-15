@@ -36,6 +36,7 @@ ghc-options:
   - -fwrite-ide-info
   - -fdefer-type-errors
   - -hiedir .hiefiles
+  - -Werror=deferred-type-errors
   - -Wall
   - -Werror
 default-extensions:

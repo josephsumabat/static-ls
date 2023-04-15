@@ -2,7 +2,7 @@
 
 static-ls ("static language server") is a hie and
 [hiedb](https://github.com/wz1000/HieDb/) based language server heavily
-inspired by [halfsp](https://githubcom/masaeedu/halfsp). Which reads static
+inspired by [halfsp](https://githubcom/masaeedu/halfsp), which reads static
 project information to provide IDE functionality through the language server
 protocol. Static-ls will not generate this information on its own and instead
 will rely on the user to generate this information via separate programs

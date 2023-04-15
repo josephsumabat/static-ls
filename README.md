@@ -4,14 +4,14 @@ static-ls ("static language server") is a hie and
 [hiedb](https://github.com/wz1000/HieDb/) based language server heavily
 inspired by [halfsp](https://githubcom/masaeedu/halfsp), which reads static
 project information to provide IDE functionality through the language server
-protocol. Static-ls will not generate this information on its own and instead
+protocol. `static-ls` will not generate this information on its own and instead
 will rely on the user to generate this information via separate programs
 
 Supported static sources of information currently include:
 - hiefiles
 - hiedb
 
-The goal of static-ls is to provide a high-speed, low-memory solution for large
+The goal of `static-ls` is to provide a high-speed, low-memory solution for large
 projects for which
 [haskell-language-server](https://github.com/haskell/haskell-language-server)
 tends to take up too much memory on recompilation.
@@ -55,7 +55,7 @@ Currently only ghc 9.4.4 is supported but I'm happy to add support for other ver
 
 ## Features
 
-static-ls supports the following lsp methods:
+`static-ls` supports the following lsp methods:
 - `textDocument/references`
   - Note that find references only works on top level definitions and can be
     slow for functions which are used frequently

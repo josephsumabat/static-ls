@@ -50,6 +50,9 @@ handleReferencesRequest = LSP.requestHandler STextDocumentReferences $ \req res 
     refs <- lift $ findRefs refParams._textDocument refParams._position
     res $ Right . List $ refs
 
+handleCancelNotification :: Handlers (LspT c StaticLs)
+handleCancelNotification = LSP.notificationHandler SCancelRequest $ \_ -> pure ()
+
 initServer :: LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
 initServer serverConfig _ = do
     runExceptT $ do
@@ -80,6 +83,7 @@ serverDef =
                 , handleTextDocumentHoverRequest
                 , handleDefinitionRequest
                 , handleReferencesRequest
+                , handleCancelNotification
                 ]
         , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO
         , options = LSP.defaultOptions

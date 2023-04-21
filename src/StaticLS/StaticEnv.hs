@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module StaticLS.StaticEnv (
     initStaticEnv,
@@ -14,8 +15,7 @@ module StaticLS.StaticEnv (
 )
 where
 
-import Control.Exception (IOException, catch)
-import Control.Monad.Exception (Exception)
+import Control.Exception (Exception, IOException, SomeException, catch)
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (..))
 import Control.Monad.Trans.Except (ExceptT (..))
@@ -39,6 +39,7 @@ data HieDbException
     = HieDbIOException IOException
     | HieDbSqlException SQLError
     | HieDbNoHieDbSourceException
+    | HieDbOtherException
     deriving (Show)
 
 instance Exception HieDbException
@@ -95,6 +96,7 @@ runHieDbExceptT hieDbFn =
                         HieDb.withHieDb hiedbPath (fmap Right . hieDbFn)
                             `catch` (pure . Left . HieDbIOException)
                             `catch` (pure . Left . HieDbSqlException)
+                            `catch` (\(_ :: SomeException) -> pure . Left $ HieDbOtherException)
                 )
                 staticEnv.hieDbPath
 

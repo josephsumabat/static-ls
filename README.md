@@ -27,13 +27,21 @@ the `-fdefer-type-errors flag`.
 In the future we plan to use more sources of static information such as interface files
 to fetch documentation or ghcid's output to fetch diagnostics
 
-Currently only ghc 9.4.4 is supported but I'm happy to add support for other versions of ghc if desired
+Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add support for other versions of ghc if desired
 
 ## Usage
 
 1. Compile your project with ide info `-fwrite-ide-info` and `-hiedir .hiefiles`
     
-    For a better UX, `-fdefer-type-errors` and `-Werror=deferred-type-errors` are also both *strongly* recommended.
+    For a better UX, the following flags are *strongly* recommended.
+
+     ```
+     - -fdefer-type-errors
+     - -Werror=deferred-type-errors
+     - -Werror=deferred-out-of-scope-variables
+     - -fno-defer-typed-holes
+     ```
+  
     These flags will allow hie files to be refreshed even if compilation fails to
     type check and will ensure that type check failures are still thrown as
     errors
@@ -45,6 +53,8 @@ Currently only ghc 9.4.4 is supported but I'm happy to add support for other ver
           - -hiedir .hiefiles
           - -fdefer-type-errors
           - -Werror=deferred-type-errors
+          - -Werror=deferred-out-of-scope-variables
+          - -fno-defer-typed-holes
       ```
     to  your `package.yaml`
     

@@ -57,7 +57,7 @@ library
     , ghc >=9.4.4 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=1.9.1 && <1.11
-    , hiedb >=0.4.3 && <0.5
+    , hiedb >=0.4.2 && <0.5
     , lsp >=1.6.0 && <1.7
     , lsp-types >=1.6.0 && <1.7
     , mtl >=2.2.2 && <2.4
@@ -92,7 +92,7 @@ executable static-ls
     , ghc >=9.4.4 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=1.9.1 && <1.11
-    , hiedb >=0.4.3 && <0.5
+    , hiedb >=0.4.2 && <0.5
     , lsp >=1.6.0 && <1.7
     , lsp-types >=1.6.0 && <1.7
     , mtl >=2.2.2 && <2.4
@@ -138,7 +138,7 @@ test-suite static-ls-test
     , ghc >=9.4.4 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=1.9.1 && <1.11
-    , hiedb >=0.4.3 && <0.5
+    , hiedb >=0.4.2 && <0.5
     , hspec ==2.*
     , lsp >=1.6.0 && <1.7
     , lsp-types >=1.6.0 && <1.7

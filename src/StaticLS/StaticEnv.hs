@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module StaticLS.StaticEnv (
     initStaticEnv,
@@ -95,7 +96,7 @@ runHieDbExceptT hieDbFn =
                         HieDb.withHieDb hiedbPath (fmap Right . hieDbFn)
                             `catch` (pure . Left . HieDbIOException)
                             `catch` (pure . Left . HieDbSqlException)
-                            `catch` (\e -> let _ = e :: SomeException in pure . Left $ HieDbOtherException)
+                            `catch` (\(_ :: SomeException) -> pure . Left $ HieDbOtherException)
                 )
                 staticEnv.hieDbPath
 

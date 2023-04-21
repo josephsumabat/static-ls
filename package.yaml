@@ -20,7 +20,6 @@ dependencies:
   - containers
   - directory
   - errors
-  - exception-transformers
   - extra
   - filepath
   - ghc
@@ -41,9 +40,10 @@ ghc-options:
   - -fwrite-ide-info
   - -fdefer-type-errors
   - -hiedir .hiefiles
+  - -fdefer-type-errors
   - -Werror=deferred-type-errors
-  - -Wall
-  - -Werror
+  - -Werror=deferred-out-of-scope-variables
+  - -fno-defer-typed-holes
 default-extensions:
 - FlexibleContexts
 - OverloadedRecordDot

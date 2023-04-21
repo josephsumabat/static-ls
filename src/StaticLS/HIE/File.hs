@@ -72,7 +72,15 @@ hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 getHieFile :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
 getHieFile hieFilePath = do
     staticEnv <- getStaticEnv
-    result <- liftIO (fmap Right (GHC.readHieFile staticEnv.nameCache hieFilePath) `catch` (\e -> let _ = e :: SomeException in (pure . Left $ HieFileReadException)))
+    -- Attempt to read any hie file version
+    -- TODO: specify supported versions to read?
+    result <-
+        liftIO
+            ( fmap
+                (either (Left . HieFileVersionException) Right)
+                (GHC.readHieFileWithVersion (const True) staticEnv.nameCache hieFilePath)
+                `catch` (\e -> let _ = e :: SomeException in (pure . Left $ HieFileReadException))
+            )
     ExceptT $ pure (second GHC.hie_file_result result)
 
 -----------------------------------------------------------------------------------

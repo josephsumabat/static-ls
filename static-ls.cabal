@@ -45,7 +45,7 @@ library
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Werror=deferred-type-errors -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -fdefer-type-errors -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables -fno-defer-typed-holes
   build-depends:
       Cabal-syntax
     , array
@@ -53,7 +53,6 @@ library
     , containers
     , directory
     , errors
-    , exception-transformers
     , extra
     , filepath
     , ghc
@@ -83,7 +82,7 @@ executable static-ls
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Werror=deferred-type-errors -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -fdefer-type-errors -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables -fno-defer-typed-holes
   build-depends:
       Cabal-syntax
     , array
@@ -91,7 +90,6 @@ executable static-ls
     , containers
     , directory
     , errors
-    , exception-transformers
     , extra
     , filepath
     , ghc
@@ -131,7 +129,7 @@ test-suite static-ls-test
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -Werror=deferred-type-errors -Wall -Werror
+  ghc-options: -fwrite-ide-info -fdefer-type-errors -hiedir .hiefiles -fdefer-type-errors -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables -fno-defer-typed-holes
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       Cabal-syntax
@@ -140,7 +138,6 @@ test-suite static-ls-test
     , containers
     , directory
     , errors
-    , exception-transformers
     , extra
     , filepath
     , ghc

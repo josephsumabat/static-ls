@@ -4,6 +4,7 @@ where
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.Except (runExceptT)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.List (isSuffixOf)
 import Data.Maybe (fromMaybe, maybeToList)
@@ -21,6 +22,7 @@ import qualified Language.LSP.Types as LSP
 import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File
+import StaticLS.HIE.File.Except
 import StaticLS.Maybe
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
@@ -30,19 +32,21 @@ getDefinition ::
     (HasCallStack, HasStaticEnv m, MonadIO m) =>
     LSP.TextDocumentIdentifier ->
     LSP.Position ->
-    m [LSP.Location]
+    m (Either HieFileReadException [LSP.Location])
 getDefinition tdi pos = do
-    mLocs <- runMaybeT $ do
-        hieFile <- getHieFileFromTdi tdi
-        let identifiersAtPoint =
-                join $
-                    HieDb.pointCommand
-                        hieFile
-                        (lspPositionToHieDbCoords pos)
-                        Nothing
-                        hieAstNodeToIdentifiers
-        join <$> mapM (lift . identifierToLocation) identifiersAtPoint
-    pure $ fromMaybe [] mLocs
+    runExceptT $ do
+        mHieFile <- runMaybeT $ getHieFileFromTdiE tdi
+        mLocs <- runMaybeT $ do
+            hieFile <- toAlt mHieFile
+            let identifiersAtPoint =
+                    join $
+                        HieDb.pointCommand
+                            hieFile
+                            (lspPositionToHieDbCoords pos)
+                            Nothing
+                            hieAstNodeToIdentifiers
+            join <$> mapM (lift . identifierToLocation) identifiersAtPoint
+        pure $ fromMaybe [] mLocs
   where
     identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [LSP.Location]
     identifierToLocation =

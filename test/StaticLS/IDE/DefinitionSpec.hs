@@ -15,13 +15,14 @@ spec =
             it "retrieves the myFun definition from a different module" $ do
                 staticEnv <- Test.initStaticEnv
                 locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
-                defnLoc <- Test.assertHead "no definition loc found" locs
+                mDefnLoc <- Test.assertRight "hie file read error" locs
+                defnLoc <- Test.assertHead "no definition loc found" mDefnLoc
                 expectedLoc <- Test.myFunDefLocation
                 defnLoc `shouldBe` expectedLoc
 
         describe "Missing sources" $ do
             describe "Finding sources with only hie files" $ do
-                it "Missing hiedb" $ do
+                it "should still pull from hie files when missing hiedb" $ do
                     let emptyOpts =
                             StaticEnvOptions
                                 { optionHieDbPath = ""
@@ -29,11 +30,12 @@ spec =
                                 }
                     staticEnv <- Test.initStaticEnvOpts emptyOpts
                     locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
-                    defnLoc <- Test.assertHead "no definition loc found" locs
+                    mDefnLoc <- Test.assertRight "hie file read error" locs
+                    defnLoc <- Test.assertHead "no definition loc found" mDefnLoc
                     expectedLoc <- Test.myFunDefLocation
                     defnLoc `shouldBe` expectedLoc
 
-                it "empty hiedb" $ do
+                it "should still pull from hie files with empty hiedb" $ do
                     let emptyOpts =
                             StaticEnvOptions
                                 { optionHieDbPath = "./TestData/not-a-real-hiedb-file"
@@ -41,7 +43,8 @@ spec =
                                 }
                     staticEnv <- Test.initStaticEnvOpts emptyOpts
                     locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
-                    defnLoc <- Test.assertHead "no definition loc found" locs
+                    mDefnLoc <- Test.assertRight "hie file read error" locs
+                    defnLoc <- Test.assertHead "no definition loc found" mDefnLoc
                     expectedLoc <- Test.myFunDefLocation
                     defnLoc `shouldBe` expectedLoc
 
@@ -53,4 +56,4 @@ spec =
                             }
                 staticEnv <- Test.initStaticEnvOpts emptyOpts
                 locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
-                locs `shouldBe` []
+                locs `shouldBe` Right []

@@ -34,22 +34,22 @@ handleInitialized :: Handlers (LspT c StaticLs)
 handleInitialized = LSP.notificationHandler SInitialized $ pure $ pure ()
 
 handleTextDocumentHoverRequest :: Handlers (LspT c StaticLs)
-handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req resp -> do
+handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req res -> do
     let hoverParams = req._params
     hover <- lift $ retrieveHover hoverParams._textDocument hoverParams._position
-    resp $ either (Left . renderLspException) Right hover
+    res $ either (Left . renderLspException) Right hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLs)
 handleDefinitionRequest = LSP.requestHandler STextDocumentDefinition $ \req res -> do
     let defParams = req._params
     defs <- lift $ getDefinition defParams._textDocument defParams._position
-    res $ Right . InR . InL . List $ defs
+    res $ either (Left . renderLspException) (Right . InR . InL . List) defs
 
 handleReferencesRequest :: Handlers (LspT c StaticLs)
 handleReferencesRequest = LSP.requestHandler STextDocumentReferences $ \req res -> do
     let refParams = req._params
     refs <- lift $ findRefs refParams._textDocument refParams._position
-    res $ Right . List $ refs
+    res $ either (Left . renderLspException) (Right . List) refs
 
 handleCancelNotification :: Handlers (LspT c StaticLs)
 handleCancelNotification = LSP.notificationHandler SCancelRequest $ \_ -> pure ()

@@ -13,6 +13,7 @@ spec =
         describe "All available sources" $ do
             it "retrieves the myFun hover info from a different module" $ do
                 staticEnv <- Test.initStaticEnv
-                mHoverInfo <- runStaticLs staticEnv $ uncurry retrieveHover Test.myFunRef1TdiAndPosition
-                _ <- Test.assertJust "no definition loc found" mHoverInfo
+                eHoverInfo <- runStaticLs staticEnv $ uncurry retrieveHover Test.myFunRef1TdiAndPosition
+                mHoverInfo <- Test.assertRight "error getting over" eHoverInfo
+                _ <- Test.assertJust "error getting over" mHoverInfo
                 pure ()

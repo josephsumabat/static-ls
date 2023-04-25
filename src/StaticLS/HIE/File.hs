@@ -2,6 +2,7 @@
 
 module StaticLS.HIE.File (
     getHieFileFromTdi,
+    getHieFileFromTdiE,
     getHieFile,
     modToHieFile,
     modToSrcFile,
@@ -44,8 +45,8 @@ type SrcFilePath = FilePath
 getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m GHC.HieFile
 getHieFileFromTdi = exceptToMaybeT . getHieFile <=< tdiToHieFilePath
 
-getHieFileFromTdiE :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> ExceptT HieFileReadException (MaybeT m) GHC.HieFile
-getHieFileFromTdiE = getHieFile <=< lift . tdiToHieFilePath
+getHieFileFromTdiE :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT (ExceptT HieFileReadException m) GHC.HieFile
+getHieFileFromTdiE = lift . getHieFile <=< tdiToHieFilePath
 
 tdiToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m HieFilePath
 tdiToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSP.uriToFilePath . (._uri))
@@ -84,9 +85,13 @@ getHieFile hieFilePath = do
     result <-
         liftIO
             ( fmap
-                (first HieFileVersionException)
-                (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) staticEnv.nameCache hieFilePath)
-                `catch` (\(_ :: SomeException) -> pure . Left $ HieFileReadException)
+                (first (HieFileVersionException hieFilePath GHC.hieVersion))
+                ( GHC.readHieFileWithVersion
+                    (\(fileHieVersion, _) -> fileHieVersion == GHC.hieVersion)
+                    staticEnv.nameCache
+                    hieFilePath
+                )
+                `catch` (\(_ :: SomeException) -> pure . Left . HieFileReadException $ hieFilePath)
             )
     ExceptT $ pure (second GHC.hie_file_result result)
 

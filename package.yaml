@@ -17,6 +17,7 @@ extra-source-files:
   - README.md
 
 dependencies:
+  - aeson >= 2.1.0.0 && < 2.2
   - array >= 0.5.4 && < 0.6
   - base >= 4.17.0 && < 4.19
   - containers >= 0.6.0 && < 0.7
@@ -38,6 +39,7 @@ dependencies:
   - unliftio-core >= 0.2.1 && < 0.3
 
 default-extensions:
+- DisambiguateRecordFields
 - FlexibleContexts
 - OverloadedRecordDot
 - OverloadedStrings

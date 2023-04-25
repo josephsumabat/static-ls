@@ -18,6 +18,7 @@ import Language.LSP.Types
 import StaticLS.IDE.Definition
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
+import StaticLS.Server.Except
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 
@@ -36,7 +37,7 @@ handleTextDocumentHoverRequest :: Handlers (LspT c StaticLs)
 handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req resp -> do
     let hoverParams = req._params
     hover <- lift $ retrieveHover hoverParams._textDocument hoverParams._position
-    resp (Right hover)
+    resp $ either (Left . renderLspException) Right hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLs)
 handleDefinitionRequest = LSP.requestHandler STextDocumentDefinition $ \req res -> do

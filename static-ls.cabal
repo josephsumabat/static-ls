@@ -40,6 +40,7 @@ library
       StaticLS.IDE.References
       StaticLS.Maybe
       StaticLS.Server
+      StaticLS.Server.Except
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
   other-modules:
@@ -47,6 +48,7 @@ library
   hs-source-dirs:
       src
   default-extensions:
+      DisambiguateRecordFields
       FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
@@ -54,7 +56,8 @@ library
       LambdaCase
   ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2.1.0.0 && <2.2
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4
@@ -85,6 +88,7 @@ executable static-ls
   hs-source-dirs:
       app
   default-extensions:
+      DisambiguateRecordFields
       FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
@@ -92,7 +96,8 @@ executable static-ls
       LambdaCase
   ghc-options: -Wall
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2.1.0.0 && <2.2
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4
@@ -135,6 +140,7 @@ test-suite static-ls-test
   hs-source-dirs:
       test
   default-extensions:
+      DisambiguateRecordFields
       FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
@@ -143,7 +149,8 @@ test-suite static-ls-test
   ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2.1.0.0 && <2.2
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4

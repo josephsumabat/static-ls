@@ -5,6 +5,9 @@ module TestImport.TestData where
 import qualified Language.LSP.Types as LSP
 import qualified System.Directory as Dir
 
+testDataRoot :: FilePath
+testDataRoot = "test/TestData/"
+
 myFunDefTdiAndPosition :: (LSP.TextDocumentIdentifier, LSP.Position)
 myFunDefTdiAndPosition =
     let pos =

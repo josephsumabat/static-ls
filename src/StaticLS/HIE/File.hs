@@ -18,6 +18,7 @@ import Control.Applicative ((<|>))
 import Control.Exception (SomeException, catch)
 import Control.Monad ((<=<))
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Data.Bifunctor (first, second)
@@ -42,6 +43,9 @@ type SrcFilePath = FilePath
 -- | Retrieve a hie info from a lsp text document identifier
 getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m GHC.HieFile
 getHieFileFromTdi = exceptToMaybeT . getHieFile <=< tdiToHieFilePath
+
+getHieFileFromTdiE :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> ExceptT HieFileReadException (MaybeT m) GHC.HieFile
+getHieFileFromTdiE = getHieFile <=< lift . tdiToHieFilePath
 
 tdiToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m HieFilePath
 tdiToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSP.uriToFilePath . (._uri))

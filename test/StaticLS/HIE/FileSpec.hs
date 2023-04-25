@@ -59,6 +59,7 @@ spec = do
             hieFile <-
                 runStaticLs staticEnv $
                     runExceptT $
+                        -- This is a src file not an hie file!
                         getHieFile "./test/TestData/Mod1.hs"
             _ <- Test.assertLeft "expected failure" hieFile
             pure ()

@@ -59,6 +59,9 @@ handleDidOpen = LSP.notificationHandler STextDocumentDidOpen $ \_ -> pure ()
 handleDidChange :: Handlers (LspT c StaticLs)
 handleDidChange = LSP.notificationHandler STextDocumentDidChange $ \_ -> pure ()
 
+handleDidClose :: Handlers (LspT c StaticLs)
+handleDidClose = LSP.notificationHandler STextDocumentDidClose $ \_ -> pure ()
+
 handleDidSave :: Handlers (LspT c StaticLs)
 handleDidSave = LSP.notificationHandler STextDocumentDidSave $ \_ -> pure ()
 
@@ -95,6 +98,7 @@ serverDef =
                 , handleCancelNotification
                 , handleDidOpen
                 , handleDidChange
+                , handleDidClose
                 , handleDidSave
                 ]
         , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO

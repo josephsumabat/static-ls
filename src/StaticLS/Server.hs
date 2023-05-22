@@ -53,6 +53,12 @@ handleReferencesRequest = LSP.requestHandler STextDocumentReferences $ \req res 
 handleCancelNotification :: Handlers (LspT c StaticLs)
 handleCancelNotification = LSP.notificationHandler SCancelRequest $ \_ -> pure ()
 
+handleDidOpen :: Handlers (LspT c StaticLs)
+handleDidOpen = LSP.notificationHandler STextDocumentDidOpen $ \_ -> pure ()
+
+handleDidChange :: Handlers (LspT c StaticLs)
+handleDidChange = LSP.notificationHandler STextDocumentDidChange $ \_ -> pure ()
+
 handleDidSave :: Handlers (LspT c StaticLs)
 handleDidSave = LSP.notificationHandler STextDocumentDidSave $ \_ -> pure ()
 
@@ -87,6 +93,8 @@ serverDef =
                 , handleDefinitionRequest
                 , handleReferencesRequest
                 , handleCancelNotification
+                , handleDidOpen
+                , handleDidChange
                 , handleDidSave
                 ]
         , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO

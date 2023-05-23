@@ -50,7 +50,7 @@ library
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles -fno-defer-typed-holes
+  ghc-options: -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-depends:
       array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
@@ -73,7 +73,7 @@ library
     , unliftio-core >=0.2.1 && <0.3
   default-language: Haskell2010
   if flag(dev)
-    ghc-options: -fdefer-type-errors -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
 
 executable static-ls
   main-is: Main.hs
@@ -87,7 +87,7 @@ executable static-ls
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles -fno-defer-typed-holes
+  ghc-options: -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-depends:
       array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
@@ -111,7 +111,7 @@ executable static-ls
     , unliftio-core >=0.2.1 && <0.3
   default-language: Haskell2010
   if flag(dev)
-    ghc-options: -fdefer-type-errors -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
 
 test-suite static-ls-test
   type: exitcode-stdio-1.0
@@ -134,7 +134,7 @@ test-suite static-ls-test
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir .hiefiles -fno-defer-typed-holes
+  ghc-options: -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       array >=0.5.4 && <0.6
@@ -160,4 +160,4 @@ test-suite static-ls-test
     , unliftio-core >=0.2.1 && <0.3
   default-language: Haskell2010
   if flag(dev)
-    ghc-options: -fdefer-type-errors -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables

@@ -36,8 +36,8 @@ dependencies:
 
 ghc-options:
   - -fwrite-ide-info
-  - -hiedir .hiefiles
-  - -fno-defer-typed-holes
+  - -hiedir test/TestData/.hiefiles
+
 default-extensions:
 - FlexibleContexts
 - OverloadedRecordDot
@@ -69,6 +69,9 @@ flags:
 when:
   - condition: flag(dev)
     ghc-options:
+    - -fwrite-ide-info
+    - -hiedir .hiefiles
     - -fdefer-type-errors
+    - -fno-defer-typed-holes
     - -Werror=deferred-type-errors
     - -Werror=deferred-out-of-scope-variables

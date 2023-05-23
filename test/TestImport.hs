@@ -11,19 +11,24 @@ initStaticEnv = do
     wsRoot <- makeAbsolute "."
     StaticEnv.initStaticEnv wsRoot defaultTestStaticEnvOptions
 
+#if __GLASGOW_HASKELL__ >= 906
 ghcVerDir :: FilePath
 ghcVerDir =
-#if __GLASGOW_HASKELL__ >= 960
         "ghc961/"
 #else
+ghcVerDir :: FilePath
+ghcVerDir =
         "ghc944/"
 #endif
+
+testHieDir :: FilePath
+testHieDir = "test/TestData/.hiefiles"
 
 defaultTestStaticEnvOptions :: StaticEnvOptions
 defaultTestStaticEnvOptions =
     StaticEnvOptions
         { optionHieDbPath = Just ("test/TestData/" </> ghcVerDir </> ".hiedb")
-        , optionHieFilesPath = Just ("test/TestData/" </> ghcVerDir </> ".hiefiles")
+        , optionHieFilesPath = Just testHieDir
         }
 
 initStaticEnvOpts :: StaticEnvOptions -> IO StaticEnv

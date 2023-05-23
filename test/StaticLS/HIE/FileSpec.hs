@@ -23,9 +23,8 @@ spec = do
                             srcFilePathToHieFilePath "src/StaticLS/HIE/File.hs"
                 let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
                 hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
-                print $ Test.ghcVerDir
 
-                relativeHieFile `shouldBe` Just ("test/TestData/" </> Test.ghcVerDir </> ".hiefiles/StaticLS/HIE/File.hie")
+                relativeHieFile `shouldBe` Just "test/TestData/.hiefiles/StaticLS/HIE/File.hie"
                 hieFileExists `shouldBe` True
 
             it "returns a valid hie file when called on a test/ file" $ do
@@ -37,7 +36,7 @@ spec = do
                 let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
                 hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
 
-                relativeHieFile `shouldBe` Just ("test/TestData/" </> Test.ghcVerDir </> ".hiefiles/TestData/Mod1.hie")
+                relativeHieFile `shouldBe` Just "test/TestData/.hiefiles/TestData/Mod1.hie"
                 hieFileExists `shouldBe` True
 
     describe "getHieFile" $ do
@@ -46,7 +45,7 @@ spec = do
             hieFile <-
                 runStaticLs staticEnv $
                     runExceptT $
-                        getHieFile ("test/TestData/" </> Test.ghcVerDir </> ".hiefiles/TestData/Mod1.hie")
+                        getHieFile "test/TestData/.hiefiles/TestData/Mod1.hie"
             _ <- Test.assertRight "expected succesful read" hieFile
             pure ()
 

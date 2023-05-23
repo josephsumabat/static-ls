@@ -23,7 +23,6 @@ spec = do
                             srcFilePathToHieFilePath "src/StaticLS/HIE/File.hs"
                 let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
                 hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
-                print Test.ghcVerDir
 
                 relativeHieFile `shouldBe` Just "test/TestData/.hiefiles/StaticLS/HIE/File.hie"
                 hieFileExists `shouldBe` True

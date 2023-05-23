@@ -12,6 +12,8 @@ github: josephsumabat/static-ls
 license: MIT
 version: 0.1.0
 build-type: Simple
+extra-source-files:
+  - CHANGELOG.md
 
 dependencies:
   - array >= 0.5.4 && < 0.6
@@ -34,10 +36,6 @@ dependencies:
   - transformers >= 0.5.6.2 && < 0.7
   - unliftio-core >= 0.2.1 && < 0.3
 
-ghc-options:
-  - -fwrite-ide-info
-  - -hiedir test/TestData/.hiefiles
-
 default-extensions:
 - FlexibleContexts
 - OverloadedRecordDot
@@ -47,6 +45,9 @@ default-extensions:
 
 library:
   source-dirs: src
+  ghc-options:
+  - -fwrite-ide-info
+  - -hiedir test/TestData/.hiefiles
 
 executable:
   source-dirs: app
@@ -59,6 +60,9 @@ tests:
     dependencies:
     - static-ls
     defaults: hspec/hspec@main
+    ghc-options:
+      - -fwrite-ide-info
+      - -hiedir test/TestData/.hiefiles
 
 flags:
   dev:

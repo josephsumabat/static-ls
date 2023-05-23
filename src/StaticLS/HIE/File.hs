@@ -116,7 +116,7 @@ srcDirs = ["src/", "lib/", "app/", "test/"]
 hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
 hieFilePathToSrcFilePathFromFile hiePath = do
     hieFile <- exceptToMaybeT $ getHieFile hiePath
-    liftIO $ Dir.makeAbsolute (hieFile.hie_hs_file)
+    liftIO $ Dir.makeAbsolute hieFile.hie_hs_file
 
 {- | Retrieve a hie file path from a src path
 

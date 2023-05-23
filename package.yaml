@@ -36,11 +36,7 @@ dependencies:
 
 ghc-options:
   - -fwrite-ide-info
-  - -fdefer-type-errors
   - -hiedir .hiefiles
-  - -fdefer-type-errors
-  - -Werror=deferred-type-errors
-  - -Werror=deferred-out-of-scope-variables
   - -fno-defer-typed-holes
 default-extensions:
 - FlexibleContexts
@@ -63,3 +59,16 @@ tests:
     dependencies:
     - static-ls
     defaults: hspec/hspec@main
+
+flags:
+  dev:
+    description: Defer type errors for development
+    manual: true
+    default: false
+
+when:
+  - condition: flag(dev)
+    ghc-options:
+    - -fdefer-type-errors
+    - -Werror=deferred-type-errors
+    - -Werror=deferred-out-of-scope-variables

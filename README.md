@@ -44,7 +44,7 @@ Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add
   
     These flags will allow hie files to be refreshed even if compilation fails to
     type check and will ensure that type check failures are still thrown as
-    errors
+    errors.
 
     - If you're using hpack you can add:
       ```
@@ -56,9 +56,18 @@ Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add
           - -Werror=deferred-out-of-scope-variables
           - -fno-defer-typed-holes
       ```
-    to  your `package.yaml`
+      to  your `package.yaml`. See this project's `package.yaml` or `static-ls.cabal` for examples
+    - You may instead add the following to your `cabal.project.local` file:
+      ```
+      ignore-project: False
+      program-options:
+        ghc-options:
+          -fdefer-type-errors
+          -Werror=deferred-type-errors
+          -Werror=deferred-out-of-scope-variables
+          -fno-defer-typed-holes
+      ```
     
-    See this project's `package.yaml` or `static-ls.cabal` for examples
 2. Index your project in hiedb running:
       ```
         hiedb -D .hiedb index .hiefiles --src-base-dir .

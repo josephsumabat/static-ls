@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           static-ls
-version:        0.1.1
+version:        0.2.0
 synopsis:       See README on Github for more information
 description:    static-ls ("static language server") reads static project information to provide IDE functionality through the language server protocol. static-ls will not generate this information on its own and instead will rely on the user to generate this information via separate programs
 category:       Development
@@ -120,6 +120,7 @@ test-suite static-ls-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      SpecHook
       StaticLS.HIE.FileSpec
       StaticLS.IDE.DefinitionSpec
       StaticLS.IDE.HoverSpec
@@ -127,6 +128,7 @@ test-suite static-ls-test
       TestData.Mod2
       TestImport
       TestImport.Assert
+      TestImport.HieDb
       TestImport.TestData
       Paths_static_ls
   hs-source-dirs:

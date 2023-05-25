@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 
 module TestImport where
 
@@ -12,23 +11,16 @@ initStaticEnv = do
     wsRoot <- makeAbsolute "."
     StaticEnv.initStaticEnv wsRoot defaultTestStaticEnvOptions
 
-#if __GLASGOW_HASKELL__ >= 906
-ghcVerDir :: FilePath
-ghcVerDir =
-        "ghc961/"
-#else
-ghcVerDir :: FilePath
-ghcVerDir =
-        "ghc944/"
-#endif
-
 testHieDir :: FilePath
 testHieDir = "test/TestData/.hiefiles"
+
+testHieDbDir :: FilePath
+testHieDbDir = "test/TestData/.hiedb"
 
 defaultTestStaticEnvOptions :: StaticEnvOptions
 defaultTestStaticEnvOptions =
     StaticEnvOptions
-        { optionHieDbPath = "test/TestData/" </> ghcVerDir </> ".hiedb"
+        { optionHieDbPath = testHieDbDir
         , optionHieFilesPath = testHieDir
         }
 

@@ -61,7 +61,7 @@ type StaticLs = ReaderT StaticEnv IO
 
 type HasStaticEnv = MonadReader StaticEnv
 
-getStaticEnv :: HasStaticEnv m => m StaticEnv
+getStaticEnv :: (HasStaticEnv m) => m StaticEnv
 getStaticEnv = ask
 
 initStaticEnv :: FilePath -> StaticEnvOptions -> IO StaticEnv

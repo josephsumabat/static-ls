@@ -74,13 +74,14 @@ hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 getHieFile :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
 getHieFile hieFilePath = do
     staticEnv <- getStaticEnv
-    -- Attempt to read any hie file version
-    -- TODO: specify supported versions to read?
+    -- Attempt to read valid hie file version
+    -- NOTE: attempting to override an incorrect header and read an hie file
+    -- seems to cause infinite hangs. TODO: explore why?
     result <-
         liftIO
             ( fmap
                 (first HieFileVersionException)
-                (GHC.readHieFileWithVersion (const True) staticEnv.nameCache hieFilePath)
+                (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) staticEnv.nameCache hieFilePath)
                 `catch` (\(_ :: SomeException) -> pure . Left $ HieFileReadException)
             )
     ExceptT $ pure (second GHC.hie_file_result result)

@@ -7,6 +7,8 @@
   * Support user specified hiefiles path via argument
   * Add help command
 
+* Correctly terminate hie file read attempt on bad version header
+
 ## 0.1.0 -- 2023-04-13
 
 * Initial release supporting

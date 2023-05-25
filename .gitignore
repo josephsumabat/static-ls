@@ -22,4 +22,5 @@ cabal.project.local~
 .ghc.environment.*
 .hiefiles
 test/TestData/.hiefiles
+test/TestData/.hiedb
 TAGS

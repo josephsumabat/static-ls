@@ -1,4 +1,3 @@
-
 module TestImport where
 
 import StaticLS.StaticEnv as StaticEnv

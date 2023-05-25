@@ -12,8 +12,8 @@ flatMaybeT = MaybeT . fmap join . runMaybeT
 toAlt :: (Functor f, Foldable f, Alternative g) => f a -> g a
 toAlt as = asum (fmap pure as)
 
-orDie :: Monad m => Maybe a -> e -> ExceptT e m a
+orDie :: (Monad m) => Maybe a -> e -> ExceptT e m a
 x `orDie` e = maybe (throwE e) pure x
 
-orDieT :: Monad m => MaybeT m a -> e -> ExceptT e m a
+orDieT :: (Monad m) => MaybeT m a -> e -> ExceptT e m a
 x `orDieT` e = ExceptT $ maybeT (pure . Left $ e) (pure . Right) x

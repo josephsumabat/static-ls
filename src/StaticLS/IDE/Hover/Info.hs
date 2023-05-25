@@ -48,7 +48,7 @@ hoverInfo typeLookup ast = (Just spanRange, map prettyName names ++ pTypes)
             UnhelpfulLoc{} | isInternalName name || isSystemName name -> []
             _ -> ["*Defined " <> showSD (pprNameDefnLoc name) <> "*"]
 
-showGhc :: Outputable a => a -> T.Text
+showGhc :: (Outputable a) => a -> T.Text
 showGhc = showSD . ppr
 
 showSD :: SDoc -> T.Text
@@ -62,7 +62,7 @@ printSDocSimple = renderWithContext sdocContext
 pprStyleToSDocContext :: PprStyle -> SDocContext
 pprStyleToSDocContext pprStyle = defaultSDocContext{sdocStyle = pprStyle}
 
-showNameWithoutUniques :: Outputable a => a -> T.Text
+showNameWithoutUniques :: (Outputable a) => a -> T.Text
 showNameWithoutUniques outputable = T.pack $ renderWithContext sdocContext (ppr outputable)
   where
     sdocContext = pprStyleToSDocContext $ mkUserStyle neverQualify AllTheWay

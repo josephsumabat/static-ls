@@ -28,8 +28,8 @@ testHieDir = "test/TestData/.hiefiles"
 defaultTestStaticEnvOptions :: StaticEnvOptions
 defaultTestStaticEnvOptions =
     StaticEnvOptions
-        { optionHieDbPath = Just ("test/TestData/" </> ghcVerDir </> ".hiedb")
-        , optionHieFilesPath = Just testHieDir
+        { optionHieDbPath = "test/TestData/" </> ghcVerDir </> ".hiedb"
+        , optionHieFilesPath = testHieDir
         }
 
 initStaticEnvOpts :: StaticEnvOptions -> IO StaticEnv

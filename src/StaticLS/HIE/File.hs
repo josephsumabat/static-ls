@@ -130,8 +130,8 @@ srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => SrcFilePath -
 srcFilePathToHieFilePathFromFile srcPath = do
     staticEnv <- getStaticEnv
     absoluteRoot <- liftIO $ Dir.makeAbsolute staticEnv.wsRoot
-    hieDir <- toAlt staticEnv.hieFilesPath
-    let absoluteHieDir = absoluteRoot </> hieDir
+    let hieDir = staticEnv.hieFilesPath
+        absoluteHieDir = absoluteRoot </> hieDir
         absoluteSrcDirs = (absoluteRoot </>) <$> srcDirs
     absoluteSrcPath <- liftIO $ Dir.makeAbsolute srcPath
 

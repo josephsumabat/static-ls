@@ -48,7 +48,7 @@ instance Exception HieDbException
 data StaticEnv = StaticEnv
     { hieDbPath :: Maybe HieDbPath
     -- ^ Path to the hiedb file
-    , hieFilesPath :: Maybe HieFilePath
+    , hieFilesPath :: HieFilePath
     , hscEnv :: GHC.HscEnv
     -- ^ static ghc compiler environment
     , nameCache :: GHC.NameCache
@@ -67,8 +67,8 @@ getStaticEnv = ask
 initStaticEnv :: FilePath -> StaticEnvOptions -> IO StaticEnv
 initStaticEnv wsRoot staticEnvOptions =
     do
-        let databasePath = fmap (wsRoot </>) staticEnvOptions.optionHieDbPath
-            hieFilesPath = fmap (wsRoot </>) staticEnvOptions.optionHieFilesPath
+        let databasePath = fmap (wsRoot </>) (Just staticEnvOptions.optionHieDbPath)
+            hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
         -- TODO: find out if this is safe to do or if we should just use GhcT
         hscEnv <- GHC.runGhc (Just GHC.libdir) GHC.getSession
         -- TODO: not sure what the first parameter to name cache is - find out

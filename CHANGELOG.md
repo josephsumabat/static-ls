@@ -1,5 +1,11 @@
 # Revision history for static-ls
 
+## 0.1.1.0 -- 2023-05-25
+* Add support for arguments
+  * Support user specified hiedb file via argument
+  * Support user specified hiefiles path via argument
+  * Add help command
+
 ## 0.1.0.0 -- 2023-04-13
 
 * Initial release supporting

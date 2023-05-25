@@ -24,8 +24,8 @@ spec =
                 it "Missing hiedb" $ do
                     let emptyOpts =
                             StaticEnvOptions
-                                { optionHieDbPath = Nothing
-                                , optionHieFilesPath = Just "test/TestData/.hiefiles"
+                                { optionHieDbPath = ""
+                                , optionHieFilesPath = "test/TestData/.hiefiles"
                                 }
                     staticEnv <- Test.initStaticEnvOpts emptyOpts
                     locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
@@ -36,8 +36,8 @@ spec =
                 it "empty hiedb" $ do
                     let emptyOpts =
                             StaticEnvOptions
-                                { optionHieDbPath = Just "./TestData/not-a-real-hiedb-file"
-                                , optionHieFilesPath = Just "test/TestData/.hiefiles"
+                                { optionHieDbPath = "./TestData/not-a-real-hiedb-file"
+                                , optionHieFilesPath = "test/TestData/.hiefiles"
                                 }
                     staticEnv <- Test.initStaticEnvOpts emptyOpts
                     locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
@@ -48,8 +48,8 @@ spec =
             it "does not crash with missing all sources" $ do
                 let emptyOpts =
                         StaticEnvOptions
-                            { optionHieDbPath = Nothing
-                            , optionHieFilesPath = Nothing
+                            { optionHieDbPath = ""
+                            , optionHieFilesPath = ""
                             }
                 staticEnv <- Test.initStaticEnvOpts emptyOpts
                 locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition

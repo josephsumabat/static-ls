@@ -1,6 +1,6 @@
 # Revision history for static-ls
 
-## 0.2.0 -- 2023-05-25
+## 0.2.0 -- TBD
 
 * Add support for arguments
   * Support user specified hiedb file via argument

@@ -1,6 +1,5 @@
 module App.Arguments where
 
-import Control.Monad (void)
 import Options.Applicative
 import StaticLS.StaticEnv.Options
 import System.Environment
@@ -26,7 +25,7 @@ execArgParser =
             parserFailure defaultPrefs progParseInfo (ShowHelpText Nothing) mempty
     handleParseResultWithSuppression (Success a) = return a.staticEnvOpts
     -- Ignore if invalid arguments are input
-    handleParseResultWithSuppression (Failure failure) = return defaultStaticEnvOptions
+    handleParseResultWithSuppression (Failure _) = return defaultStaticEnvOptions
     handleParseResultWithSuppression (CompletionInvoked compl) = do
         progn <- getProgName
         msg <- execCompletion compl progn

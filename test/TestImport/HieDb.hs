@@ -10,7 +10,7 @@ import TestImport
 
 indexHieFiles :: IO ()
 indexHieFiles =
-    withHieDbAndFlags (LibDir GHC.libdir) (database testOpts) $ \dynFlags conn -> do
+    withHieDbAndFlags (LibDir GHC.libdir) (database testOpts) $ \_ conn -> do
         initConn conn
         files <- concat <$> mapM getHieFilesIn [testHieDir]
         doIndex conn testOpts stderr files

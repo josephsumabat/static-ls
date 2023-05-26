@@ -52,7 +52,7 @@ library
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir test/TestData/.hiefiles
+  ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-depends:
       array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
@@ -90,6 +90,7 @@ executable static-ls
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
+  ghc-options: -Wall
   build-depends:
       array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
@@ -139,7 +140,7 @@ test-suite static-ls-test
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
-  ghc-options: -fwrite-ide-info -hiedir test/TestData/.hiefiles
+  ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       array >=0.5.4 && <0.6

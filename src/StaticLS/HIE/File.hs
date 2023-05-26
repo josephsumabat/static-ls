@@ -32,7 +32,7 @@ import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE.File.Except
-import StaticLS.Maybe (flatMaybeT, toAlt)
+import StaticLS.Maybe (flatMaybeT)
 import StaticLS.StaticEnv
 import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))

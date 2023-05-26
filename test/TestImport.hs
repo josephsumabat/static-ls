@@ -3,7 +3,6 @@ module TestImport where
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as StaticEnv
 import System.Directory (makeAbsolute)
-import System.FilePath ((</>))
 
 initStaticEnv :: IO StaticEnv
 initStaticEnv = do

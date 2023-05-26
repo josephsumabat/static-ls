@@ -43,6 +43,9 @@ default-extensions:
 - NoFieldSelectors
 - LambdaCase
 
+ghc-options:
+  - -Wall
+
 library:
   source-dirs: src
   ghc-options:

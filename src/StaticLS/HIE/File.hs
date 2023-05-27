@@ -32,7 +32,7 @@ import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE.File.Except
-import StaticLS.Maybe (flatMaybeT, toAlt)
+import StaticLS.Maybe (flatMaybeT)
 import StaticLS.StaticEnv
 import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))
@@ -74,13 +74,14 @@ hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
 getHieFile :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
 getHieFile hieFilePath = do
     staticEnv <- getStaticEnv
-    -- Attempt to read any hie file version
-    -- TODO: specify supported versions to read?
+    -- Attempt to read valid hie file version
+    -- NOTE: attempting to override an incorrect header and read an hie file
+    -- seems to cause infinite hangs. TODO: explore why?
     result <-
         liftIO
             ( fmap
                 (first HieFileVersionException)
-                (GHC.readHieFileWithVersion (const True) staticEnv.nameCache hieFilePath)
+                (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) staticEnv.nameCache hieFilePath)
                 `catch` (\(_ :: SomeException) -> pure . Left $ HieFileReadException)
             )
     ExceptT $ pure (second GHC.hie_file_result result)
@@ -130,8 +131,8 @@ srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => SrcFilePath -
 srcFilePathToHieFilePathFromFile srcPath = do
     staticEnv <- getStaticEnv
     absoluteRoot <- liftIO $ Dir.makeAbsolute staticEnv.wsRoot
-    hieDir <- toAlt staticEnv.hieFilesPath
-    let absoluteHieDir = absoluteRoot </> hieDir
+    let hieDir = staticEnv.hieFilesPath
+        absoluteHieDir = absoluteRoot </> hieDir
         absoluteSrcDirs = (absoluteRoot </>) <$> srcDirs
     absoluteSrcPath <- liftIO $ Dir.makeAbsolute srcPath
 

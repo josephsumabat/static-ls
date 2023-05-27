@@ -65,11 +65,11 @@ handleDidClose = LSP.notificationHandler STextDocumentDidClose $ \_ -> pure ()
 handleDidSave :: Handlers (LspT c StaticLs)
 handleDidSave = LSP.notificationHandler STextDocumentDidSave $ \_ -> pure ()
 
-initServer :: LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
-initServer serverConfig _ = do
+initServer :: StaticEnvOptions -> LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
+initServer staticEnvOptions serverConfig _ = do
     runExceptT $ do
         wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
-        serverStaticEnv <- ExceptT $ Right <$> initStaticEnv wsRoot defaultStaticEnvOptions
+        serverStaticEnv <- ExceptT $ Right <$> initStaticEnv wsRoot staticEnvOptions
         pure $
             LspEnv
                 { staticEnv = serverStaticEnv
@@ -83,11 +83,11 @@ initServer serverConfig _ = do
             Nothing -> Left $ ResponseError InvalidRequest "No root workspace was found" Nothing
             Just p -> Right p
 
-serverDef :: ServerDefinition ()
-serverDef =
+serverDef :: StaticEnvOptions -> ServerDefinition ()
+serverDef argOptions =
     ServerDefinition
         { onConfigurationChange = \conf _ -> Right conf
-        , doInitialize = initServer
+        , doInitialize = initServer argOptions
         , staticHandlers =
             mconcat
                 [ handleInitialized
@@ -106,6 +106,6 @@ serverDef =
         , defaultConfig = ()
         }
 
-runServer :: IO Int
-runServer = do
-    LSP.runServer serverDef
+runServer :: StaticEnvOptions -> IO Int
+runServer argOptions = do
+    LSP.runServer (serverDef argOptions)

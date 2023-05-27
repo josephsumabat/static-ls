@@ -52,8 +52,8 @@ spec = do
         it "Does not crash when given an invalid hie file to read " $ do
             let emptyOpts =
                     StaticEnvOptions
-                        { optionHieDbPath = Nothing
-                        , optionHieFilesPath = Nothing
+                        { optionHieDbPath = ""
+                        , optionHieFilesPath = ""
                         }
             staticEnv <- Test.initStaticEnvOpts emptyOpts
             hieFile <-
@@ -66,8 +66,8 @@ spec = do
         it "Does not crash when given no file to read" $ do
             let emptyOpts =
                     StaticEnvOptions
-                        { optionHieDbPath = Nothing
-                        , optionHieFilesPath = Nothing
+                        { optionHieDbPath = ""
+                        , optionHieFilesPath = ""
                         }
             staticEnv <- Test.initStaticEnvOpts emptyOpts
             hieFile <-

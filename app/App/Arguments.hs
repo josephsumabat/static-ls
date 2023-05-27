@@ -1,4 +1,4 @@
-module App.Arguments where
+module App.Arguments (execArgParser) where
 
 import Options.Applicative
 import StaticLS.StaticEnv.Options
@@ -20,7 +20,7 @@ execArgParser =
   where
     handleParseResultWithSuppression :: ParserResult PrgOptions -> IO StaticEnvOptions
     handleParseResultWithSuppression (Success (PrgOptions{showHelp = True})) =
-        -- Somewhat hack-y way of getting the error message
+        -- Get the help text (optparse-applicative usually shows the help text on error)
         handleParseResult . Failure $
             parserFailure defaultPrefs progParseInfo (ShowHelpText Nothing) mempty
     handleParseResultWithSuppression (Success a) = return a.staticEnvOpts

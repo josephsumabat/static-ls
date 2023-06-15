@@ -3,6 +3,7 @@
 
 module StaticLS.Server where
 
+import StaticLS.IDE.Workspace.Symbol
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except
@@ -65,6 +66,12 @@ handleDidClose = LSP.notificationHandler STextDocumentDidClose $ \_ -> pure ()
 handleDidSave :: Handlers (LspT c StaticLs)
 handleDidSave = LSP.notificationHandler STextDocumentDidSave $ \_ -> pure ()
 
+handleWorkspaceSymbol :: Handlers (LspT c StaticLs)
+handleWorkspaceSymbol = LSP.requestHandler SWorkspaceSymbol $ \req res -> do
+  -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
+  symbols <- lift (symbolInfo req._params._query)
+  res $ Right $ List symbols
+
 initServer :: StaticEnvOptions -> LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
 initServer staticEnvOptions serverConfig _ = do
     runExceptT $ do
@@ -100,6 +107,7 @@ serverDef argOptions =
                 , handleDidChange
                 , handleDidClose
                 , handleDidSave
+                , handleWorkspaceSymbol
                 ]
         , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO
         , options = LSP.defaultOptions

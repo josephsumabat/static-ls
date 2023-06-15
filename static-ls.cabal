@@ -41,6 +41,7 @@ library
       StaticLS.IDE.Definition
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
+      StaticLS.IDE.Workspace.Symbol
       StaticLS.IDE.References
       StaticLS.Maybe
       StaticLS.Server

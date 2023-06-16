@@ -16,4 +16,3 @@ symbolInfo query = do
     let hiedbDefs = fromMaybe [] mHiedbDefs
         symbols = map AtPoint.defRowToSymbolInfo hiedbDefs
     pure (catMaybes symbols)
-

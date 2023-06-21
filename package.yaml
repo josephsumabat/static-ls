@@ -61,7 +61,7 @@ executable:
   main: Main.hs
   dependencies:
   - static-ls
-  - optparse-applicative >= 0.18.0.0 && < 0.19
+  - optparse-applicative >= 0.17.0.0 && < 0.19
 
 tests:
   static-ls-test:

@@ -111,7 +111,7 @@ executable static-ls
     , lsp >=1.6.0 && <1.7
     , lsp-types >=1.6.0 && <1.7
     , mtl >=2.2.2 && <2.4
-    , optparse-applicative >=0.18.0.0 && <0.19
+    , optparse-applicative >=0.17.0.0 && <0.19
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
     , template-haskell >=2.19.0 && <2.21

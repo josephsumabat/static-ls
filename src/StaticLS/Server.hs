@@ -1,11 +1,18 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 
-module StaticLS.Server where
+module StaticLS.Server (
+    runServer,
+) where
+
+--- Standard imports
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except
+
+--- Uncommon 3rd-party imports
+
 import Language.LSP.Server (
     Handlers,
     LanguageContextEnv,
@@ -13,8 +20,12 @@ import Language.LSP.Server (
     ServerDefinition (..),
     type (<~>) (Iso),
  )
+
 import qualified Language.LSP.Server as LSP
 import Language.LSP.Types
+
+---- Local imports
+
 import StaticLS.IDE.Definition
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
@@ -22,10 +33,11 @@ import StaticLS.IDE.Workspace.Symbol
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 
-data LspEnv config = LspEnv
-    { staticEnv :: StaticEnv
-    , config :: LanguageContextEnv config
-    }
+-------------------------------------------------------------------------
+
+-----------------------------------------------------------------
+--------------------- LSP event handlers ------------------------
+-----------------------------------------------------------------
 
 handleChangeConfiguration :: Handlers (LspT c StaticLs)
 handleChangeConfiguration = LSP.notificationHandler SWorkspaceDidChangeConfiguration $ pure $ pure ()
@@ -71,6 +83,15 @@ handleWorkspaceSymbol = LSP.requestHandler SWorkspaceSymbol $ \req res -> do
     -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
     symbols <- lift (symbolInfo req._params._query)
     res $ Right $ List symbols
+
+-----------------------------------------------------------------
+----------------------- Server definition -----------------------
+-----------------------------------------------------------------
+
+data LspEnv config = LspEnv
+    { staticEnv :: StaticEnv
+    , config :: LanguageContextEnv config
+    }
 
 initServer :: StaticEnvOptions -> LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
 initServer staticEnvOptions serverConfig _ = do

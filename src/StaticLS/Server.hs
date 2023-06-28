@@ -2,8 +2,8 @@
 {-# LANGUAGE ExplicitNamespaces #-}
 
 module StaticLS.Server (
-    runServer
-  ) where
+    runServer,
+) where
 
 
 --- Standard imports
@@ -35,7 +35,6 @@ import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 
 -------------------------------------------------------------------------
-
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -85,8 +84,6 @@ handleWorkspaceSymbol = LSP.requestHandler SWorkspaceSymbol $ \req res -> do
     -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
     symbols <- lift (symbolInfo req._params._query)
     res $ Right $ List symbols
-
-
 
 -----------------------------------------------------------------
 ----------------------- Server definition -----------------------

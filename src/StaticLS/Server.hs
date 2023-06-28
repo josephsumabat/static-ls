@@ -5,7 +5,6 @@ module StaticLS.Server (
     runServer,
 ) where
 
-
 --- Standard imports
 
 import Control.Monad.IO.Class (liftIO)

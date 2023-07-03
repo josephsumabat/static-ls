@@ -78,6 +78,12 @@ Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add
       ```
         hiedb -D .hiedb index .hiefiles
       ```
+      
+      `entr` is also recommended if you want file watching functionality:
+      ```
+      find -L .hiefiles | entr hiedb -D .hiedb index /_       
+      ```
+
 3. Point your language client to the `static-ls` binary and begin editing!
     (See [Editor Setup](#editor-setup) for instructions if you're not sure how)
 

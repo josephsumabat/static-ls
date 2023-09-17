@@ -10,7 +10,7 @@ category: Development
 maintainer: josephrsumabat@gmail.com
 github: josephsumabat/static-ls
 license: MIT
-version: 0.1.0
+version: 0.1.1
 build-type: Simple
 extra-source-files:
   - CHANGELOG.md

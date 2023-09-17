@@ -32,7 +32,7 @@ import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE.File.Except
-import StaticLS.Maybe (flatMaybeT)
+import StaticLS.Maybe (flatMaybeT, toAlt)
 import StaticLS.StaticEnv
 import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))
@@ -64,7 +64,9 @@ srcFilePathToHieFilePath srcPath =
 
 -- | Fetch an hie file from a src file
 hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
-hieFilePathToSrcFilePath = hieFilePathToSrcFilePathFromFile
+hieFilePathToSrcFilePath hiePath =
+  hieFilePathToSrcFilePathHieDb hiePath
+    <|> hieFilePathToSrcFilePathFromFile hiePath
 
 -----------------------------------------------------------------------------------
 -- Primitive functions for looking up hie information
@@ -96,6 +98,13 @@ srcFilePathToHieFilePathHieDb srcPath = do
     Just hieModRow <- runHieDbMaybeT $ \hieDb -> do
         HieDb.lookupHieFileFromSource hieDb absSrcPath
     pure $ HieDb.hieModuleHieFile hieModRow
+
+hieFilePathToSrcFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
+hieFilePathToSrcFilePathHieDb hiePath = do
+    absHiePath <- liftIO $ Dir.makeAbsolute hiePath
+    Just hieModRow <- runHieDbMaybeT $ \hieDb -> do
+          HieDb.lookupHieFileFromSource hieDb absHiePath
+    toAlt . HieDb.modInfoSrcFile $ HieDb.hieModInfo hieModRow
 
 modToHieFilePath :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m HieFilePath
 modToHieFilePath modName =

@@ -32,10 +32,13 @@ import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
 import qualified Language.LSP.Types as LSP
 import StaticLS.HIE.File.Except
+import qualified StaticLS.HieDb as HieDb
 import StaticLS.Maybe (flatMaybeT, toAlt)
 import StaticLS.StaticEnv
 import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))
+
+import Database.SQLite.Simple
 
 type SrcFilePath = FilePath
 
@@ -64,7 +67,7 @@ srcFilePathToHieFilePath srcPath =
 
 -- | Fetch an hie file from a src file
 hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
-hieFilePathToSrcFilePath hiePath =
+hieFilePathToSrcFilePath hiePath = do
     hieFilePathToSrcFilePathHieDb hiePath
         <|> hieFilePathToSrcFilePathFromFile hiePath
 
@@ -103,7 +106,7 @@ hieFilePathToSrcFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> M
 hieFilePathToSrcFilePathHieDb hiePath = do
     absHiePath <- liftIO $ Dir.makeAbsolute hiePath
     Just hieModRow <- runHieDbMaybeT $ \hieDb -> do
-        HieDb.lookupHieFileFromSource hieDb absHiePath
+        HieDb.lookupHieFileFromHie hieDb absHiePath
     toAlt . HieDb.modInfoSrcFile $ HieDb.hieModInfo hieModRow
 
 modToHieFilePath :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m HieFilePath

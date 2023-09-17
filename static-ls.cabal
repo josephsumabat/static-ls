@@ -38,6 +38,7 @@ library
       StaticLS.HIE
       StaticLS.HIE.File
       StaticLS.HIE.File.Except
+      StaticLS.HieDb
       StaticLS.IDE.Definition
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info

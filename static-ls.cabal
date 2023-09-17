@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.35.5.
 --
 -- see: https://github.com/sol/hpack
 
 name:           static-ls
-version:        0.1.0
+version:        0.1.1
 synopsis:       See README on Github for more information
 description:    static-ls ("static language server") reads static project information to provide IDE functionality through the language server protocol. static-ls will not generate this information on its own and instead will rely on the user to generate this information via separate programs
 category:       Development
@@ -41,8 +41,8 @@ library
       StaticLS.IDE.Definition
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
-      StaticLS.IDE.Workspace.Symbol
       StaticLS.IDE.References
+      StaticLS.IDE.Workspace.Symbol
       StaticLS.Maybe
       StaticLS.Server
       StaticLS.StaticEnv

@@ -11,7 +11,9 @@ import Prelude
 hook :: Spec -> Spec
 hook = do
     beforeAll
-        ( removeIfExists testHieDbDir >> indexHieFiles >> removeIfExists testHieDbDir
+        ( removeIfExists testHieDbDir
+            >> indexHieFiles
+            >> removeIfExists testHieDbDir
         )
   where
     removeIfExists :: FilePath -> IO ()

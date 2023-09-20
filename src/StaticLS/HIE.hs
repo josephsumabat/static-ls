@@ -8,6 +8,7 @@ module StaticLS.HIE (
     hiedbCoordsToLspPosition,
     lspPositionToHieDbCoords,
     namesAtPoint,
+    HieDbCoords,
 )
 where
 

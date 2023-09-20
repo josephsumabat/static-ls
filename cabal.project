@@ -1,0 +1,6 @@
+source-repository-package
+  type: git
+  location: https://github.com/josephsumabat/filediff
+  tag: e2bd97835476075fc54943e0657970dc200d13ed
+
+packages: ./static-ls.cabal

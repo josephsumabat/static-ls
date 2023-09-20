@@ -38,8 +38,6 @@ import StaticLS.StaticEnv
 import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))
 
-import Database.SQLite.Simple
-
 type SrcFilePath = FilePath
 
 -- | Retrieve a hie info from a lsp text document identifier

@@ -7,6 +7,7 @@ module StaticLS.HIE (
     hieAstsAtPoint,
     hiedbCoordsToLspPosition,
     lspPositionToHieDbCoords,
+    HieDbCoords,
 )
 where
 
@@ -22,6 +23,7 @@ import qualified GHC.Iface.Ext.Types as GHC
 import HieDb (pointCommand)
 import qualified Language.LSP.Types as LSP
 
+-- | HieDb coords assume 1 indexing (Similar to file lines)
 type HieDbCoords = (Int, Int)
 
 data UIntConversionException = UIntConversionException

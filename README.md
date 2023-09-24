@@ -128,3 +128,24 @@ call `:CocConfig` and copy the following in:
   },
 }
 ```
+
+### Visual Studio Code
+
+1. Install the Haskell language extension
+  ![Haskell Extension](./docs/imgs/vs-code-extension.png)
+
+2. Open the extension settings
+  ![Go to tsettings](./docs/imgs/vs-code-settings.png)
+
+3. Scroll down until you see "Server Executable Path" and set the path to the path of your `static-ls` binary
+  ![Set the language server executable path](./docs/imgs/vs-code-settings-executable-path.png)
+
+Alternatively you can also in your workspace's `./vscode/settings.json` you can use the following:
+```
+{
+  "haskell.manageHLS": "PATH",
+  "haskell.serverExecutablePath": "static-ls",
+  "haskell.serverExtraArgs": ""
+}
+```
+(Note `haskell.serverExecutablePath` should be the path to your binary).

@@ -38,8 +38,6 @@ import StaticLS.StaticEnv
 import qualified System.Directory as Dir
 import System.FilePath ((-<.>), (</>))
 
-import Database.SQLite.Simple
-
 type SrcFilePath = FilePath
 
 -- | Retrieve a hie info from a lsp text document identifier
@@ -76,17 +74,17 @@ hieFilePathToSrcFilePath hiePath = do
 -----------------------------------------------------------------------------------
 
 -- | Retrieve an hie file from a hie filepath
-getHieFile :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
+getHieFile :: (HasCallStack, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
 getHieFile hieFilePath = do
-    staticEnv <- getStaticEnv
     -- Attempt to read valid hie file version
     -- NOTE: attempting to override an incorrect header and read an hie file
     -- seems to cause infinite hangs. TODO: explore why?
+    nameCache <- liftIO $ GHC.initNameCache 'a' []
     result <-
         liftIO
             ( fmap
                 (first HieFileVersionException)
-                (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) staticEnv.nameCache hieFilePath)
+                (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) nameCache hieFilePath)
                 `catch` (\(_ :: SomeException) -> pure . Left $ HieFileReadException)
             )
     ExceptT $ pure (second GHC.hie_file_result result)

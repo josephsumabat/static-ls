@@ -27,6 +27,7 @@ spec =
                                 { optionHieDbPath = ""
                                 , optionHieFilesPath = "test/TestData/.hiefiles"
                                 , optionSrcDirs = defaultSrcDirs
+                                , optionHiFilesPath = "test/TestData/.hifiles"
                                 }
                     staticEnv <- Test.initStaticEnvOpts emptyOpts
                     defnLinks <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
@@ -40,6 +41,7 @@ spec =
                                 { optionHieDbPath = "./TestData/not-a-real-hiedb-file"
                                 , optionHieFilesPath = "test/TestData/.hiefiles"
                                 , optionSrcDirs = defaultSrcDirs
+                                , optionHiFilesPath = "test/TestData/.hifiles"
                                 }
                     staticEnv <- Test.initStaticEnvOpts emptyOpts
                     defnLinks <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
@@ -53,6 +55,7 @@ spec =
                             { optionHieDbPath = ""
                             , optionHieFilesPath = ""
                             , optionSrcDirs = []
+                            , optionHiFilesPath = ""
                             }
                 staticEnv <- Test.initStaticEnvOpts emptyOpts
                 locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition

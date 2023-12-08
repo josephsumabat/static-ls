@@ -5,11 +5,16 @@
 * Add support for arguments
   * Support user specified hiedb file via argument
   * Support user specified hiefiles path via argument
+  * Support user specified hifiles path via argument
+  * Support user specified src base directories
+  * Add version command
   * Add help command
 
 * Correctly terminate hie file read attempt on bad version header
 
 * Generate static information for tests rather than relying on hard-coded information
+
+* Support reading interface files for haddock comments
 
 ## 0.1.0 -- 2023-04-13
 

@@ -12,6 +12,12 @@ assertJust msg =
         Just a -> pure a
         Nothing -> fail $ assertionFailureMsg msg
 
+assertNothing :: (MonadFail m) => String -> Maybe a -> m ()
+assertNothing msg =
+    \case
+        Nothing -> pure ()
+        Just _ -> fail $ assertionFailureMsg msg
+
 assertLeft :: (MonadFail m) => String -> Either a b -> m a
 assertLeft msg =
     \case

@@ -58,6 +58,7 @@ library:
   ghc-options:
   - -fwrite-ide-info
   - -hiedir test/TestData/.hiefiles
+  - -haddock
 
 executable:
   source-dirs: app
@@ -75,7 +76,10 @@ tests:
     defaults: hspec/hspec@main
     ghc-options:
       - -fwrite-ide-info
+      - -fwrite-interface
       - -hiedir test/TestData/.hiefiles
+      - -hidir test/TestData/.hifiles
+      - -haddock
 
 flags:
   dev:
@@ -88,6 +92,7 @@ when:
     ghc-options:
     - -fwrite-ide-info
     - -hiedir .hiefiles
+    - -hidir .hifiles
     - -fdefer-type-errors
     - -fno-defer-typed-holes
     - -Werror=deferred-type-errors

@@ -37,12 +37,12 @@ myFunDefLocation = do
                 LSP.Range
                     { _start =
                         LSP.Position
-                            { LSP._line = 4
+                            { LSP._line = 11
                             , LSP._character = 0
                             }
                     , LSP._end =
                         LSP.Position
-                            { LSP._line = 4
+                            { LSP._line = 11
                             , LSP._character = 5
                             }
                     }

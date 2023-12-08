@@ -7,12 +7,13 @@ module StaticLS.HIE (
     hieAstsAtPoint,
     hiedbCoordsToLspPosition,
     lspPositionToHieDbCoords,
+    namesAtPoint,
 )
 where
 
 import Control.Error.Util (hush)
 import Control.Exception (Exception)
-import Control.Monad ((<=<))
+import Control.Monad (join, (<=<))
 import Control.Monad.Trans.Except (ExceptT, throwE)
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
@@ -22,12 +23,17 @@ import qualified GHC.Iface.Ext.Types as GHC
 import HieDb (pointCommand)
 import qualified Language.LSP.Protocol.Types as LSP
 
+-- | Note HieDbCoords are 1 indexed
 type HieDbCoords = (Int, Int)
 
 data UIntConversionException = UIntConversionException
     deriving (Show)
 
 instance Exception UIntConversionException
+
+namesAtPoint :: GHC.HieFile -> HieDbCoords -> [GHC.Name]
+namesAtPoint hieFile position =
+    identifiersToNames $ join (pointCommand hieFile position Nothing hieAstNodeToIdentifiers)
 
 hieAstNodeToIdentifiers :: GHC.HieAST a -> [GHC.Identifier]
 hieAstNodeToIdentifiers =

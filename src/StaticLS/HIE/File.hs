@@ -113,16 +113,12 @@ modToHieFilePath modName =
         runMaybeT $ do
             Right unitId <- liftIO (HieDb.resolveUnitId hieDb modName)
             Just hieModRow <- liftIO $ HieDb.lookupHieFile hieDb modName unitId
-            pure $ hieModRow.hieModuleHieFile
+            pure hieModRow.hieModuleHieFile
 
 -----------------------------------------------------------------------------------
 -- File/Directory method for getting hie files - faster but somewhat "hacky"
 -- Useful as a fallback
 -----------------------------------------------------------------------------------
-
--- TODO: make this configurable (use cabal?)
-srcDirs :: [FilePath]
-srcDirs = ["src/", "lib/", "app/", "test/"]
 
 hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
 hieFilePathToSrcFilePathFromFile hiePath = do
@@ -143,7 +139,7 @@ srcFilePathToHieFilePathFromFile srcPath = do
     absoluteRoot <- liftIO $ Dir.makeAbsolute staticEnv.wsRoot
     let hieDir = staticEnv.hieFilesPath
         absoluteHieDir = absoluteRoot </> hieDir
-        absoluteSrcDirs = (absoluteRoot </>) <$> srcDirs
+        absoluteSrcDirs = (absoluteRoot </>) <$> staticEnv.srcDirs
     absoluteSrcPath <- liftIO $ Dir.makeAbsolute srcPath
 
     -- Drop all src directory prefixes

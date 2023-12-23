@@ -54,6 +54,7 @@ spec = do
                     StaticEnvOptions
                         { optionHieDbPath = ""
                         , optionHieFilesPath = ""
+                        , optionSrcDirs = []
                         }
             staticEnv <- Test.initStaticEnvOpts emptyOpts
             hieFile <-
@@ -68,6 +69,7 @@ spec = do
                     StaticEnvOptions
                         { optionHieDbPath = ""
                         , optionHieFilesPath = ""
+                        , optionSrcDirs = []
                         }
             staticEnv <- Test.initStaticEnvOpts emptyOpts
             hieFile <-

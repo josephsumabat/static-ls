@@ -22,9 +22,6 @@ import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import Database.SQLite.Simple (SQLError)
-import qualified GHC
-import qualified GHC.Paths as GHC
-import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import System.FilePath ((</>))
@@ -51,7 +48,10 @@ data StaticEnv = StaticEnv
     , hieFilesPath :: HieFilePath
     , wsRoot :: FilePath
     -- ^ workspace root
+    , srcDirs :: [FilePath]
+    -- ^ directories to search for source code in order of priority
     }
+    deriving (Eq, Show)
 
 type StaticLs = ReaderT StaticEnv IO
 
@@ -65,13 +65,16 @@ initStaticEnv wsRoot staticEnvOptions =
     do
         let databasePath = fmap (wsRoot </>) (Just staticEnvOptions.optionHieDbPath)
             hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
+            srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
 
         let serverStaticEnv =
                 StaticEnv
                     { hieDbPath = databasePath
                     , hieFilesPath = hieFilesPath
                     , wsRoot = wsRoot
+                    , srcDirs = srcDirs
                     }
+
         pure serverStaticEnv
 
 -- | Run an hiedb action in an exceptT

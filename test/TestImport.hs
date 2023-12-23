@@ -15,11 +15,15 @@ testHieDir = "test/TestData/.hiefiles"
 testHieDbDir :: FilePath
 testHieDbDir = "test/TestData/.hiedb"
 
+testSrcDirs :: [FilePath]
+testSrcDirs = StaticEnv.defaultSrcDirs
+
 defaultTestStaticEnvOptions :: StaticEnvOptions
 defaultTestStaticEnvOptions =
     StaticEnvOptions
         { optionHieDbPath = testHieDbDir
         , optionHieFilesPath = testHieDir
+        , optionSrcDirs = testSrcDirs
         }
 
 initStaticEnvOpts :: StaticEnvOptions -> IO StaticEnv

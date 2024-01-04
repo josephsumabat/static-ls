@@ -12,13 +12,13 @@ import GHC.Stack (HasCallStack)
 import HieDb (pointCommand)
 import Language.LSP.Protocol.Types (
     Hover (..),
-    type (|?)(..),
     MarkupContent (..),
     MarkupKind (..),
     Position,
     Range (..),
     TextDocumentIdentifier,
     sectionSeparator,
+    type (|?) (..),
  )
 import StaticLS.HIE
 import StaticLS.HIE.File

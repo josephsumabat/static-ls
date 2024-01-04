@@ -21,9 +21,9 @@ import Language.LSP.Server (
     type (<~>) (Iso),
  )
 
-import qualified Language.LSP.Server as LSP
+import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..))
 import Language.LSP.Protocol.Types
-import Language.LSP.Protocol.Message (Method (..), SMethod (..), TMessage , ResponseError (..), TRequestMessage(..))
+import qualified Language.LSP.Server as LSP
 
 ---- Local imports
 
@@ -119,8 +119,8 @@ serverDef argOptions =
         , configSection = ""
         , parseConfig = \_conf _value -> Right ()
         , doInitialize = initServer argOptions
-        -- TODO: Do handlers need to inspect clientCapabilities?
-        , staticHandlers = \_clientCapabilities ->
+        , -- TODO: Do handlers need to inspect clientCapabilities?
+          staticHandlers = \_clientCapabilities ->
             mconcat
                 [ handleInitialized
                 , handleChangeConfiguration

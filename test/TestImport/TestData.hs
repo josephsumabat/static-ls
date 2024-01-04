@@ -18,13 +18,14 @@ myFunDefTdiAndPosition =
 
 myFunDefDefinitionLink :: IO LSP.DefinitionLink
 myFunDefDefinitionLink = do
-    LSP.Location {..} <- myFunDefLocation
-    pure . LSP.DefinitionLink $ LSP.LocationLink
-        { _originSelectionRange = Nothing
-        , _targetUri = _uri
-        , _targetRange = _range
-        , _targetSelectionRange = _range
-        }
+    LSP.Location{..} <- myFunDefLocation
+    pure . LSP.DefinitionLink $
+        LSP.LocationLink
+            { _originSelectionRange = Nothing
+            , _targetUri = _uri
+            , _targetRange = _range
+            , _targetSelectionRange = _range
+            }
 
 myFunDefLocation :: IO LSP.Location
 myFunDefLocation = do

@@ -29,7 +29,7 @@ dependencies:
   - filepath >= 1.4.1 && < 1.5
   - ghc >= 9.4.4 && < 9.7
   - ghc-paths >= 0.1.0 && < 0.2
-  - ghcide >= 1.9.1 && < 2.5.0
+  - ghcide >= 2.5.0 && < 2.6.0
   - hiedb >= 0.4.2 && < 0.5
   - lsp >= 2.3 && < 2.4
   - lsp-types >= 2.1 && < 2.2

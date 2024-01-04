@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -71,7 +71,7 @@ library
     , filepath >=1.4.1 && <1.5
     , ghc >=9.4.4 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=1.9.1 && <2.5.0
+    , ghcide >=2.5.0 && <2.6.0
     , hiedb >=0.4.2 && <0.5
     , lsp ==2.3.*
     , lsp-types ==2.1.*
@@ -112,7 +112,7 @@ executable static-ls
     , filepath >=1.4.1 && <1.5
     , ghc >=9.4.4 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=1.9.1 && <2.5.0
+    , ghcide >=2.5.0 && <2.6.0
     , hiedb >=0.4.2 && <0.5
     , lsp ==2.3.*
     , lsp-types ==2.1.*
@@ -166,7 +166,7 @@ test-suite static-ls-test
     , filepath >=1.4.1 && <1.5
     , ghc >=9.4.4 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=1.9.1 && <2.5.0
+    , ghcide >=2.5.0 && <2.6.0
     , hiedb >=0.4.2 && <0.5
     , hspec ==2.*
     , lsp ==2.3.*

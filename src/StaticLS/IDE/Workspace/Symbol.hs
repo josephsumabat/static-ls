@@ -32,14 +32,15 @@ defRowToSymbolInfo (HieDb.DefRow{..} HieDb.:. _) = runMaybeT $ do
         let file = toUri srcFile
             loc = Location file range
         kind <- hoistMaybe mKind
-        pure $ SymbolInformation
-            { _name = printOutputable defNameOcc
-            , _kind = kind
-            , _tags = Nothing
-            , _containerName = Nothing
-            , _deprecated = Nothing
-            , _location = loc
-            }
+        pure $
+            SymbolInformation
+                { _name = printOutputable defNameOcc
+                , _kind = kind
+                , _tags = Nothing
+                , _containerName = Nothing
+                , _deprecated = Nothing
+                , _location = loc
+                }
   where
     mKind
         | isVarOcc defNameOcc = Just SymbolKind_Variable

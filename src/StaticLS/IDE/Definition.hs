@@ -124,12 +124,13 @@ defRowToLocation (defRow HieDb.:. _) = do
 
 -- TODO: Instead of calling this function the callers should directly construct a `LocationLink` with more information at hand.
 locationToLocationLink :: LSP.Location -> LSP.LocationLink
-locationToLocationLink LSP.Location {..} = LSP.LocationLink
-    { _originSelectionRange = Nothing
-    , _targetUri = _uri
-    , _targetRange = _range
-    , _targetSelectionRange = _range
-    }
+locationToLocationLink LSP.Location{..} =
+    LSP.LocationLink
+        { _originSelectionRange = Nothing
+        , _targetUri = _uri
+        , _targetRange = _range
+        , _targetSelectionRange = _range
+        }
 
 zeroPos :: LSP.Position
 zeroPos = LSP.Position 0 0

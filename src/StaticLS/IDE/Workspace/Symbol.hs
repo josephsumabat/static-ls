@@ -3,7 +3,7 @@
 module StaticLS.IDE.Workspace.Symbol where
 
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Trans.Maybe (MaybeT (..), hoistMaybe)
+import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Maybe (catMaybes, fromMaybe)
 import qualified Data.Text as T
 import Development.IDE.GHC.Util (printOutputable)
@@ -12,6 +12,7 @@ import GHC.Plugins hiding ((<>))
 import qualified HieDb
 import Language.LSP.Protocol.Types
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
+import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
 
 symbolInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => T.Text -> m [SymbolInformation]
@@ -31,7 +32,7 @@ defRowToSymbolInfo (HieDb.DefRow{..} HieDb.:. _) = runMaybeT $ do
         srcFile <- hieFilePathToSrcFilePath defSrc
         let file = toUri srcFile
             loc = Location file range
-        kind <- hoistMaybe mKind
+        kind <- toAlt mKind
         pure $
             SymbolInformation
                 { _name = printOutputable defNameOcc

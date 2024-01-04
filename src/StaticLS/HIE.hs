@@ -20,7 +20,7 @@ import qualified Data.Set as Set
 import qualified GHC
 import qualified GHC.Iface.Ext.Types as GHC
 import HieDb (pointCommand)
-import qualified Language.LSP.Types as LSP
+import qualified Language.LSP.Protocol.Types as LSP
 
 type HieDbCoords = (Int, Int)
 

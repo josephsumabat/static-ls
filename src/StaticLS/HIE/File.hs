@@ -30,7 +30,7 @@ import qualified GHC.Iface.Ext.Types as GHC
 import GHC.Stack (HasCallStack)
 import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
-import qualified Language.LSP.Types as LSP
+import qualified Language.LSP.Protocol.Types as LSP
 import StaticLS.HIE.File.Except
 import qualified StaticLS.HieDb as HieDb
 import StaticLS.Maybe (flatMaybeT, toAlt)

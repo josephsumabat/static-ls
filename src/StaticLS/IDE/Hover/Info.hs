@@ -9,7 +9,7 @@ import GHC
 import GHC.Iface.Ext.Types
 import GHC.Iface.Ext.Utils
 import GHC.Plugins hiding ((<>))
-import Language.LSP.Types
+import Language.LSP.Protocol.Types
 
 -------------------------------------------------------------------
 -- The following code is taken from halfsp

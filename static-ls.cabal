@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
 name:           static-ls
-version:        0.1.1
+version:        0.1.2
 synopsis:       See README on Github for more information
 description:    static-ls ("static language server") reads static project information to provide IDE functionality through the language server protocol. static-ls will not generate this information on its own and instead will rely on the user to generate this information via separate programs
 category:       Development
@@ -18,7 +18,7 @@ license-file:   LICENSE
 build-type:     Simple
 tested-with:
     GHC == 9.4.4
-  , GHC == 9.6.1
+  , GHC == 9.6.3
 extra-source-files:
     CHANGELOG.md
     README.md
@@ -53,11 +53,13 @@ library
   hs-source-dirs:
       src
   default-extensions:
+      ExplicitNamespaces
       FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
+      RecordWildCards
   ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-depends:
       array >=0.5.4 && <0.6
@@ -71,8 +73,8 @@ library
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=1.9.1 && <2.5.0
     , hiedb >=0.4.2 && <0.5
-    , lsp >=1.6.0 && <1.7
-    , lsp-types >=1.6.0 && <1.7
+    , lsp ==2.3.*
+    , lsp-types ==2.1.*
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
     , sqlite-simple >=0.4.18 && <0.5
@@ -92,11 +94,13 @@ executable static-ls
   hs-source-dirs:
       app
   default-extensions:
+      ExplicitNamespaces
       FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
+      RecordWildCards
   ghc-options: -Wall
   build-depends:
       array >=0.5.4 && <0.6
@@ -110,8 +114,8 @@ executable static-ls
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=1.9.1 && <2.5.0
     , hiedb >=0.4.2 && <0.5
-    , lsp >=1.6.0 && <1.7
-    , lsp-types >=1.6.0 && <1.7
+    , lsp ==2.3.*
+    , lsp-types ==2.1.*
     , mtl >=2.2.2 && <2.4
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
@@ -143,11 +147,13 @@ test-suite static-ls-test
   hs-source-dirs:
       test
   default-extensions:
+      ExplicitNamespaces
       FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
       LambdaCase
+      RecordWildCards
   ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
@@ -163,8 +169,8 @@ test-suite static-ls-test
     , ghcide >=1.9.1 && <2.5.0
     , hiedb >=0.4.2 && <0.5
     , hspec ==2.*
-    , lsp >=1.6.0 && <1.7
-    , lsp-types >=1.6.0 && <1.7
+    , lsp ==2.3.*
+    , lsp-types ==2.1.*
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
     , sqlite-simple >=0.4.18 && <0.5

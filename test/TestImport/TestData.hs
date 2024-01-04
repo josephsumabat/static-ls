@@ -2,7 +2,7 @@
 
 module TestImport.TestData where
 
-import qualified Language.LSP.Types as LSP
+import qualified Language.LSP.Protocol.Types as LSP
 import qualified System.Directory as Dir
 
 myFunDefTdiAndPosition :: (LSP.TextDocumentIdentifier, LSP.Position)
@@ -15,6 +15,16 @@ myFunDefTdiAndPosition =
         tdi =
             LSP.TextDocumentIdentifier $ LSP.filePathToUri "test/TestData/Mod2.hs"
      in (tdi, pos)
+
+myFunDefDefinitionLink :: IO LSP.DefinitionLink
+myFunDefDefinitionLink = do
+    LSP.Location {..} <- myFunDefLocation
+    pure . LSP.DefinitionLink $ LSP.LocationLink
+        { _originSelectionRange = Nothing
+        , _targetUri = _uri
+        , _targetRange = _range
+        , _targetSelectionRange = _range
+        }
 
 myFunDefLocation :: IO LSP.Location
 myFunDefLocation = do

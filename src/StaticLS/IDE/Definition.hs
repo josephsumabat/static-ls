@@ -17,7 +17,7 @@ import qualified GHC.Plugins as GHC
 import GHC.Stack (HasCallStack)
 import GHC.Utils.Monad (mapMaybeM)
 import qualified HieDb
-import qualified Language.LSP.Types as LSP
+import qualified Language.LSP.Protocol.Types as LSP
 import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File
@@ -30,9 +30,9 @@ getDefinition ::
     (HasCallStack, HasStaticEnv m, MonadIO m) =>
     LSP.TextDocumentIdentifier ->
     LSP.Position ->
-    m [LSP.Location]
+    m [LSP.DefinitionLink]
 getDefinition tdi pos = do
-    mLocs <- runMaybeT $ do
+    mLocationLinks <- runMaybeT $ do
         hieFile <- getHieFileFromTdi tdi
         let identifiersAtPoint =
                 join $
@@ -42,21 +42,19 @@ getDefinition tdi pos = do
                         Nothing
                         hieAstNodeToIdentifiers
         join <$> mapM (lift . identifierToLocation) identifiersAtPoint
-    pure $ fromMaybe [] mLocs
+
+    pure $ map LSP.DefinitionLink $ fromMaybe [] mLocationLinks
   where
-    identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [LSP.Location]
+    identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [LSP.LocationLink]
     identifierToLocation =
         either
             (fmap maybeToList . modToLocation)
             nameToLocation
 
-    modToLocation :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe LSP.Location)
-    modToLocation modName =
-        let zeroPos = LSP.Position 0 0
-            zeroRange = LSP.Range zeroPos zeroPos
-         in runMaybeT $ do
-                srcFile <- modToSrcFile modName
-                pure $ LSP.Location (LSP.filePathToUri srcFile) zeroRange
+    modToLocation :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe LSP.LocationLink)
+    modToLocation modName = runMaybeT $ do
+        srcFile <- modToSrcFile modName
+        pure $ locationToLocationLink $ LSP.Location (LSP.filePathToUri srcFile) zeroRange
 
 ---------------------------------------------------------------------
 -- The following code is largely taken from ghcide with slight modifications
@@ -69,7 +67,7 @@ getDefinition tdi pos = do
 See: https://hackage.haskell.org/package/ghcide-1.10.0.0/docs/src/Development.IDE.Spans.AtPoint.html#nameToLocation
 for original code
 -}
-nameToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.Name -> m [LSP.Location]
+nameToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.Name -> m [LSP.LocationLink]
 nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
     case GHC.nameSrcSpan name of
         sp@(GHC.RealSrcSpan rsp _)
@@ -79,14 +77,14 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
                 do
                     itExists <- liftIO $ doesFileExist fs
                     if itExists
-                        then MaybeT $ pure . maybeToList <$> (runMaybeT . srcSpanToLocation) sp
+                        then MaybeT $ pure . maybeToList <$> (runMaybeT . fmap locationToLocationLink . srcSpanToLocation) sp
                         else -- When reusing .hie files from a cloud cache,
                         -- the paths may not match the local file system.
                         -- Let's fall back to the hiedb in case it contains local paths
                             fallbackToDb sp
         sp -> fallbackToDb sp
   where
-    fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.SrcSpan -> MaybeT m [LSP.Location]
+    fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.SrcSpan -> MaybeT m [LSP.LocationLink]
     fallbackToDb sp = do
         guard (sp /= GHC.wiredInSrcSpan)
         -- This case usually arises when the definition is in an external package.
@@ -103,8 +101,8 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
                 erow' <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (GHC.nameOccName name) (Just $ GHC.moduleName mod') Nothing)
                 case erow' of
                     [] -> MaybeT $ pure Nothing
-                    xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
-            xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
+                    xs -> lift $ mapMaybeM (runMaybeT . fmap locationToLocationLink . defRowToLocation) xs
+            xs -> lift $ mapMaybeM (runMaybeT . fmap locationToLocationLink . defRowToLocation) xs
 
 srcSpanToLocation :: (HasCallStack, HasStaticEnv m) => GHC.SrcSpan -> MaybeT m LSP.Location
 srcSpanToLocation src = do
@@ -123,3 +121,18 @@ defRowToLocation (defRow HieDb.:. _) = do
     file <- hieFilePathToSrcFilePath hieFilePath
     let lspUri = LSP.filePathToUri file
     MaybeT . pure $ LSP.Location lspUri <$> range
+
+-- TODO: Instead of calling this function the callers should directly construct a `LocationLink` with more information at hand.
+locationToLocationLink :: LSP.Location -> LSP.LocationLink
+locationToLocationLink LSP.Location {..} = LSP.LocationLink
+    { _originSelectionRange = Nothing
+    , _targetUri = _uri
+    , _targetRange = _range
+    , _targetSelectionRange = _range
+    }
+
+zeroPos :: LSP.Position
+zeroPos = LSP.Position 0 0
+
+zeroRange :: LSP.Range
+zeroRange = LSP.Range zeroPos zeroPos

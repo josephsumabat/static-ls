@@ -10,15 +10,15 @@ import Data.Text (Text, intercalate)
 import qualified GHC.Iface.Ext.Types as GHC
 import GHC.Stack (HasCallStack)
 import HieDb (pointCommand)
-import Language.LSP.Types (
+import Language.LSP.Protocol.Types (
     Hover (..),
-    HoverContents (..),
     MarkupContent (..),
     MarkupKind (..),
     Position,
     Range (..),
     TextDocumentIdentifier,
     sectionSeparator,
+    type (|?) (..),
  )
 import StaticLS.HIE
 import StaticLS.HIE.File
@@ -44,5 +44,5 @@ retrieveHover identifier position = do
     hoverInfoToHover (mRange, contents) =
         Hover
             { _range = mRange
-            , _contents = HoverContents $ MarkupContent MkMarkdown $ intercalate sectionSeparator contents
+            , _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
             }

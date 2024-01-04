@@ -15,7 +15,7 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
-        haskellPackages = pkgs.haskell.packages.ghc944;
+        haskellPackages = pkgs.haskell.packages.ghc963;
 
         jailbreakUnbreak = pkg:
           pkgs.haskell.lib.doJailbreak (pkg.overrideAttrs (_: { meta = { }; }));
@@ -38,6 +38,7 @@
             sqlite
             ghcid
             cabal-install
+            hpack
           ];
           inputsFrom = map (__getAttr "env") (__attrValues self.packages.${system});
           shellHook = "PS1=\"[static-ls:\\w]$ \"";

@@ -21,8 +21,9 @@ import Language.LSP.Server (
     type (<~>) (Iso),
  )
 
+import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..))
+import Language.LSP.Protocol.Types
 import qualified Language.LSP.Server as LSP
-import Language.LSP.Types
 
 ---- Local imports
 
@@ -40,49 +41,49 @@ import StaticLS.StaticEnv.Options
 -----------------------------------------------------------------
 
 handleChangeConfiguration :: Handlers (LspT c StaticLs)
-handleChangeConfiguration = LSP.notificationHandler SWorkspaceDidChangeConfiguration $ pure $ pure ()
+handleChangeConfiguration = LSP.notificationHandler SMethod_WorkspaceDidChangeConfiguration $ pure $ pure ()
 
 handleInitialized :: Handlers (LspT c StaticLs)
-handleInitialized = LSP.notificationHandler SInitialized $ pure $ pure ()
+handleInitialized = LSP.notificationHandler SMethod_Initialized $ pure $ pure ()
 
 handleTextDocumentHoverRequest :: Handlers (LspT c StaticLs)
-handleTextDocumentHoverRequest = LSP.requestHandler STextDocumentHover $ \req resp -> do
+handleTextDocumentHoverRequest = LSP.requestHandler SMethod_TextDocumentHover $ \req resp -> do
     let hoverParams = req._params
     hover <- lift $ retrieveHover hoverParams._textDocument hoverParams._position
-    resp (Right hover)
+    resp $ Right $ maybeToNull hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLs)
-handleDefinitionRequest = LSP.requestHandler STextDocumentDefinition $ \req res -> do
+handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \req resp -> do
     let defParams = req._params
     defs <- lift $ getDefinition defParams._textDocument defParams._position
-    res $ Right . InR . InL . List $ defs
+    resp $ Right . InR . InL $ defs
 
 handleReferencesRequest :: Handlers (LspT c StaticLs)
-handleReferencesRequest = LSP.requestHandler STextDocumentReferences $ \req res -> do
+handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \req res -> do
     let refParams = req._params
     refs <- lift $ findRefs refParams._textDocument refParams._position
-    res $ Right . List $ refs
+    res $ Right . InL $ refs
 
 handleCancelNotification :: Handlers (LspT c StaticLs)
-handleCancelNotification = LSP.notificationHandler SCancelRequest $ \_ -> pure ()
+handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()
 
 handleDidOpen :: Handlers (LspT c StaticLs)
-handleDidOpen = LSP.notificationHandler STextDocumentDidOpen $ \_ -> pure ()
+handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \_ -> pure ()
 
 handleDidChange :: Handlers (LspT c StaticLs)
-handleDidChange = LSP.notificationHandler STextDocumentDidChange $ \_ -> pure ()
+handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \_ -> pure ()
 
 handleDidClose :: Handlers (LspT c StaticLs)
-handleDidClose = LSP.notificationHandler STextDocumentDidClose $ \_ -> pure ()
+handleDidClose = LSP.notificationHandler SMethod_TextDocumentDidClose $ \_ -> pure ()
 
 handleDidSave :: Handlers (LspT c StaticLs)
-handleDidSave = LSP.notificationHandler STextDocumentDidSave $ \_ -> pure ()
+handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \_ -> pure ()
 
 handleWorkspaceSymbol :: Handlers (LspT c StaticLs)
-handleWorkspaceSymbol = LSP.requestHandler SWorkspaceSymbol $ \req res -> do
+handleWorkspaceSymbol = LSP.requestHandler SMethod_WorkspaceSymbol $ \req res -> do
     -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
     symbols <- lift (symbolInfo req._params._query)
-    res $ Right $ List symbols
+    res $ Right . InL $ symbols
 
 -----------------------------------------------------------------
 ----------------------- Server definition -----------------------
@@ -93,7 +94,7 @@ data LspEnv config = LspEnv
     , config :: LanguageContextEnv config
     }
 
-initServer :: StaticEnvOptions -> LanguageContextEnv config -> Message 'Initialize -> IO (Either ResponseError (LspEnv config))
+initServer :: StaticEnvOptions -> LanguageContextEnv config -> TMessage 'Method_Initialize -> IO (Either ResponseError (LspEnv config))
 initServer staticEnvOptions serverConfig _ = do
     runExceptT $ do
         wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
@@ -108,15 +109,18 @@ initServer staticEnvOptions serverConfig _ = do
     getWsRoot = do
         mRootPath <- LSP.getRootPath
         pure $ case mRootPath of
-            Nothing -> Left $ ResponseError InvalidRequest "No root workspace was found" Nothing
+            Nothing -> Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
             Just p -> Right p
 
 serverDef :: StaticEnvOptions -> ServerDefinition ()
 serverDef argOptions =
     ServerDefinition
-        { onConfigurationChange = \conf _ -> Right conf
+        { onConfigChange = \_conf -> pure ()
+        , configSection = ""
+        , parseConfig = \_conf _value -> Right ()
         , doInitialize = initServer argOptions
-        , staticHandlers =
+        , -- TODO: Do handlers need to inspect clientCapabilities?
+          staticHandlers = \_clientCapabilities ->
             mconcat
                 [ handleInitialized
                 , handleChangeConfiguration

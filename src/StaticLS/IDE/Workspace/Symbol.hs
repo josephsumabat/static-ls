@@ -3,14 +3,14 @@
 module StaticLS.IDE.Workspace.Symbol where
 
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Trans.Maybe (MaybeT (..))
+import Control.Monad.Trans.Maybe (MaybeT (..), hoistMaybe)
 import Data.Maybe (catMaybes, fromMaybe)
 import qualified Data.Text as T
 import Development.IDE.GHC.Util (printOutputable)
 import Development.IDE.Types.Location
 import GHC.Plugins hiding ((<>))
 import qualified HieDb
-import Language.LSP.Types
+import Language.LSP.Protocol.Types
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
 
@@ -31,13 +31,22 @@ defRowToSymbolInfo (HieDb.DefRow{..} HieDb.:. _) = runMaybeT $ do
         srcFile <- hieFilePathToSrcFilePath defSrc
         let file = toUri srcFile
             loc = Location file range
-        pure $ SymbolInformation (printOutputable defNameOcc) kind Nothing Nothing loc Nothing
+        kind <- hoistMaybe mKind
+        pure $
+            SymbolInformation
+                { _name = printOutputable defNameOcc
+                , _kind = kind
+                , _tags = Nothing
+                , _containerName = Nothing
+                , _deprecated = Nothing
+                , _location = loc
+                }
   where
-    kind
-        | isVarOcc defNameOcc = SkVariable
-        | isDataOcc defNameOcc = SkConstructor
-        | isTcOcc defNameOcc = SkStruct
-        | otherwise = SkUnknown 1
+    mKind
+        | isVarOcc defNameOcc = Just SymbolKind_Variable
+        | isDataOcc defNameOcc = Just SymbolKind_Constructor
+        | isTcOcc defNameOcc = Just SymbolKind_Struct
+        | otherwise = Nothing
     range = Range start end
     start = Position (fromIntegral $ defSLine - 1) (fromIntegral $ defSCol - 1)
     end = Position (fromIntegral $ defELine - 1) (fromIntegral $ defECol - 1)

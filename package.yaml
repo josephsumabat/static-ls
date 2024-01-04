@@ -10,14 +10,14 @@ category: Development
 maintainer: josephrsumabat@gmail.com
 github: josephsumabat/static-ls
 license: MIT
-version: 0.1.1
+version: 0.1.2
 build-type: Simple
 extra-source-files:
   - CHANGELOG.md
   - README.md
 tested-with: 
   - GHC == 9.4.4
-  - GHC == 9.6.1
+  - GHC == 9.6.3
 
 dependencies:
   - array >= 0.5.4 && < 0.6
@@ -29,10 +29,10 @@ dependencies:
   - filepath >= 1.4.1 && < 1.5
   - ghc >= 9.4.4 && < 9.7
   - ghc-paths >= 0.1.0 && < 0.2
-  - ghcide >= 1.9.1 && < 2.5.0
+  - ghcide >= 2.5.0 && < 2.6.0
   - hiedb >= 0.4.2 && < 0.5
-  - lsp >= 1.6.0 && < 1.7
-  - lsp-types >= 1.6.0 && < 1.7
+  - lsp >= 2.3 && < 2.4
+  - lsp-types >= 2.1 && < 2.2
   - mtl >= 2.2.2 && < 2.4
   - parsec >= 3.1.0 && < 3.2
   - sqlite-simple >= 0.4.18 && < 0.5
@@ -42,11 +42,13 @@ dependencies:
   - unliftio-core >= 0.2.1 && < 0.3
 
 default-extensions:
+- ExplicitNamespaces
 - FlexibleContexts
 - OverloadedRecordDot
 - OverloadedStrings
 - NoFieldSelectors
 - LambdaCase
+- RecordWildCards
 
 ghc-options:
   - -Wall

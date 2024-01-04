@@ -24,3 +24,4 @@ cabal.project.local~
 test/TestData/.hiefiles
 test/TestData/.hiedb
 TAGS
+ghcid.txt

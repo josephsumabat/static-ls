@@ -65,6 +65,8 @@ executable:
   dependencies:
   - static-ls
   - optparse-applicative >= 0.17.0.0 && < 0.19
+  generated-other-modules:
+    - Paths_static_ls
 
 tests:
   static-ls-test:

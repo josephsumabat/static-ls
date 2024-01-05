@@ -1,13 +1,19 @@
 module App.Arguments (execArgParser) where
 
+import Data.Version (showVersion)
 import Options.Applicative
+import Paths_static_ls (version)
 import StaticLS.StaticEnv.Options
 import System.Environment
 import System.Exit
 import Text.Parsec hiding (many, option)
 
+currVersion :: String
+currVersion = showVersion version
+
 data PrgOptions = PrgOptions
     { staticEnvOpts :: StaticEnvOptions
+    , showVer :: Bool
     , showHelp :: Bool
     }
 
@@ -24,6 +30,10 @@ execArgParser =
         -- Get the help text (optparse-applicative usually shows the help text on error)
         handleParseResult . Failure $
             parserFailure defaultPrefs progParseInfo (ShowHelpText Nothing) mempty
+    handleParseResultWithSuppression (Success (PrgOptions{showVer = True})) = do
+        -- Show version info
+        putStrLn $ "static-ls, version " <> currVersion
+        exitSuccess
     handleParseResultWithSuppression (Success a) = return a.staticEnvOpts
     -- Ignore if invalid arguments are input
     handleParseResultWithSuppression (Failure _) = return defaultStaticEnvOptions
@@ -46,6 +56,13 @@ argParser :: Parser PrgOptions
 argParser =
     PrgOptions
         <$> staticEnvOptParser
+        <*> flag
+            False
+            True
+            ( long "version"
+                <> short 'v'
+                <> help "Show the program version"
+            )
         <*> flag
             False
             True

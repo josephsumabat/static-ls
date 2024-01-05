@@ -1,4 +1,4 @@
-cabal-version: 1.12
+cabal-version: 2.0
 
 -- This file has been generated from package.yaml by hpack version 0.36.0.
 --
@@ -50,6 +50,8 @@ library
       StaticLS.StaticEnv.Options
   other-modules:
       Paths_static_ls
+  autogen-modules:
+      Paths_static_ls
   hs-source-dirs:
       src
   default-extensions:
@@ -90,6 +92,8 @@ executable static-ls
   main-is: Main.hs
   other-modules:
       App.Arguments
+      Paths_static_ls
+  autogen-modules:
       Paths_static_ls
   hs-source-dirs:
       app
@@ -143,6 +147,8 @@ test-suite static-ls-test
       TestImport.Assert
       TestImport.HieDb
       TestImport.TestData
+      Paths_static_ls
+  autogen-modules:
       Paths_static_ls
   hs-source-dirs:
       test

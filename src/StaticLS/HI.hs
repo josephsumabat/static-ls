@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module StaticLS.HI (
     getDocs,
     getDocsBatch,
@@ -12,7 +14,7 @@ import Data.Maybe
 import Data.Text as T
 import qualified GHC
 import qualified GHC.Plugins as GHC
-import GHC.Types.Unique.Map as GHC
+import qualified GHC.Types.Unique.Map as GHC
 import StaticLS.SDoc
 
 data NameDocs = NameDocs
@@ -80,3 +82,10 @@ uniqNameMapToMap =
         . getUniqMap
   where
     stringifyNameKeys (nameKey, v) = (GHC.nameStableString nameKey, v)
+
+getUniqMap :: GHC.UniqMap k a -> GHC.UniqFM k (k, a)
+#if MIN_VERSION_base(4,18,0)
+getUniqMap = GHC.getUniqMap
+#else
+getUniqMap (GHC.UniqMap m) = m
+#endif

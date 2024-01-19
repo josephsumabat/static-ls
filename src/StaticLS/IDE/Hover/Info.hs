@@ -14,7 +14,7 @@ import StaticLS.HI
 import StaticLS.SDoc
 
 -------------------------------------------------------------------
--- The following code is taken from halfsp
+-- The following code is taken partially from halfsp
 -- See: https://github.com/masaeedu/halfsp/blob/master/lib/GhcideSteal.hs
 -- for the original source
 -------------------------------------------------------------------
@@ -50,6 +50,7 @@ hoverInfo typeLookup docs ast = (Just spanRange, map prettyIdent idents ++ pType
             UnhelpfulLoc{} | isInternalName name || isSystemName name -> []
             _ -> ["*Defined " <> showSD (pprNameDefnLoc name) <> "*"]
 
+    -- TODO: pretify more
     prettyDocumentation docs' =
         let renderedDocs = T.concat $ renderNameDocs <$> docs'
          in case renderedDocs of

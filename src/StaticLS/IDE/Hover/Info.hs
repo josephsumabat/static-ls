@@ -1,7 +1,7 @@
 module StaticLS.IDE.Hover.Info (hoverInfo) where
 
 import Data.Array
-import Data.List.Extra (dropEnd1)
+import Data.List.Extra (dropEnd1, nubOrd)
 import qualified Data.Map as M
 import qualified Data.Text as T
 import Development.IDE.GHC.Error (realSrcSpanToRange)
@@ -55,4 +55,4 @@ hoverInfo typeLookup docs ast = (Just spanRange, map prettyIdent idents ++ pType
         let renderedDocs = T.concat $ renderNameDocs <$> docs'
          in case renderedDocs of
                 "" -> []
-                _ -> ["\n", "Documentation:\n"] <> (renderNameDocs <$> docs')
+                _ -> ["\n", "Documentation:\n"] <> nubOrd (renderNameDocs <$> docs')

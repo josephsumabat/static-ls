@@ -1,24 +1,15 @@
 module StaticLS.HISpec (spec)
 where
 
-import Control.Monad
 import Control.Monad.Trans.Except
-import Control.Monad.Trans.Maybe (runMaybeT)
-import Data.Text as T
-import qualified GHC
-import qualified GHC.Plugins as GHC
-import HieDb (pointCommand)
+import Language.LSP.Protocol.Types
 import StaticLS.HI
 import StaticLS.HI.File
 import StaticLS.HIE
 import StaticLS.HIE.File
-import StaticLS.SDoc
-import StaticLS.StaticEnv
-import System.Directory
-import System.FilePath
 import Test.Hspec
-import qualified TestImport as Test
 import qualified TestImport.Assert as Test
+import TestImport.TestData
 
 spec :: Spec
 spec = do
@@ -28,11 +19,13 @@ spec = do
             eHieFile <- runExceptT $ getHieFile "test/TestData/.hiefiles/TestData/Mod2.hie"
             hieFile <- Test.assertRight "expected hie file" eHieFile
             modiface <- Test.assertJust "expected succesful read" hiFile
-            let position = (5, 1)
+            fnLocation <- myFunDefLocation
+            let position = lspPositionToHieDbCoords fnLocation._range._start
                 names = namesAtPoint hieFile position
+                expectedDocs = ["Lsp Position line: 11,  character: 0\nanother line of comments\n"]
+                readDocs = renderNameDocs <$> getDocsBatch names modiface
 
-            _ <- print $ renderNameDocs <$> getDocsBatch names modiface
-            _ <- print $ showGhc (GHC.docs_decls <$> GHC.mi_docs modiface)
+            _ <- readDocs `shouldBe` expectedDocs
             (pure () :: IO ())
 
         it "Does not crash when given an invalid hie file to read " $ do

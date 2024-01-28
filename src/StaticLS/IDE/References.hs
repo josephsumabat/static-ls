@@ -18,18 +18,11 @@ findRefs :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> LSP.Pos
 findRefs tdi position = do
     mLocList <- runMaybeT $ do
         hieFile <- getHieFileFromTdi tdi
-        let identifiersAtPoint =
-                join
-                    ( HieDb.pointCommand
-                        hieFile
-                        (lspPositionToHieDbCoords position)
-                        Nothing
-                        hieAstNodeToIdentifiers
-                    )
-            namesAtPoint = identifiersToNames identifiersAtPoint
+        let hiedbPosition = lspPositionToHieDbCoords position
+            names = namesAtPoint hieFile hiedbPosition
             occNamesAndModNamesAtPoint =
                 (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
-                    <$> namesAtPoint
+                    <$> names
         refResRows <-
             lift $ fmap (fromMaybe []) $ runMaybeT $ runHieDbMaybeT $ \hieDb -> do
                 join

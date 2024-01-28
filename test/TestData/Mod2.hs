@@ -1,5 +1,12 @@
 module TestData.Mod2 where
 
--- | Position line: 3,  character: 0
-myFun :: Int -> Int -> Int
+{- | Lsp Position line: 11,  character: 0
+another line of comments
+-}
+myFun ::
+    -- | First int
+    Int ->
+    -- | Second int
+    Int ->
+    Int
 myFun n m = n + m

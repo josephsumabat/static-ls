@@ -3,6 +3,7 @@ module StaticLS.StaticEnv.Options (
     defaultHieDb,
     defaultHieFiles,
     defaultSrcDirs,
+    defaultHiFiles,
     StaticEnvOptions (..),
 )
 where
@@ -14,6 +15,8 @@ data StaticEnvOptions = StaticEnvOptions
     , optionHieFilesPath :: FilePath
     -- ^ Relative path to hie files directory
     -- hie files are required for all functionality
+    , optionHiFilesPath :: FilePath
+    -- ^ Relative path to hi files directory
     , optionSrcDirs :: [FilePath]
     }
     deriving (Show, Eq)
@@ -27,10 +30,14 @@ defaultHieFiles = ".hiefiles"
 defaultSrcDirs :: [FilePath]
 defaultSrcDirs = ["src/", "lib/", "app/", "test/"]
 
+defaultHiFiles :: FilePath
+defaultHiFiles = ".hifiles"
+
 defaultStaticEnvOptions :: StaticEnvOptions
 defaultStaticEnvOptions =
     StaticEnvOptions
         { optionHieDbPath = defaultHieDb
         , optionHieFilesPath = defaultHieFiles
         , optionSrcDirs = defaultSrcDirs
+        , optionHiFilesPath = defaultHiFiles
         }

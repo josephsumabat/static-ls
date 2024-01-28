@@ -21,8 +21,6 @@ import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Data.Bifunctor (first, second)
-import qualified Data.List as List
-import qualified Data.List.Extra as List
 import qualified Data.Map as Map
 import qualified GHC
 import qualified GHC.Iface.Ext.Binary as GHC
@@ -31,14 +29,14 @@ import GHC.Stack (HasCallStack)
 import qualified GHC.Types.Name.Cache as GHC
 import qualified HieDb
 import qualified Language.LSP.Protocol.Types as LSP
+import StaticLS.FilePath
 import StaticLS.HIE.File.Except
 import qualified StaticLS.HieDb as HieDb
 import StaticLS.Maybe (flatMaybeT, toAlt)
+import StaticLS.SrcFiles
 import StaticLS.StaticEnv
 import qualified System.Directory as Dir
-import System.FilePath ((-<.>), (</>))
-
-type SrcFilePath = FilePath
+import System.FilePath ((</>))
 
 -- | Retrieve a hie info from a lsp text document identifier
 getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m GHC.HieFile
@@ -60,8 +58,8 @@ if not indexed
 -}
 srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 srcFilePathToHieFilePath srcPath =
-    srcFilePathToHieFilePathHieDb srcPath
-        <|> srcFilePathToHieFilePathFromFile srcPath
+    srcFilePathToHieFilePathFromFile srcPath
+        <|> srcFilePathToHieFilePathHieDb srcPath
 
 -- | Fetch an hie file from a src file
 hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
@@ -136,19 +134,8 @@ in the `mods` table
 srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 srcFilePathToHieFilePathFromFile srcPath = do
     staticEnv <- getStaticEnv
-    absoluteRoot <- liftIO $ Dir.makeAbsolute staticEnv.wsRoot
-    let hieDir = staticEnv.hieFilesPath
-        absoluteHieDir = absoluteRoot </> hieDir
-        absoluteSrcDirs = (absoluteRoot </>) <$> staticEnv.srcDirs
-    absoluteSrcPath <- liftIO $ Dir.makeAbsolute srcPath
-
-    -- Drop all src directory prefixes
-    let noPrefixSrcPath =
-            List.foldl' (flip List.dropPrefix) absoluteSrcPath absoluteSrcDirs
-        -- Set the hie directory path and substitute the file extension
-        hiePath = absoluteHieDir </> noPrefixSrcPath -<.> ".hie"
-    True <- liftIO $ Dir.doesFileExist hiePath
-    pure hiePath
+    let hieDir = staticEnv.wsRoot </> staticEnv.hieFilesPath
+    subRootExtensionFilepath staticEnv.wsRoot hieDir ".hie" srcPath
 
 -----------------------------------------------------------------------------------
 -- Map index method for getting hie files - too slow in practice on startup but makes

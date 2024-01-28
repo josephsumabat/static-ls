@@ -35,6 +35,9 @@ flag dev
 library
   exposed-modules:
       StaticLS.Except
+      StaticLS.FilePath
+      StaticLS.HI
+      StaticLS.HI.File
       StaticLS.HIE
       StaticLS.HIE.File
       StaticLS.HIE.File.Except
@@ -45,7 +48,9 @@ library
       StaticLS.IDE.References
       StaticLS.IDE.Workspace.Symbol
       StaticLS.Maybe
+      StaticLS.SDoc
       StaticLS.Server
+      StaticLS.SrcFiles
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
   other-modules:
@@ -62,7 +67,7 @@ library
       NoFieldSelectors
       LambdaCase
       RecordWildCards
-  ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles
+  ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
       array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
@@ -86,7 +91,7 @@ library
     , unliftio-core >=0.2.1 && <0.3
   default-language: Haskell2010
   if flag(dev)
-    ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
 
 executable static-ls
   main-is: Main.hs
@@ -131,14 +136,16 @@ executable static-ls
     , unliftio-core >=0.2.1 && <0.3
   default-language: Haskell2010
   if flag(dev)
-    ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
 
 test-suite static-ls-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
       SpecHook
+      StaticLS.HI.FileSpec
       StaticLS.HIE.FileSpec
+      StaticLS.HISpec
       StaticLS.IDE.DefinitionSpec
       StaticLS.IDE.HoverSpec
       TestData.Mod1
@@ -160,7 +167,7 @@ test-suite static-ls-test
       NoFieldSelectors
       LambdaCase
       RecordWildCards
-  ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles
+  ghc-options: -Wall -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       array >=0.5.4 && <0.6
@@ -187,4 +194,4 @@ test-suite static-ls-test
     , unliftio-core >=0.2.1 && <0.3
   default-language: Haskell2010
   if flag(dev)
-    ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables

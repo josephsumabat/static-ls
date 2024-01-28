@@ -12,6 +12,9 @@ initStaticEnv = do
 testHieDir :: FilePath
 testHieDir = "test/TestData/.hiefiles"
 
+testHiDir :: FilePath
+testHiDir = "test/TestData/.hifiles"
+
 testHieDbDir :: FilePath
 testHieDbDir = "test/TestData/.hiedb"
 
@@ -24,6 +27,7 @@ defaultTestStaticEnvOptions =
         { optionHieDbPath = testHieDbDir
         , optionHieFilesPath = testHieDir
         , optionSrcDirs = testSrcDirs
+        , optionHiFilesPath = testHiDir
         }
 
 initStaticEnvOpts :: StaticEnvOptions -> IO StaticEnv

@@ -11,6 +11,7 @@ module StaticLS.StaticEnv (
     StaticLs,
     HieDbPath,
     HieFilePath,
+    HiFilePath,
     HasStaticEnv,
 )
 where
@@ -31,6 +32,7 @@ runStaticLs = flip runReaderT
 
 type HieDbPath = FilePath
 type HieFilePath = FilePath
+type HiFilePath = FilePath
 
 data HieDbException
     = HieDbIOException IOException
@@ -46,6 +48,7 @@ data StaticEnv = StaticEnv
     { hieDbPath :: Maybe HieDbPath
     -- ^ Path to the hiedb file
     , hieFilesPath :: HieFilePath
+    , hiFilesPath :: Maybe HiFilePath
     , wsRoot :: FilePath
     -- ^ workspace root
     , srcDirs :: [FilePath]
@@ -66,11 +69,13 @@ initStaticEnv wsRoot staticEnvOptions =
         let databasePath = fmap (wsRoot </>) (Just staticEnvOptions.optionHieDbPath)
             hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
             srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
+            hiFilesPath = fmap (wsRoot </>) (Just staticEnvOptions.optionHiFilesPath)
 
         let serverStaticEnv =
                 StaticEnv
                     { hieDbPath = databasePath
                     , hieFilesPath = hieFilesPath
+                    , hiFilesPath = hiFilesPath
                     , wsRoot = wsRoot
                     , srcDirs = srcDirs
                     }

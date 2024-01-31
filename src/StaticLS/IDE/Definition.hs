@@ -81,7 +81,6 @@ getTypeDefinition tdi pos = do
   where
     typeToName :: GHC.HieTypeFix -> Maybe GHC.Name
     typeToName = \case
-        -- roll on, you bears!
         GHC.Roll (GHC.HTyVarTy name) -> Just name
         GHC.Roll (GHC.HAppTy ty _args) -> typeToName ty
         GHC.Roll (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> Just name

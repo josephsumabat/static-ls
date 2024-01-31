@@ -1,4 +1,4 @@
-module StaticLS.IDE.Definition (getDefinition)
+module StaticLS.IDE.Definition (getDefinition, getTypeDefinition)
 where
 
 import Control.Monad (guard, join)
@@ -6,13 +6,17 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.List (isSuffixOf)
-import Data.Maybe (fromMaybe, maybeToList)
+import qualified Data.Map as Map
+import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
+import qualified Data.Set as Set
 import Development.IDE.GHC.Error (
     srcSpanToFilename,
     srcSpanToRange,
  )
 import qualified GHC.Data.FastString as GHC
 import qualified GHC.Iface.Ext.Types as GHC
+import qualified GHC.Iface.Ext.Utils as GHC
+import qualified GHC.Iface.Type as GHC
 import qualified GHC.Plugins as GHC
 import GHC.Stack (HasCallStack)
 import GHC.Utils.Monad (mapMaybeM)
@@ -55,6 +59,53 @@ getDefinition tdi pos = do
     modToLocation modName = runMaybeT $ do
         srcFile <- modToSrcFile modName
         pure $ locationToLocationLink $ LSP.Location (LSP.filePathToUri srcFile) zeroRange
+
+getTypeDefinition ::
+    (HasCallStack, HasStaticEnv m, MonadIO m) =>
+    LSP.TextDocumentIdentifier ->
+    LSP.Position ->
+    m [LSP.DefinitionLink]
+getTypeDefinition tdi pos = do
+    mLocationLinks <- runMaybeT $ do
+        hieFile <- getHieFileFromTdi tdi
+        let types' =
+                join $
+                    HieDb.pointCommand
+                        hieFile
+                        (lspPositionToHieDbCoords pos)
+                        Nothing
+                        (GHC.nodeType . nodeInfo')
+            types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
+        join <$> mapM (lift . nameToLocation) (mapMaybe typeToName types)
+    pure $ maybe [] (map LSP.DefinitionLink) mLocationLinks
+  where
+    typeToName :: GHC.HieTypeFix -> Maybe GHC.Name
+    typeToName = \case
+        GHC.Roll (GHC.HTyVarTy name) -> Just name
+        GHC.Roll (GHC.HAppTy ty _args) -> typeToName ty
+        GHC.Roll (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> Just name
+        GHC.Roll (GHC.HForAllTy ((name, _ty1), _forallFlag) _ty2) -> Just name
+        GHC.Roll (GHC.HFunTy ty1 _ty2 _ty3) -> typeToName ty1
+        GHC.Roll (GHC.HQualTy _constraint ty) -> typeToName ty
+        GHC.Roll (GHC.HLitTy _ifaceTyLit) -> Nothing
+        GHC.Roll (GHC.HCastTy ty) -> typeToName ty
+        GHC.Roll GHC.HCoercionTy -> Nothing
+
+    -- pulled from https://github.com/wz1000/HieDb/blob/6905767fede641747f5c24ce02f1ea73fc8c26e5/src/HieDb/Compat.hs#L147
+    nodeInfo' :: GHC.HieAST GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
+    nodeInfo' = Map.foldl' combineNodeInfo' GHC.emptyNodeInfo . GHC.getSourcedNodeInfo . GHC.sourcedNodeInfo
+
+    combineNodeInfo' :: GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
+    GHC.NodeInfo as ai ad `combineNodeInfo'` GHC.NodeInfo bs bi bd =
+        GHC.NodeInfo (Set.union as bs) (mergeSorted ai bi) (Map.unionWith (<>) ad bd)
+
+    mergeSorted :: [GHC.TypeIndex] -> [GHC.TypeIndex] -> [GHC.TypeIndex]
+    mergeSorted la@(a : as0) lb@(b : bs0) = case compare a b of
+        LT -> a : mergeSorted as0 lb
+        EQ -> a : mergeSorted as0 bs0
+        GT -> b : mergeSorted la bs0
+    mergeSorted as0 [] = as0
+    mergeSorted [] bs0 = bs0
 
 ---------------------------------------------------------------------
 -- The following code is largely taken from ghcide with slight modifications

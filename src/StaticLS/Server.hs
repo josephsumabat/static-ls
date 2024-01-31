@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module StaticLS.Server (
     runServer,
@@ -56,6 +57,12 @@ handleDefinitionRequest :: Handlers (LspT c StaticLs)
 handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \req resp -> do
     let defParams = req._params
     defs <- lift $ getDefinition defParams._textDocument defParams._position
+    resp $ Right . InR . InL $ defs
+
+handleTypeDefinitionRequest :: Handlers (LspT c StaticLs)
+handleTypeDefinitionRequest = LSP.requestHandler SMethod_TextDocumentTypeDefinition $ \req resp -> do
+    let typeDefParams = req._params
+    defs <- lift $ getTypeDefinition typeDefParams._textDocument typeDefParams._position
     resp $ Right . InR . InL $ defs
 
 handleReferencesRequest :: Handlers (LspT c StaticLs)
@@ -126,6 +133,7 @@ serverDef argOptions =
                 , handleChangeConfiguration
                 , handleTextDocumentHoverRequest
                 , handleDefinitionRequest
+                , handleTypeDefinitionRequest
                 , handleReferencesRequest
                 , handleCancelNotification
                 , handleDidOpen

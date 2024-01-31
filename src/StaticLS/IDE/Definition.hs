@@ -6,17 +6,17 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.List (isSuffixOf)
-import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
 import qualified Data.Map as Map
+import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
 import qualified Data.Set as Set
 import Development.IDE.GHC.Error (
     srcSpanToFilename,
     srcSpanToRange,
  )
 import qualified GHC.Data.FastString as GHC
-import qualified GHC.Iface.Type as GHC
 import qualified GHC.Iface.Ext.Types as GHC
 import qualified GHC.Iface.Ext.Utils as GHC
+import qualified GHC.Iface.Type as GHC
 import qualified GHC.Plugins as GHC
 import GHC.Stack (HasCallStack)
 import GHC.Utils.Monad (mapMaybeM)
@@ -99,14 +99,14 @@ getTypeDefinition tdi pos = do
     combineNodeInfo' :: GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
     GHC.NodeInfo as ai ad `combineNodeInfo'` GHC.NodeInfo bs bi bd =
         GHC.NodeInfo (Set.union as bs) (mergeSorted ai bi) (Map.unionWith (<>) ad bd)
-        where
-            mergeSorted :: [GHC.TypeIndex] -> [GHC.TypeIndex] -> [GHC.TypeIndex]
-            mergeSorted la@(a:as0) lb@(b:bs0) = case compare a b of
-                                                LT -> a : mergeSorted as0 lb
-                                                EQ -> a : mergeSorted as0 bs0
-                                                GT -> b : mergeSorted la bs0
-            mergeSorted as0 [] = as0
-            mergeSorted [] bs0 = bs0
+
+    mergeSorted :: [GHC.TypeIndex] -> [GHC.TypeIndex] -> [GHC.TypeIndex]
+    mergeSorted la@(a : as0) lb@(b : bs0) = case compare a b of
+        LT -> a : mergeSorted as0 lb
+        EQ -> a : mergeSorted as0 bs0
+        GT -> b : mergeSorted la bs0
+    mergeSorted as0 [] = as0
+    mergeSorted [] bs0 = bs0
 
 ---------------------------------------------------------------------
 -- The following code is largely taken from ghcide with slight modifications

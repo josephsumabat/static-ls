@@ -10,11 +10,15 @@
   * Add version command
   * Add help command
 
-* Correctly terminate hie file read attempt on bad version header
+* Bugfixes
+  * Correctly terminate hie file read attempt on bad version header
+  * Generate static information for tests rather than relying on hard-coded information
 
-* Generate static information for tests rather than relying on hard-coded information
+* Support reading interface files for haddock comments (https://github.com/josephsumabat/static-ls/pull/30)
 
-* Support reading interface files for haddock comments
+* Support goto typedef (https://github.com/josephsumabat/static-ls/pull/31)
+
+* Support workspace symbol (https://github.com/josephsumabat/static-ls/pull/18)
 
 ## 0.1.0 -- 2023-04-13
 

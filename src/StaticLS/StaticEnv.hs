@@ -45,10 +45,10 @@ instance Exception HieDbException
 
 -- | Static environment used to fetch data
 data StaticEnv = StaticEnv
-    { hieDbPath :: Maybe HieDbPath
+    { hieDbPath :: HieDbPath
     -- ^ Path to the hiedb file
     , hieFilesPath :: HieFilePath
-    , hiFilesPath :: Maybe HiFilePath
+    , hiFilesPath :: HiFilePath
     , wsRoot :: FilePath
     -- ^ workspace root
     , srcDirs :: [FilePath]
@@ -66,10 +66,10 @@ getStaticEnv = ask
 initStaticEnv :: FilePath -> StaticEnvOptions -> IO StaticEnv
 initStaticEnv wsRoot staticEnvOptions =
     do
-        let databasePath = fmap (wsRoot </>) (Just staticEnvOptions.optionHieDbPath)
+        let databasePath = wsRoot </> staticEnvOptions.optionHieDbPath
             hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
             srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
-            hiFilesPath = fmap (wsRoot </>) (Just staticEnvOptions.optionHiFilesPath)
+            hiFilesPath = wsRoot </> staticEnvOptions.optionHiFilesPath
 
         let serverStaticEnv =
                 StaticEnv
@@ -87,15 +87,13 @@ runHieDbExceptT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> Excep
 runHieDbExceptT hieDbFn =
     getStaticEnv
         >>= \staticEnv ->
-            maybe
-                (ExceptT . pure . Left $ HieDbNoHieDbSourceException)
-                ( \hiedbPath ->
-                    ExceptT . liftIO $
-                        HieDb.withHieDb hiedbPath (fmap Right . hieDbFn)
-                            `catch` (pure . Left . HieDbIOException)
-                            `catch` (pure . Left . HieDbSqlException)
-                            `catch` (\(_ :: SomeException) -> pure . Left $ HieDbOtherException)
-                )
+            ( \hiedbPath ->
+                ExceptT . liftIO $
+                    HieDb.withHieDb hiedbPath (fmap Right . hieDbFn)
+                        `catch` (pure . Left . HieDbIOException)
+                        `catch` (pure . Left . HieDbSqlException)
+                        `catch` (\(_ :: SomeException) -> pure . Left $ HieDbOtherException)
+            )
                 staticEnv.hieDbPath
 
 -- | Run an hiedb action with the MaybeT Monad

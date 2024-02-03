@@ -20,7 +20,6 @@ import qualified GHC.Platform.Profile as GHC
 import qualified GHC.Types.Name.Cache as GHC
 import qualified Language.LSP.Protocol.Types as LSP
 import StaticLS.FilePath
-import StaticLS.Maybe
 import StaticLS.SrcFiles
 import StaticLS.StaticEnv
 import System.FilePath ((</>))
@@ -34,7 +33,7 @@ tdiToHiFilePath = srcFilePathToHiFilePath <=< (MaybeT . pure . LSP.uriToFilePath
 modToHiFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m HiFilePath
 modToHiFile modName = do
     staticEnv <- getStaticEnv
-    hiFiles <- toAlt staticEnv.hiFilesPath
+    let hiFiles = staticEnv.hiFilesPath
     pure $ staticEnv.wsRoot </> hiFiles </> modToFilePath modName ".hi"
 
 -- | Only supports 64 bit platforms
@@ -60,6 +59,6 @@ readHiFile filePath = do
 srcFilePathToHiFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HiFilePath
 srcFilePathToHiFilePath srcPath = do
     staticEnv <- getStaticEnv
-    hiFiles <- toAlt staticEnv.hiFilesPath
-    let hiDir = staticEnv.wsRoot </> hiFiles
+    let hiFiles = staticEnv.hiFilesPath
+        hiDir = staticEnv.wsRoot </> hiFiles
     subRootExtensionFilepath staticEnv.wsRoot hiDir ".hi" srcPath

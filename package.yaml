@@ -12,9 +12,9 @@ github: josephsumabat/static-ls
 license: MIT
 version: 0.1.2
 build-type: Simple
-extra-source-files:
-  - CHANGELOG.md
+extra-doc-files:
   - README.md
+  - CHANGELOG.md
 tested-with: 
   - GHC == 9.4.4
   - GHC == 9.6.3

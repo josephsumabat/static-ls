@@ -7,31 +7,35 @@ project information to provide IDE functionality through the language server
 protocol. `static-ls` will not generate this information on its own and instead
 will rely on the user to generate this information via separate programs
 
-Supported static sources of information currently include:
-- hiefiles
-- hiedb
+See [Supported static sources](#Supported-static-sources) to see what is supported
 
-The goal of `static-ls` is to provide a high-speed, low-memory solution for large
+The goal of `static-ls` is to provide a high-speed, low-memory language server for large
 projects for which
 [haskell-language-server](https://github.com/haskell/haskell-language-server)
 tends to take up too much memory on recompilation.
 [Haskell-language-server](https://github.com/haskell/haskell-language-server)
 is recommended if you are not experiencing these issues. `static-ls` is meant
 to work on enterprise size projects where aforementioned constraints can be an
-issue. `static-ls` tends to work better standalone as a code navigation tool
-since project edits require re-indexing of hie files but also works reasonably
-well for editing with a program such as
-[ghcid](https://github.com/ndmitchell/ghcid) to watch files for compilation and
-the `-fdefer-type-errors flag`.
+issue. `static-ls` can work as a standalone code navigation tool if you generate
+static sources once or can support a performant fully integrated editor
+workflow with some setup and usage of a file watcher to recompile your project.
 
-In the future we plan to use more sources of static information such as interface files
-to fetch documentation or ghcid's output to fetch diagnostics
+If you want to use `static-ls` in your IDE then
+[ghcid](https://github.com/ndmitchell/ghcid) or
+[ghciwatch](https://github.com/MercuryTechnologies/ghciwatch) are strongly
+recommended to watch files for compilation and the `-fdefer-type-errors flag`.
 
 Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add support for other versions of ghc if desired
 
-## Usage
+## Quick start
 
-1. Compile your project with ide info `-fwrite-ide-info` and `-hiedir .hiefiles`
+1. Compile your project with ide info `-fwrite-ide-info` and `-hiedir .hiefiles`.
+   You can also add `-hidir .hifiles` for haddock support (Only supported on 64
+   bit systems right now) though this may require some extra build
+   configuration)
+   Note if you don't want to change the output directories of these files you
+   can symlink them instead or point `static-ls` to them with its arguments.
+   (See `static-ls --help` for info)
     
     For a better UX, the following flags are *strongly* recommended.
 
@@ -68,7 +72,7 @@ Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add
           -fno-defer-typed-holes
       ```
     
-2. Index your project in hiedb running:
+3. Index your project in hiedb running:
       ```
         hiedb -D .hiedb index .hiefiles --src-base-dir .
       ```
@@ -84,10 +88,12 @@ Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add
       find -L .hiefiles | entr hiedb -D .hiedb index /_       
       ```
 
-3. Point your language client to the `static-ls` binary and begin editing!
+4. Point your language client to the `static-ls` binary and begin editing!
     (See [Editor Setup](#editor-setup) for instructions if you're not sure how)
 
-[ghcid](https://github.com/ndmitchell/ghcid) is recommended to refresh hie files but compiling with `cabal build` should work as well
+[ghciwatch](https://github.com/MercuryTechnologies/ghciwatch) or
+[ghcid](https://github.com/ndmitchell/ghcid) is recommended to refresh hie
+files but compiling with `cabal build` should work as well
 
 ## Features
 
@@ -107,6 +113,22 @@ Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add
   - Works on both local and top level definitions
 
 ![Find definition](./docs/gifs/find-definition.gif)
+
+## Supported static sources
+
+Below are supported static sources for ide information. Static-ls will not handle generating this information on its own but will require the user
+to handle generating them.
+
+| Static Source           | Default Director(y/ies)                                                      | static-ls argument          | Used For                                                                                                                                               | Description                                                                                                                                                                                              |
+| -------------------     | ----------------------------                                                 | --------------------------- | ----------------------                                                                                                                                 | -----------------------------------------------------------------                                                                                                                                        |
+| hie files               | .hiefiles/                                                                   | --hiefiles DIR              | Currently required for everything since AST is read from these.<br><br>Specifically used for:<br>- Type on hover<br>- go to definition/type definition | GHC generated annotated AST used to determine identifiers, type on hover, and go to definition at a given location<br><br>Using the `-hiefiles` flag in GHC will generate these                          |
+| source code directories | - src/<br>- lib/<br>- app/<br>- test/<br><br>Will fallback to checking hiedb | --src-base-dirs DIR1,DIR2.. | - Go to definition                                                                                                                                     | Paths where source code is stored. Will assume that modules start at these directories                                                                                                                   |
+| hiedb                   | .hiedb                                                                       | --hiedb TARGET              | - Go to definition (when not available in hie files)<br>- Find references<br>- Document Symbol                                                         | Indexed database of hie files. Used primarily for find references, but you can index dependencies or things not found in source code directories. Generated by [hiedb](https://github.com/wz1000/HieDb). |
+| ghc interface files     | .hifiles/                                                                    | --hifiles TARGET            | - Docs on hover                                                                                                                                        | GHC generated interface files. Must be compiled with `-haddock` for docs. GHC will generate these automatically, but you can specify the output directory with `-hifiles`.                               |
+
+Other potential sources of static information include haddock files as an alternative to interface files for docs, ghcid and hlint output for diagnostics, and ctags for a backup jump
+to definition.
+Future features using existing static sources include auto import resolution code actions, autocomplete based on hiedb, and call heiarchy
 
 ## Limitations
 - Must be compiled on the same version of ghc as the project

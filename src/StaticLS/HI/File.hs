@@ -11,7 +11,8 @@ module StaticLS.HI.File (
 import Control.Exception
 import Control.Monad
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
-import Control.Monad.Trans.Maybe (MaybeT (..))
+import Control.Monad.Trans.Except (ExceptT (..))
+import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
 import qualified Data.Set as Set
 import qualified GHC
 import qualified GHC.Iface.Binary as GHC
@@ -24,8 +25,16 @@ import StaticLS.SrcFiles
 import StaticLS.StaticEnv
 import System.FilePath ((</>))
 
+data HiException
+    = HiIOException IOException
+    | HiGhcException GHC.GhcException
+    | HiOtherException SomeException
+    deriving (Show)
+
+instance Exception HiException
+
 getModIfaceFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m GHC.ModIface
-getModIfaceFromTdi = MaybeT . readHiFile <=< tdiToHiFilePath
+getModIfaceFromTdi = readHiFile <=< tdiToHiFilePath
 
 tdiToHiFilePath :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m HiFilePath
 tdiToHiFilePath = srcFilePathToHiFilePath <=< (MaybeT . pure . LSP.uriToFilePath . (._uri))
@@ -36,25 +45,29 @@ modToHiFile modName = do
     let hiFiles = staticEnv.hiFilesPath
     pure $ staticEnv.wsRoot </> hiFiles </> modToFilePath modName ".hi"
 
+readHiFile :: (MonadIO m) => FilePath -> MaybeT m GHC.ModIface
+readHiFile = exceptToMaybeT . readHiFileExceptT
+
 -- | Only supports 64 bit platforms
-readHiFile :: (MonadIO m) => FilePath -> m (Maybe GHC.ModIface)
-readHiFile filePath = do
+readHiFileExceptT :: (MonadIO m) => FilePath -> ExceptT HiException m GHC.ModIface
+readHiFileExceptT filePath = do
     nameCache <- liftIO $ GHC.initNameCache 'a' []
-    liftIO $
-        ( Just
-            <$> GHC.readBinIface
-                GHC.Profile
-                    { GHC.profilePlatform = GHC.genericPlatform
-                    , GHC.profileWays = Set.empty
-                    }
-                nameCache
-                GHC.IgnoreHiWay
-                GHC.QuietBinIFace
-                filePath
-        )
-            `catch` (\(_ :: IOException) -> pure Nothing)
-            `catch` (\(_ :: GHC.GhcException) -> pure Nothing)
-            `catch` (\(_ :: SomeException) -> pure Nothing)
+    ExceptT $
+        liftIO $
+            ( Right
+                <$> GHC.readBinIface
+                    GHC.Profile
+                        { GHC.profilePlatform = GHC.genericPlatform
+                        , GHC.profileWays = Set.empty
+                        }
+                    nameCache
+                    GHC.IgnoreHiWay
+                    GHC.QuietBinIFace
+                    filePath
+            )
+                `catch` (pure . Left . HiIOException)
+                `catch` (pure . Left . HiGhcException)
+                `catch` (pure . Left . HiOtherException)
 
 srcFilePathToHiFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HiFilePath
 srcFilePathToHiFilePath srcPath = do

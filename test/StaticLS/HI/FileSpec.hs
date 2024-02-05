@@ -20,7 +20,6 @@ spec = do
                     runStaticLs staticEnv $
                         runMaybeT $
                             srcFilePathToHiFilePath "test/TestData/Mod1.hs"
-                print hiFile
                 let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile
                 hiFileExists <- maybe (pure False) doesFileExist relativeHiFile
 
@@ -40,17 +39,17 @@ spec = do
                 hiFileExists `shouldBe` True
 
     describe "readHiFile" $ do
-        it "Returns a valid hie file" $ do
-            hiFile <- readHiFile "test/TestData/.hifiles/TestData/Mod1.hi"
+        it "Returns a valid hi file" $ do
+            hiFile <- runMaybeT $ readHiFile "test/TestData/.hifiles/TestData/Mod1.hi"
             _ <- Test.assertJust "expected succesful read" hiFile
             (pure () :: IO ())
 
-        it "Does not crash when given an invalid hie file to read " $ do
-            hiFile <- readHiFile "./test/TestData/Mod1.hs"
+        it "Does not crash when given an invalid hi file to read " $ do
+            hiFile <- runMaybeT $ readHiFile "./test/TestData/Mod1.hs"
             _ <- Test.assertNothing "expected failure" hiFile
             (pure () :: IO ())
 
         it "Does not crash when given no file to read" $ do
-            hiFile <- readHiFile ""
+            hiFile <- runMaybeT $ readHiFile ""
             _ <- Test.assertNothing "expected failure" hiFile
             (pure () :: IO ())

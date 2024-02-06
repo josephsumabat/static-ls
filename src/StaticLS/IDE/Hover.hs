@@ -55,6 +55,6 @@ docsAtPoint hieFile position = do
     let names = namesAtPoint hieFile (lspPositionToHieDbCoords position)
         modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
     modIfaceFiles <- fromMaybe [] <$> runMaybeT (mapM modToHiFile modNames)
-    modIfaces <- catMaybes <$> mapM readHiFile modIfaceFiles
+    modIfaces <- catMaybes <$> mapM (runMaybeT . readHiFile) modIfaceFiles
     let docs = getDocsBatch names =<< modIfaces
     pure docs

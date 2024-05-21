@@ -70,7 +70,8 @@ library
       RecordWildCards
   ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2 && <2.3
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4
@@ -80,7 +81,7 @@ library
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.6.0
-    , hiedb ==0.6.*
+    , hiedb >=0.4.2 && <0.5
     , lsp ==2.3.*
     , lsp-types ==2.1.*
     , mtl >=2.2.2 && <2.4
@@ -113,7 +114,8 @@ executable static-ls
       RecordWildCards
   ghc-options: -Wall
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2 && <2.3
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4
@@ -123,7 +125,7 @@ executable static-ls
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.6.0
-    , hiedb ==0.6.*
+    , hiedb >=0.4.2 && <0.5
     , lsp ==2.3.*
     , lsp-types ==2.1.*
     , mtl >=2.2.2 && <2.4
@@ -171,7 +173,8 @@ test-suite static-ls-test
   ghc-options: -Wall -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2 && <2.3
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4
@@ -181,7 +184,7 @@ test-suite static-ls-test
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.6.0
-    , hiedb ==0.6.*
+    , hiedb >=0.4.2 && <0.5
     , hspec ==2.*
     , lsp ==2.3.*
     , lsp-types ==2.1.*

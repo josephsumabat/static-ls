@@ -38,7 +38,7 @@ data HieDbException
     = HieDbIOException IOException
     | HieDbSqlException SQLError
     | HieDbNoHieDbSourceException
-    | HieDbOtherException
+    | HieDbOtherException SomeException
     deriving (Show)
 
 instance Exception HieDbException
@@ -92,7 +92,7 @@ runHieDbExceptT hieDbFn =
                     HieDb.withHieDb hiedbPath (fmap Right . hieDbFn)
                         `catch` (pure . Left . HieDbIOException)
                         `catch` (pure . Left . HieDbSqlException)
-                        `catch` (\(_ :: SomeException) -> pure . Left $ HieDbOtherException)
+                        `catch` (\(e :: SomeException) -> pure . Left $ HieDbOtherException e)
             )
                 staticEnv.hieDbPath
 

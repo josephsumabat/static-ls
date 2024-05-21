@@ -14,13 +14,35 @@ import Language.LSP.Protocol.Types
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
 import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
+import System.IO (hPutStrLn, stderr)
 
 symbolInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => T.Text -> m [SymbolInformation]
 symbolInfo query = do
     mHiedbDefs <- runMaybeT . runHieDbMaybeT $ \hieDb -> HieDb.searchDef hieDb (T.unpack query)
     let hiedbDefs = fromMaybe [] mHiedbDefs
     symbols <- mapM defRowToSymbolInfo hiedbDefs
+    liftIO $ hPutStrLn stderr (show symbols)
     pure (catMaybes symbols)
+    -- pure [SymbolInformation
+    --     { _name = "test"
+    --     , _kind = SymbolKind_Variable
+    --     , _tags = Nothing
+    --     , _containerName = Nothing
+    --     , _deprecated = Nothing
+    --     , _location = Location
+    --         { _uri = Uri "file:///home/duy/Projects/haskell-language-server/src/Development/IDE/Spans/AtPoint.hs"
+    --         , _range = Range
+    --             { _start = Position
+    --                 { _line = 0
+    --                 , _character = 0
+    --                 }
+    --             , _end = Position
+    --                 { _line = 0
+    --                 , _character = 0
+    --                 }
+    --             }
+    --         }
+    --     }]
 
 -- Copy from https://github.com/haskell/haskell-language-server/blob/c126332850d27abc8efa519f8437ff7ea28d4049/ghcide/src/Development/IDE/Spans/AtPoint.hs#L392
 -- With following modification

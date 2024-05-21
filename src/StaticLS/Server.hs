@@ -35,6 +35,12 @@ import StaticLS.IDE.Workspace.Symbol
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 
+-- Temporary imports
+import Data.Aeson
+import Data.Aeson.Types
+import System.IO
+import qualified StaticLS.IDE.CodeActions.AutoImport as AutoImport
+
 -------------------------------------------------------------------------
 
 -----------------------------------------------------------------
@@ -95,6 +101,40 @@ handleWorkspaceSymbol = LSP.requestHandler SMethod_WorkspaceSymbol $ \req res ->
 handleSetTrace :: Handlers (LspT c StaticLs)
 handleSetTrace = LSP.notificationHandler SMethod_SetTrace $ \_ -> pure ()
 
+handleCodeAction :: Handlers (LspT c StaticLs)
+handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req resp -> do
+  let params = req._params
+  let tdi = params._textDocument
+  let range = params._range
+  lift $ AutoImport.run tdi (range._start)
+  let actions =
+          [
+            CodeAction
+              { _title = "Auto Import"
+              , _kind = Just CodeActionKind_QuickFix
+              , _diagnostics = Just []
+              , _edit = Nothing
+              , _command = Nothing
+              , _isPreferred = Nothing
+              , _disabled = Nothing
+              , _data_ = Just
+                  (toJSON
+                     (object
+                        [ "distinguish" .= ("this code action" :: String)
+                        ]))
+              }
+          ]
+  resp (Right (InL (fmap InR actions)))
+  
+handleResolveCodeAction :: Handlers (LspT c StaticLs)
+handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req resp -> do
+  let action = req._params
+  liftIO $ do
+    hPutStrLn stderr "Resolving code action"
+    hPutStrLn stderr $ show action
+  -- let action' = action & _edit .? 
+  resp (Right action)
+
 -----------------------------------------------------------------
 ----------------------- Server definition -----------------------
 -----------------------------------------------------------------
@@ -145,6 +185,8 @@ serverDef argOptions =
                 , handleDidSave
                 , handleWorkspaceSymbol
                 , handleSetTrace
+                , handleCodeAction
+                , handleResolveCodeAction
                 ]
         , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO
         , options = LSP.defaultOptions

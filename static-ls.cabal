@@ -42,6 +42,7 @@ library
       StaticLS.HIE.File
       StaticLS.HIE.File.Except
       StaticLS.HieDb
+      StaticLS.IDE.CodeActions.AutoImport
       StaticLS.IDE.Definition
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
@@ -79,7 +80,7 @@ library
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.6.0
-    , hiedb >=0.4.2 && <0.5
+    , hiedb ==0.6.*
     , lsp ==2.3.*
     , lsp-types ==2.1.*
     , mtl >=2.2.2 && <2.4
@@ -122,7 +123,7 @@ executable static-ls
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.6.0
-    , hiedb >=0.4.2 && <0.5
+    , hiedb ==0.6.*
     , lsp ==2.3.*
     , lsp-types ==2.1.*
     , mtl >=2.2.2 && <2.4
@@ -180,7 +181,7 @@ test-suite static-ls-test
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.6.0
-    , hiedb >=0.4.2 && <0.5
+    , hiedb ==0.6.*
     , hspec ==2.*
     , lsp ==2.3.*
     , lsp-types ==2.1.*

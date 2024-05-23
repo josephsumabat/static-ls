@@ -47,18 +47,18 @@ findModulesForDef (getConn -> conn) occ = do
   coerce $
     queryNamed @(Only Text)
       conn
-      "SELECT * \
+      "SELECT exports.mod \
       \FROM exports \
-      \LIMIT 10"
-      [":occ" := ("v:findRefs" :: String)]
+      \WHERE exports.occ = :occ"
+      [":occ" := occ]
 
-run ::
+getModulesToImport ::
   (HasCallStack, HasStaticEnv m, MonadIO m) =>
-  LSP.TextDocumentIdentifier -> LSP.Position -> m ()
-run tdi pos = do
+  LSP.TextDocumentIdentifier -> LSP.Position -> m [Text]
+getModulesToImport tdi pos = do
   mHieFile <- runMaybeT $ getHieFileFromTdi tdi
   case mHieFile of
-    Nothing -> pure ()
+    Nothing -> pure []
     Just hieFile -> do
       let
           hiedbPosition = lspPositionToHieDbCoords pos
@@ -70,5 +70,11 @@ run tdi pos = do
       liftIO $ hPutStrLn stderr $ "occNames: " ++ show occNames
       res <- traverse (\occ -> runExceptT $ runHieDbExceptT (\db -> findModulesForDef db occ)) occNames
       let res' = sequenceA res
-      liftIO $ hPutStrLn stderr $ "res: " ++ show (fmap concat res')
-      pure ()
+      case res' of
+        Left e -> do
+          liftIO $ hPutStrLn stderr $ "e: " ++ show e
+          pure []
+        Right res' -> do
+          res' <- pure $ concat res'
+          liftIO $ hPutStrLn stderr $ "res: " ++ show res'
+          pure res'

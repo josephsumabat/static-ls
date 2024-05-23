@@ -39,7 +39,7 @@ import StaticLS.StaticEnv.Options
 import Data.Aeson
 import Data.Aeson.Types
 import System.IO
-import qualified StaticLS.IDE.CodeActions.AutoImport as AutoImport
+import qualified StaticLS.IDE.CodeActions as CodeActions
 
 -------------------------------------------------------------------------
 
@@ -102,38 +102,10 @@ handleSetTrace :: Handlers (LspT c StaticLs)
 handleSetTrace = LSP.notificationHandler SMethod_SetTrace $ \_ -> pure ()
 
 handleCodeAction :: Handlers (LspT c StaticLs)
-handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req resp -> do
-  let params = req._params
-  let tdi = params._textDocument
-  let range = params._range
-  lift $ AutoImport.run tdi (range._start)
-  let actions =
-          [
-            CodeAction
-              { _title = "Auto Import"
-              , _kind = Just CodeActionKind_QuickFix
-              , _diagnostics = Just []
-              , _edit = Nothing
-              , _command = Nothing
-              , _isPreferred = Nothing
-              , _disabled = Nothing
-              , _data_ = Just
-                  (toJSON
-                     (object
-                        [ "distinguish" .= ("this code action" :: String)
-                        ]))
-              }
-          ]
-  resp (Right (InL (fmap InR actions)))
-  
+handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction CodeActions.handleCodeAction
+
 handleResolveCodeAction :: Handlers (LspT c StaticLs)
-handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req resp -> do
-  let action = req._params
-  liftIO $ do
-    hPutStrLn stderr "Resolving code action"
-    hPutStrLn stderr $ show action
-  -- let action' = action & _edit .? 
-  resp (Right action)
+handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve CodeActions.handleResolveCodeAction
 
 -----------------------------------------------------------------
 ----------------------- Server definition -----------------------

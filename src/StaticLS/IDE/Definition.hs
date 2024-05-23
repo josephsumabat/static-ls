@@ -46,7 +46,6 @@ getDefinition tdi pos = do
                         Nothing
                         hieAstNodeToIdentifiers
         join <$> mapM (lift . identifierToLocation) identifiersAtPoint
-
     pure $ maybe [] (map LSP.DefinitionLink) mLocationLinks
   where
     identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [LSP.LocationLink]

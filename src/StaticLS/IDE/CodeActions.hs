@@ -31,18 +31,21 @@ globalCodeActions =
     -- GlobalCodeAction { run = runCodeAction }
   ]
   
-createAutoImportCodeAction :: TextDocumentIdentifier -> Text ->  StaticLs CodeAction
-createAutoImportCodeAction tdi toImport =
-  pure CodeAction
-    { _title = "import " <> toImport
-    , _kind = Just CodeActionKind_QuickFix
-    , _diagnostics = Nothing
-    , _edit = Nothing
-    , _command = Nothing
-    , _isPreferred = Nothing
-    , _disabled = Nothing
-    , _data_ = Just $ toJSON CodeActionMessage { kind = AutoImportActionMessage toImport, tdi = tdi }
-    }
+createAutoImportCodeActions :: TextDocumentIdentifier -> Text -> StaticLs [CodeAction]
+createAutoImportCodeActions tdi toImport =
+  pure
+    [
+      CodeAction
+        { _title = "import " <> toImport
+        , _kind = Just CodeActionKind_QuickFix
+        , _diagnostics = Nothing
+        , _edit = Nothing
+        , _command = Nothing
+        , _isPreferred = Nothing
+        , _disabled = Nothing
+        , _data_ = Just $ toJSON CodeActionMessage { kind = AutoImportActionMessage toImport, tdi = tdi }
+        }
+    ]
 
 handleCodeAction :: Handler (LspT c StaticLs) Method_TextDocumentCodeAction
 handleCodeAction req resp = do
@@ -50,7 +53,7 @@ handleCodeAction req resp = do
   let tdi = params._textDocument
   let range = params._range
   modulesToImport <- lift $ getModulesToImport tdi (range._start)
-  codeActions <- lift $ mapM (createAutoImportCodeAction tdi) modulesToImport
+  codeActions <- lift $ List.concat <$> (mapM (createAutoImportCodeActions tdi) modulesToImport)
   resp (Right (InL (fmap InR codeActions)))
   pure ()
   

@@ -40,8 +40,10 @@ dependencies:
   - text >= 2.0.1 && < 2.1
   - transformers >= 0.5.6.2 && < 0.7
   - unliftio-core >= 0.2.1 && < 0.3
+  - unliftio >= 0.2.1 && < 0.3
   - aeson >=2 && <2.3
   - text-rope >= 0.2 && < 0.3
+  - co-log-core >= 0.3 && < 0.4
 
 default-extensions:
 - ExplicitNamespaces

@@ -1,10 +1,15 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE PolyKinds #-}
 
 module StaticLS.Server (
     runServer,
+    module X,
 ) where
+
+import Data.List as X
+import Data.Maybe as X (fromMaybe)
 
 --- Standard imports
 
@@ -20,11 +25,14 @@ import Language.LSP.Server (
     LspT,
     ServerDefinition (..),
     type (<~>) (Iso),
+    mapHandlers,
  )
 
 import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..))
 import Language.LSP.Protocol.Types
 import qualified Language.LSP.Server as LSP
+import qualified Language.LSP.Logging as LSP.Logging
+import qualified Colog.Core as Colog
 
 ---- Local imports
 
@@ -40,6 +48,11 @@ import Data.Aeson
 import Data.Aeson.Types
 import System.IO
 import qualified StaticLS.IDE.CodeActions as CodeActions
+
+import qualified UnliftIO.Exception as Exception
+import Control.Monad.IO.Unlift
+import qualified Data.Text as T
+import qualified UnliftIO.Exception as Exception
 
 -------------------------------------------------------------------------
 
@@ -143,27 +156,37 @@ serverDef argOptions =
         , doInitialize = initServer argOptions
         , -- TODO: Do handlers need to inspect clientCapabilities?
           staticHandlers = \_clientCapabilities ->
-            mconcat
-                [ handleInitialized
-                , handleChangeConfiguration
-                , handleTextDocumentHoverRequest
-                , handleDefinitionRequest
-                , handleTypeDefinitionRequest
-                , handleReferencesRequest
-                , handleCancelNotification
-                , handleDidOpen
-                , handleDidChange
-                , handleDidClose
-                , handleDidSave
-                , handleWorkspaceSymbol
-                , handleSetTrace
-                , handleCodeAction
-                , handleResolveCodeAction
-                ]
+            mapHandlers goReq goNot $
+                mconcat
+                    [ handleInitialized
+                    , handleChangeConfiguration
+                    , handleTextDocumentHoverRequest
+                    , handleDefinitionRequest
+                    , handleTypeDefinitionRequest
+                    , handleReferencesRequest
+                    , handleCancelNotification
+                    , handleDidOpen
+                    , handleDidChange
+                    , handleDidClose
+                    , handleDidSave
+                    , handleWorkspaceSymbol
+                    , handleSetTrace
+                    , handleCodeAction
+                    , handleResolveCodeAction
+                    ]
         , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO
         , options = LSP.defaultOptions
         , defaultConfig = ()
         }
+    where
+        catchAndLog m = do
+            Exception.catchAny m $ \e ->
+                LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
+
+        goReq f = \msg k -> catchAndLog $ f msg k
+
+        goNot f = \msg -> catchAndLog $ f msg
+
 
 runServer :: StaticEnvOptions -> IO Int
 runServer argOptions = do

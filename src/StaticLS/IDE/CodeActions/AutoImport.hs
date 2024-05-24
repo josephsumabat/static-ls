@@ -77,4 +77,16 @@ getModulesToImport tdi pos = do
         Right res' -> do
           res' <- pure $ concat res'
           liftIO $ hPutStrLn stderr $ "res: " ++ show res'
-          pure res'
+          pure $ ordNub res'
+
+ordNub :: Ord a => [a] -> [a]
+ordNub xs = ordNubOn id xs
+
+ordNubOn :: Ord b => (a -> b) -> [a] -> [a]
+ordNubOn f xs
+  = go Set.empty xs
+  where
+    go _ [] = []
+    go s (x:xs)
+      | Set.member (f x) s = go s xs
+      | otherwise = x : go (Set.insert (f x) s) xs

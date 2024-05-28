@@ -27,4 +27,5 @@ testOpts =
         , reindex = False
         , keepMissing = False
         , srcBaseDir = Nothing
+        , skipIndexingOptions = defaultSkipOptions
         }

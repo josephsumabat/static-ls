@@ -7,6 +7,7 @@ import Language.LSP.Server
 import HieDb
 import HieDb.Compat
 import Data.Text (Text)
+import Data.Text qualified as T
 import Database.SQLite.Simple
 import Data.Coerce (coerce)
 import qualified Language.LSP.Protocol.Types as LSP
@@ -47,14 +48,14 @@ findModulesForDef (getConn -> conn) occ = do
   coerce $
     queryNamed @(Only Text)
       conn
-      "SELECT exports.mod \
+      "SELECT DISTINCT exports.mod \
       \FROM exports \
       \WHERE exports.occ = :occ"
       [":occ" := occ]
 
 getModulesToImport ::
-  (HasCallStack, HasStaticEnv m, MonadIO m) =>
-  LSP.TextDocumentIdentifier -> LSP.Position -> m [Text]
+  (HasCallStack) =>
+  LSP.TextDocumentIdentifier -> LSP.Position -> StaticLs [Text]
 getModulesToImport tdi pos = do
   mHieFile <- runMaybeT $ getHieFileFromTdi tdi
   case mHieFile of
@@ -67,26 +68,13 @@ getModulesToImport tdi pos = do
               (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
                   <$> names
           occNames = map fst occNamesAndModNamesAtPoint
-      liftIO $ hPutStrLn stderr $ "occNames: " ++ show occNames
+      logInfo $ T.pack $ "occNames: " ++ show occNames
       res <- traverse (\occ -> runExceptT $ runHieDbExceptT (\db -> findModulesForDef db occ)) occNames
       let res' = sequenceA res
       case res' of
         Left e -> do
-          liftIO $ hPutStrLn stderr $ "e: " ++ show e
+          logError $ T.pack $ "e: " ++ show e
           pure []
         Right res' -> do
           res' <- pure $ concat res'
-          liftIO $ hPutStrLn stderr $ "res: " ++ show res'
-          pure $ ordNub res'
-
-ordNub :: Ord a => [a] -> [a]
-ordNub xs = ordNubOn id xs
-
-ordNubOn :: Ord b => (a -> b) -> [a] -> [a]
-ordNubOn f xs
-  = go Set.empty xs
-  where
-    go _ [] = []
-    go s (x:xs)
-      | Set.member (f x) s = go s xs
-      | otherwise = x : go (Set.insert (f x) s) xs
+          pure $ res'

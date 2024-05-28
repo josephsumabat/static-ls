@@ -52,9 +52,8 @@ import qualified StaticLS.IDE.CodeActions as CodeActions
 import qualified UnliftIO.Exception as Exception
 import Control.Monad.IO.Unlift
 import qualified Data.Text as T
+import Data.Text (Text)
 import qualified UnliftIO.Exception as Exception
-
--------------------------------------------------------------------------
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -129,11 +128,11 @@ data LspEnv config = LspEnv
     , config :: LanguageContextEnv config
     }
 
-initServer :: StaticEnvOptions -> LanguageContextEnv config -> TMessage 'Method_Initialize -> IO (Either ResponseError (LspEnv config))
-initServer staticEnvOptions serverConfig _ = do
+initServer :: StaticEnvOptions -> LoggerM IO -> LanguageContextEnv config ->  TMessage 'Method_Initialize -> IO (Either ResponseError (LspEnv config))
+initServer staticEnvOptions logger serverConfig _ = do
     runExceptT $ do
         wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
-        serverStaticEnv <- ExceptT $ Right <$> initStaticEnv wsRoot staticEnvOptions
+        serverStaticEnv <- ExceptT $ Right <$> initStaticEnv wsRoot staticEnvOptions logger
         pure $
             LspEnv
                 { staticEnv = serverStaticEnv
@@ -147,13 +146,13 @@ initServer staticEnvOptions serverConfig _ = do
             Nothing -> Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
             Just p -> Right p
 
-serverDef :: StaticEnvOptions -> ServerDefinition ()
-serverDef argOptions =
+serverDef :: StaticEnvOptions -> LoggerM IO -> ServerDefinition ()
+serverDef argOptions logger =
     ServerDefinition
         { onConfigChange = \_conf -> pure ()
         , configSection = ""
         , parseConfig = \_conf _value -> Right ()
-        , doInitialize = initServer argOptions
+        , doInitialize = initServer argOptions logger
         , -- TODO: Do handlers need to inspect clientCapabilities?
           staticHandlers = \_clientCapabilities ->
             mapHandlers goReq goNot $
@@ -188,6 +187,6 @@ serverDef argOptions =
         goNot f = \msg -> catchAndLog $ f msg
 
 
-runServer :: StaticEnvOptions -> IO Int
-runServer argOptions = do
-    LSP.runServer (serverDef argOptions)
+runServer :: StaticEnvOptions -> LoggerM IO -> IO Int
+runServer argOptions logger = do
+    LSP.runServer (serverDef argOptions logger)

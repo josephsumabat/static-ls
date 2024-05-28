@@ -1,0 +1,14 @@
+packages:
+    ./static-ls.cabal
+    
+source-repository-package
+    type: git
+    location: https://github.com/oberblastmeister/tree-sitter-simple.git
+    tag: d839e92723631539ccd53780dd45a7c34ff46464
+    subdir: tree-sitter-simple
+
+source-repository-package
+    type: git
+    location: https://github.com/oberblastmeister/tree-sitter-simple.git
+    tag: d839e92723631539ccd53780dd45a7c34ff46464
+    subdir: tree-sitter-haskell

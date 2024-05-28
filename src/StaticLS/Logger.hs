@@ -3,6 +3,7 @@ module StaticLS.Logger
   Msg(..),
   LoggerM,
   setupLogger,
+  noOpLogger,
   HasCallStack,
   CallStack,
   callStack,
@@ -20,6 +21,9 @@ import qualified System.IO as IO
 textStderrLogger :: Colog.LogAction IO Text
 textStderrLogger = Colog.LogAction $ \msg ->
   B.hPutStr IO.stderr $ T.Encoding.encodeUtf8 (msg <> "\n")
+
+noOpLogger :: Colog.LogAction IO Msg
+noOpLogger = Colog.LogAction $ \msg -> pure ()
 
 logger :: Colog.LogAction IO Msg
 logger = Colog.cmap msgToText textStderrLogger

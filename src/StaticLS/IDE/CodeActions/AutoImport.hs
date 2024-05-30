@@ -16,30 +16,6 @@ import GHC.Plugins qualified as GHC
 import HieDb
 import HieDb.Compat
 import Language.LSP.Protocol.Types qualified as LSP
-import Data.Coerce (coerce)
-import qualified Language.LSP.Protocol.Types as LSP
-import Control.Monad (guard, join)
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..))
-import Data.List (isSuffixOf, head)
-import qualified Data.Map as Map
-import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
-import qualified Data.Set as Set
-import Development.IDE.GHC.Error (
-    srcSpanToFilename,
-    srcSpanToRange,
- )
-import qualified GHC.Data.FastString as GHC
-import qualified GHC.Iface.Ext.Types as GHC
-import qualified GHC.Iface.Ext.Utils as GHC
-import qualified GHC.Iface.Type as GHC
-import qualified GHC.Plugins as GHC
-import GHC.Stack (HasCallStack)
-import GHC.Utils.Monad (mapMaybeM)
-import qualified HieDb
-import qualified Language.LSP.Protocol.Types as LSP
-import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File
 import StaticLS.SDoc (showGhc)

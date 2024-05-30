@@ -25,7 +25,6 @@ import Data.Map qualified as Map
 import GHC qualified
 import GHC.Iface.Ext.Binary qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
-import GHC.Stack (HasCallStack)
 import GHC.Types.Name.Cache qualified as GHC
 import HieDb qualified
 import Language.LSP.Protocol.Types qualified as LSP

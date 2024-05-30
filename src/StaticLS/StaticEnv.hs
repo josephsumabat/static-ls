@@ -52,7 +52,7 @@ data HieDbException
 
 instance Exception HieDbException
 
-type Logger = LoggerM StaticLs
+type Logger = LoggerM IO
 
 -- | Static environment used to fetch data
 data StaticEnv = StaticEnv
@@ -112,16 +112,16 @@ runHieDbExceptT hieDbFn =
 runHieDbMaybeT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> MaybeT m a
 runHieDbMaybeT = exceptToMaybeT . runHieDbExceptT
 
-logWith :: Colog.Severity -> Text -> Logger.CallStack -> StaticLs ()
+logWith :: (HasCallStack, HasStaticEnv m, MonadIO m) => Colog.Severity -> Text -> Logger.CallStack -> m ()
 logWith severity text stack = do
     env <- ask
-    env.logger Colog.<& Logger.Msg{severity, text, stack}
+    liftIO $ env.logger Colog.<& Logger.Msg{severity, text, stack}
 
-logInfo :: (HasCallStack) => Text -> StaticLs ()
+logInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => Text -> m ()
 logInfo text = logWith Colog.Info text Logger.callStack
 
-logError :: (HasCallStack) => Text -> StaticLs ()
+logError :: (HasCallStack, HasStaticEnv m, MonadIO m) => Text -> m ()
 logError text = logWith Colog.Error text Logger.callStack
 
-logWarn :: (HasCallStack) => Text -> StaticLs ()
+logWarn :: (HasCallStack, HasStaticEnv m, MonadIO m) => Text -> m ()
 logWarn text = logWith Colog.Warning text Logger.callStack

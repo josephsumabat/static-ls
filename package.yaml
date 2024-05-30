@@ -60,6 +60,7 @@ default-extensions:
 
 ghc-options:
   - -Wall
+  - -Wno-name-shadowing 
 
 library:
   source-dirs: src

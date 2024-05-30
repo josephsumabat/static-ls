@@ -13,7 +13,6 @@ import Data.Maybe as X (fromMaybe)
 
 --- Standard imports
 
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except
 
@@ -44,15 +43,10 @@ import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 
 -- Temporary imports
-import Data.Aeson
-import Data.Aeson.Types
-import System.IO
 import qualified StaticLS.IDE.CodeActions as CodeActions
 
-import qualified UnliftIO.Exception as Exception
 import Control.Monad.IO.Unlift
 import qualified Data.Text as T
-import Data.Text (Text)
 import qualified UnliftIO.Exception as Exception
 
 -----------------------------------------------------------------
@@ -182,9 +176,9 @@ serverDef argOptions logger =
             Exception.catchAny m $ \e ->
                 LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
 
-        goReq f = \msg k -> catchAndLog $ f msg k
+        goReq f msg k = catchAndLog $ f msg k
 
-        goNot f = \msg -> catchAndLog $ f msg
+        goNot f msg = catchAndLog $ f msg
 
 
 runServer :: StaticEnvOptions -> LoggerM IO -> IO Int

@@ -4,7 +4,6 @@ module StaticLS.IDE.CodeActions.Types where
 
 import Data.Text
 import StaticLS.StaticEnv
-import StaticLS.StaticEnv.Options
 import Language.LSP.Protocol.Types (TextDocumentIdentifier(..), Range(..))
 import Data.Aeson.TH
 

@@ -1,23 +1,26 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use second" #-}
+{-# HLINT ignore "Eta reduce" #-}
+{-# HLINT ignore "Use hPrint" #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module StaticLS.IDE.CodeActions where
 
 import Data.Text
 import StaticLS.StaticEnv
-import StaticLS.StaticEnv.Options
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.CodeActions.AutoImport
-import Data.Aeson.TH
 import Language.LSP.Server
 import Language.LSP.VFS
 import Language.LSP.Protocol.Types hiding (ApplyWorkspaceEditParams(..))
-import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..))
+import Language.LSP.Protocol.Message (Method (..), TRequestMessage (..))
 import Control.Monad.Trans.Class (lift)
 import Data.Aeson hiding (Null)
 import Control.Monad.IO.Class (liftIO)
 import System.IO
-import Data.Maybe (fromMaybe)
 import qualified Data.Text.Utf16.Rope.Mixed as Rope
 import qualified Data.List as List
 import qualified Data.Text as T
@@ -54,7 +57,7 @@ handleCodeAction req resp = do
   let tdi = params._textDocument
   let range = params._range
   modulesToImport <- lift $ getModulesToImport tdi (range._start)
-  codeActions <- lift $ List.concat <$> (mapM (createAutoImportCodeActions tdi) modulesToImport)
+  codeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions tdi) modulesToImport
   resp (Right (InL (fmap InR codeActions)))
   pure ()
   
@@ -76,12 +79,12 @@ handleResolveCodeAction req resp = do
   virtualFile <- getVirtualFile (toNormalizedUri message.tdi._uri)
   virtualFile <- isJustOrThrow "no virtual file" virtualFile
   let contents = Rope.toText virtualFile._file_text
-  let (lineNum, lineLength) =
+  (lineNum, lineLength) <-
         T.lines contents
         & List.zip [0 :: Int ..]
-        & List.find (\(i, line) -> T.count (T.pack "where") line == 1)
+        & List.find (\(_i, line) -> T.count (T.pack "where") line == 1)
         & fmap (\(i, line) -> (i, T.length line))
-        & fromMaybe (error "bruh")
+        & isJustOrThrow "could not find where in the header of the module"
   case message.kind of
     AutoImportActionMessage toImport -> do
       liftIO $ hPutStrLn stderr "Resolving auto import action"

@@ -24,11 +24,8 @@ module StaticLS.StaticEnv (
 where
 
 import Control.Exception (Exception, IOException, SomeException, catch)
-import Control.Monad.IO.Unlift (MonadIO, liftIO)
-import Control.Monad.Reader (MonadReader (..))
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
-import Control.Monad.Trans.Reader (ReaderT (..))
 import Database.SQLite.Simple (SQLError)
 import qualified HieDb
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))

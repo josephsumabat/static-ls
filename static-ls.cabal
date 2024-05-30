@@ -57,6 +57,7 @@ library
       StaticLS.SrcFiles
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
+      StaticLS.Utils
   other-modules:
       Paths_static_ls
   autogen-modules:
@@ -72,7 +73,7 @@ library
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
+  ghc-options: -Wall -Wincomplete-record-updates -Wredundant-constraints -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
       aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
@@ -97,8 +98,11 @@ library
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-haskell
+    , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
+    , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
@@ -121,7 +125,7 @@ executable static-ls
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall
+  ghc-options: -Wall -Wincomplete-record-updates -Wredundant-constraints
   build-depends:
       aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
@@ -148,8 +152,11 @@ executable static-ls
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-haskell
+    , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
+    , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
@@ -184,7 +191,7 @@ test-suite static-ls-test
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
+  ghc-options: -Wall -Wincomplete-record-updates -Wredundant-constraints -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       aeson >=2 && <2.3
@@ -212,8 +219,11 @@ test-suite static-ls-test
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-haskell
+    , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
+    , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables

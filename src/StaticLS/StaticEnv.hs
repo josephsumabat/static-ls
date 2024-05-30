@@ -16,6 +16,7 @@ module StaticLS.StaticEnv (
     LoggerM,
     Logger,
     HasCallStack,
+    FileState(..),
     logWith,
     logError,
     logInfo,
@@ -35,6 +36,17 @@ import StaticLS.Logger
 import StaticLS.Logger qualified as Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import System.FilePath ((</>))
+import Data.Text (Text)
+import qualified Colog.Core as Colog
+import StaticLS.Logger
+import qualified StaticLS.Logger as Logger
+import Control.Monad.Reader
+import qualified Data.Text.Utf16.Rope.Mixed as Rope
+import qualified TreeSitter.Api as TS
+import Data.Tree (Tree)
+import Data.HashMap.Strict (HashMap)
+import Language.LSP.Protocol.Types qualified as LSP
+import Data.IORef qualified as IORef
 
 runStaticLs :: StaticEnv -> StaticLs a -> IO a
 runStaticLs = flip runReaderT
@@ -54,6 +66,12 @@ instance Exception HieDbException
 
 type Logger = LoggerM IO
 
+data FileState = FileState {
+  contents :: Rope.Rope,
+  contentsText :: Text,
+  tree :: Tree TS.Node
+  }
+  
 -- | Static environment used to fetch data
 data StaticEnv = StaticEnv
     { hieDbPath :: HieDbPath
@@ -63,8 +81,9 @@ data StaticEnv = StaticEnv
     , wsRoot :: FilePath
     -- ^ workspace root
     , srcDirs :: [FilePath]
-    , logger :: Logger
     -- ^ directories to search for source code in order of priority
+    , logger :: Logger
+    , fileStates :: IORef.IORef (HashMap LSP.NormalizedUri FileState)
     }
 
 type StaticLs = ReaderT StaticEnv IO
@@ -81,7 +100,7 @@ initStaticEnv wsRoot staticEnvOptions logger =
             hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
             srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
             hiFilesPath = wsRoot </> staticEnvOptions.optionHiFilesPath
-
+        fileStates <- IORef.newIORef mempty
         let serverStaticEnv =
                 StaticEnv
                     { hieDbPath = databasePath
@@ -90,6 +109,7 @@ initStaticEnv wsRoot staticEnvOptions logger =
                     , wsRoot = wsRoot
                     , srcDirs = srcDirs
                     , logger = Colog.liftLogIO logger
+                    , fileStates
                     }
 
         pure serverStaticEnv

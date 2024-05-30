@@ -32,6 +32,20 @@ import Language.LSP.Logging qualified as LSP.Logging
 import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..))
 import Language.LSP.Protocol.Types
 import Language.LSP.Server qualified as LSP
+import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..), TNotificationMessage (..))
+import Language.LSP.Protocol.Types
+import Language.LSP.Protocol.Types qualified as LSP
+import qualified Language.LSP.Server as LSP
+import qualified Language.LSP.Logging as LSP.Logging
+import qualified Colog.Core as Colog
+import Language.LSP.VFS qualified as VFS
+import Language.LSP.VFS (VirtualFile(..))
+import TreeSitter.Haskell qualified as TS.Haskell
+import TreeSitter.Api qualified as TS
+import qualified Data.Text.Utf16.Rope.Mixed as Rope
+import Data.HashMap.Strict qualified as HashMap
+import UnliftIO.IORef qualified as IORef
+import Control.Monad.Reader
 
 ---- Local imports
 
@@ -48,6 +62,9 @@ import StaticLS.IDE.CodeActions qualified as CodeActions
 import Control.Monad.IO.Unlift
 import Data.Text qualified as T
 import UnliftIO.Exception qualified as Exception
+import qualified Data.Text as T
+import Data.Text (Text)
+import StaticLS.Utils
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -67,6 +84,7 @@ handleTextDocumentHoverRequest = LSP.requestHandler SMethod_TextDocumentHover $ 
 
 handleDefinitionRequest :: Handlers (LspT c StaticLs)
 handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \req resp -> do
+    lift $ logInfo "Received definition request."
     let defParams = req._params
     defs <- lift $ getDefinition defParams._textDocument defParams._position
     resp $ Right . InR . InL $ defs
@@ -87,16 +105,47 @@ handleCancelNotification :: Handlers (LspT c StaticLs)
 handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()
 
 handleDidOpen :: Handlers (LspT c StaticLs)
-handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \_ -> pure ()
+handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -> do
+  lift $ logInfo "did open"
+  let params = message._params
+  updateFileStateForUri params._textDocument._uri
 
+updateFileState :: NormalizedUri -> VirtualFile -> StaticLs ()
+updateFileState uri virtualFile = do
+  let contents = virtualFile._file_text
+  let contentsText = Rope.toText contents
+  let tree = TS.parse TS.Haskell.tree_sitter_haskell contentsText
+  -- just for now to make sure parsing is okay
+  tree <- Exception.evaluate tree
+  env <- ask
+  IORef.modifyIORef' env.fileStates $ \fileStates ->
+    HashMap.adjust (const FileState { contents, contentsText, tree }) uri fileStates
+  pure ()
+  
+updateFileStateForUri :: Uri -> (LspT c StaticLs) ()
+updateFileStateForUri uri = do
+  uri <- pure $ toNormalizedUri uri
+  virtualFile <- LSP.getVirtualFile uri
+  virtualFile <- isJustOrThrow "no virtual file" virtualFile
+  lift $ updateFileState uri virtualFile
+  pure ()
+  
 handleDidChange :: Handlers (LspT c StaticLs)
-handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \_ -> pure ()
+handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \message -> do
+  let params = message._params
+  let uri = params._textDocument._uri
+  updateFileStateForUri uri
 
 handleDidClose :: Handlers (LspT c StaticLs)
-handleDidClose = LSP.notificationHandler SMethod_TextDocumentDidClose $ \_ -> pure ()
+handleDidClose = LSP.notificationHandler SMethod_TextDocumentDidClose $ \_ -> do
+  -- TODO: remove stuff from file state
+  lift $ logInfo "did close"
+  pure ()
 
 handleDidSave :: Handlers (LspT c StaticLs)
-handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \_ -> pure ()
+handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \_ -> do
+  lift $ logInfo "did save"
+  pure ()
 
 handleWorkspaceSymbol :: Handlers (LspT c StaticLs)
 handleWorkspaceSymbol = LSP.requestHandler SMethod_WorkspaceSymbol $ \req res -> do
@@ -168,17 +217,37 @@ serverDef argOptions logger =
                     , handleResolveCodeAction
                     ]
         , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO
-        , options = LSP.defaultOptions
+        , options
         , defaultConfig = ()
         }
-  where
-    catchAndLog m = do
-        Exception.catchAny m $ \e ->
-            LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
+    where
+        options = 
+          LSP.defaultOptions
+            {
+              LSP.optTextDocumentSync =
+                Just
+                  LSP.TextDocumentSyncOptions
+                    { LSP._openClose = Just True
+                    , LSP._change = Just LSP.TextDocumentSyncKind_Incremental
+                    , LSP._willSave = Just False
+                    , LSP._willSaveWaitUntil = Just False
+                    , LSP._save =
+                        Just $
+                          InR $
+                            LSP.SaveOptions
+                              { LSP._includeText = Just False
+                              }
+                    }
+              
+            }
+        catchAndLog m = do
+            Exception.catchAny m $ \e ->
+                LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
 
-    goReq f msg k = catchAndLog $ f msg k
+        goReq f = \msg k -> catchAndLog $ f msg k
 
-    goNot f msg = catchAndLog $ f msg
+        goNot f = \msg -> do
+          catchAndLog $ f msg
 
 runServer :: StaticEnvOptions -> LoggerM IO -> IO Int
 runServer argOptions logger = do

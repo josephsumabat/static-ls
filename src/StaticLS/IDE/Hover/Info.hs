@@ -2,8 +2,8 @@ module StaticLS.IDE.Hover.Info (hoverInfo) where
 
 import Data.Array
 import Data.List.Extra (dropEnd1, nubOrd)
-import qualified Data.Map as M
-import qualified Data.Text as T
+import Data.Map qualified as M
+import Data.Text qualified as T
 import Development.IDE.GHC.Error (realSrcSpanToRange)
 import GHC hiding (getDocs)
 import GHC.Iface.Ext.Types

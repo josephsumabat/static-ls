@@ -13,13 +13,13 @@ import Control.Monad
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
-import qualified Data.Set as Set
-import qualified GHC
-import qualified GHC.Iface.Binary as GHC
-import qualified GHC.Platform as GHC
-import qualified GHC.Platform.Profile as GHC
-import qualified GHC.Types.Name.Cache as GHC
-import qualified Language.LSP.Protocol.Types as LSP
+import Data.Set qualified as Set
+import GHC qualified
+import GHC.Iface.Binary qualified as GHC
+import GHC.Platform qualified as GHC
+import GHC.Platform.Profile qualified as GHC
+import GHC.Types.Name.Cache qualified as GHC
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FilePath
 import StaticLS.SrcFiles
 import StaticLS.StaticEnv

@@ -29,17 +29,24 @@ dependencies:
   - filepath >= 1.4.1 && < 1.5
   - ghc >= 9.4.3 && < 9.7
   - ghc-paths >= 0.1.0 && < 0.2
-  - ghcide >= 2.5.0 && < 2.6.0
-  - hiedb >= 0.4.2 && < 0.5
-  - lsp >= 2.3 && < 2.4
-  - lsp-types >= 2.1 && < 2.2
+  - ghcide >= 2.5.0 && < 2.8.0
+  - hiedb >= 0.6 && < 0.7
+  - lsp >= 2.3 && < 2.6
+  - lsp-types >= 2.1 && < 2.3
   - mtl >= 2.2.2 && < 2.4
   - parsec >= 3.1.0 && < 3.2
   - sqlite-simple >= 0.4.18 && < 0.5
   - template-haskell >= 2.19.0 && < 2.21
   - text >= 2.0.1 && < 2.1
+  - bytestring >=0.10 && <0.13
   - transformers >= 0.5.6.2 && < 0.7
   - unliftio-core >= 0.2.1 && < 0.3
+  - unliftio >= 0.2.1 && < 0.3
+  - aeson >=2 && <2.3
+  - text-rope >= 0.2 && < 0.3
+  - co-log-core >= 0.3 && < 0.4
+
+default-language: GHC2021
 
 default-extensions:
 - ExplicitNamespaces
@@ -49,9 +56,11 @@ default-extensions:
 - NoFieldSelectors
 - LambdaCase
 - RecordWildCards
+- TypeApplications
 
 ghc-options:
   - -Wall
+  - -Wno-name-shadowing 
 
 library:
   source-dirs: src

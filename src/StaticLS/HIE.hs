@@ -15,13 +15,13 @@ import Control.Error.Util (hush)
 import Control.Exception (Exception)
 import Control.Monad (join, (<=<))
 import Control.Monad.Trans.Except (ExceptT, throwE)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
-import qualified Data.Set as Set
-import qualified GHC
-import qualified GHC.Iface.Ext.Types as GHC
+import Data.Set qualified as Set
+import GHC qualified
+import GHC.Iface.Ext.Types qualified as GHC
 import HieDb (pointCommand)
-import qualified Language.LSP.Protocol.Types as LSP
+import Language.LSP.Protocol.Types qualified as LSP
 
 -- | Note HieDbCoords are 1 indexed
 type HieDbCoords = (Int, Int)

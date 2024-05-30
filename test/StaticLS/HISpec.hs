@@ -9,7 +9,7 @@ import StaticLS.HI.File
 import StaticLS.HIE
 import StaticLS.HIE.File
 import Test.Hspec
-import qualified TestImport.Assert as Test
+import TestImport.Assert qualified as Test
 import TestImport.TestData
 
 spec :: Spec

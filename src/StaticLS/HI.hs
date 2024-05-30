@@ -8,13 +8,13 @@ module StaticLS.HI (
 )
 where
 
-import qualified Data.IntMap as IntMap
-import qualified Data.Map as Map
+import Data.IntMap qualified as IntMap
+import Data.Map qualified as Map
 import Data.Maybe
 import Data.Text as T
-import qualified GHC
-import qualified GHC.Plugins as GHC
-import qualified GHC.Types.Unique.Map as GHC
+import GHC qualified
+import GHC.Plugins qualified as GHC
+import GHC.Types.Unique.Map qualified as GHC
 import StaticLS.SDoc
 
 data NameDocs = NameDocs

@@ -4,9 +4,9 @@ import StaticLS.IDE.Definition
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import Test.Hspec
-import qualified TestImport as Test
-import qualified TestImport.Assert as Test
-import qualified TestImport.TestData as Test
+import TestImport qualified as Test
+import TestImport.Assert qualified as Test
+import TestImport.TestData qualified as Test
 
 spec :: Spec
 spec =

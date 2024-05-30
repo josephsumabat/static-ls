@@ -2,11 +2,11 @@ module StaticLS.FilePath (modToFilePath, subRootExtensionFilepath) where
 
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
-import qualified Data.List as List
-import qualified Data.List.Extra as List
-import qualified GHC.Plugins as GHC
+import Data.List qualified as List
+import Data.List.Extra qualified as List
+import GHC.Plugins qualified as GHC
 import StaticLS.SrcFiles
-import qualified System.Directory as Dir
+import System.Directory qualified as Dir
 import System.FilePath ((-<.>), (</>))
 
 modToFilePath :: GHC.ModuleName -> String -> FilePath

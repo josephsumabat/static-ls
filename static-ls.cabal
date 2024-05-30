@@ -42,11 +42,15 @@ library
       StaticLS.HIE.File
       StaticLS.HIE.File.Except
       StaticLS.HieDb
+      StaticLS.IDE.CodeActions
+      StaticLS.IDE.CodeActions.AutoImport
+      StaticLS.IDE.CodeActions.Types
       StaticLS.IDE.Definition
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.References
       StaticLS.IDE.Workspace.Symbol
+      StaticLS.Logger
       StaticLS.Maybe
       StaticLS.SDoc
       StaticLS.Server
@@ -67,10 +71,14 @@ library
       NoFieldSelectors
       LambdaCase
       RecordWildCards
+      TypeApplications
   ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2 && <2.3
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
+    , bytestring >=0.10 && <0.13
+    , co-log-core ==0.3.*
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4
     , errors >=2.3.0 && <2.4
@@ -78,18 +86,20 @@ library
     , filepath >=1.4.1 && <1.5
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=2.5.0 && <2.6.0
-    , hiedb >=0.4.2 && <0.5
-    , lsp ==2.3.*
-    , lsp-types ==2.1.*
+    , ghcide >=2.5.0 && <2.8.0
+    , hiedb ==0.6.*
+    , lsp >=2.3 && <2.6
+    , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
     , sqlite-simple >=0.4.18 && <0.5
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
+    , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
-  default-language: Haskell2010
+  default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
 
@@ -110,10 +120,14 @@ executable static-ls
       NoFieldSelectors
       LambdaCase
       RecordWildCards
+      TypeApplications
   ghc-options: -Wall
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2 && <2.3
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
+    , bytestring >=0.10 && <0.13
+    , co-log-core ==0.3.*
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4
     , errors >=2.3.0 && <2.4
@@ -121,10 +135,10 @@ executable static-ls
     , filepath >=1.4.1 && <1.5
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=2.5.0 && <2.6.0
-    , hiedb >=0.4.2 && <0.5
-    , lsp ==2.3.*
-    , lsp-types ==2.1.*
+    , ghcide >=2.5.0 && <2.8.0
+    , hiedb ==0.6.*
+    , lsp >=2.3 && <2.6
+    , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
@@ -132,9 +146,11 @@ executable static-ls
     , static-ls
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
+    , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
-  default-language: Haskell2010
+  default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
 
@@ -167,11 +183,15 @@ test-suite static-ls-test
       NoFieldSelectors
       LambdaCase
       RecordWildCards
+      TypeApplications
   ghc-options: -Wall -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
-      array >=0.5.4 && <0.6
+      aeson >=2 && <2.3
+    , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
+    , bytestring >=0.10 && <0.13
+    , co-log-core ==0.3.*
     , containers >=0.6.0 && <0.7
     , directory >=1.3.7 && <1.4
     , errors >=2.3.0 && <2.4
@@ -179,19 +199,21 @@ test-suite static-ls-test
     , filepath >=1.4.1 && <1.5
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=2.5.0 && <2.6.0
-    , hiedb >=0.4.2 && <0.5
+    , ghcide >=2.5.0 && <2.8.0
+    , hiedb ==0.6.*
     , hspec ==2.*
-    , lsp ==2.3.*
-    , lsp-types ==2.1.*
+    , lsp >=2.3 && <2.6
+    , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
+    , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
-  default-language: Haskell2010
+  default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables

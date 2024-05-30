@@ -21,21 +21,20 @@ import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Data.Bifunctor (first, second)
-import qualified Data.Map as Map
-import qualified GHC
-import qualified GHC.Iface.Ext.Binary as GHC
-import qualified GHC.Iface.Ext.Types as GHC
-import GHC.Stack (HasCallStack)
-import qualified GHC.Types.Name.Cache as GHC
-import qualified HieDb
-import qualified Language.LSP.Protocol.Types as LSP
+import Data.Map qualified as Map
+import GHC qualified
+import GHC.Iface.Ext.Binary qualified as GHC
+import GHC.Iface.Ext.Types qualified as GHC
+import GHC.Types.Name.Cache qualified as GHC
+import HieDb qualified
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FilePath
 import StaticLS.HIE.File.Except
-import qualified StaticLS.HieDb as HieDb
+import StaticLS.HieDb qualified as HieDb
 import StaticLS.Maybe (flatMaybeT, toAlt)
 import StaticLS.SrcFiles
 import StaticLS.StaticEnv
-import qualified System.Directory as Dir
+import System.Directory qualified as Dir
 import System.FilePath ((</>))
 
 -- | Retrieve a hie info from a lsp text document identifier

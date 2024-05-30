@@ -26,3 +26,5 @@ test/TestData/.hiefiles
 test/TestData/.hiedb
 TAGS
 ghcid.txt
+.vscode/
+.zed/

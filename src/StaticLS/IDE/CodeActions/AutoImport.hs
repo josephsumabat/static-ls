@@ -32,7 +32,7 @@ findModulesForDef (getConn -> conn) occ = do
             [":occ" := occ]
 
 getModulesToImport ::
-    (HasCallStack) =>
+    (HasCallStack, ()) =>
     LSP.TextDocumentIdentifier ->
     LSP.Position ->
     StaticLs [Text]

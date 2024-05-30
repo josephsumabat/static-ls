@@ -7,6 +7,7 @@ module StaticLS.StaticEnv (
     getStaticEnv,
     runHieDbExceptT,
     runHieDbMaybeT,
+    getFileState,
     StaticEnv (..),
     StaticLs,
     HieDbPath,
@@ -46,7 +47,8 @@ import qualified TreeSitter.Api as TS
 import Data.Tree (Tree)
 import Data.HashMap.Strict (HashMap)
 import Language.LSP.Protocol.Types qualified as LSP
-import Data.IORef qualified as IORef
+import Data.HashMap.Strict qualified as HashMap
+import UnliftIO.IORef qualified as IORef
 
 runStaticLs :: StaticEnv -> StaticLs a -> IO a
 runStaticLs = flip runReaderT
@@ -86,6 +88,14 @@ data StaticEnv = StaticEnv
     , fileStates :: IORef.IORef (HashMap LSP.NormalizedUri FileState)
     }
 
+getFileState :: LSP.Uri -> StaticLs (Maybe FileState)
+getFileState uri = do
+  uri <- pure $ LSP.toNormalizedUri uri
+  env <- ask
+  fileStates <- IORef.readIORef env.fileStates
+  let fileState = HashMap.lookup uri fileStates
+  pure fileState
+  
 type StaticLs = ReaderT StaticEnv IO
 
 type HasStaticEnv = MonadReader StaticEnv

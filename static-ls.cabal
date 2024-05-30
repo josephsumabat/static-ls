@@ -45,6 +45,7 @@ library
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AutoImport
       StaticLS.IDE.CodeActions.Types
+      StaticLS.IDE.Completion
       StaticLS.IDE.Definition
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
@@ -57,6 +58,7 @@ library
       StaticLS.SrcFiles
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
+      StaticLS.TreeSitter.Query
       StaticLS.Utils
   other-modules:
       Paths_static_ls

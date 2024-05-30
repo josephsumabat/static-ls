@@ -162,6 +162,14 @@ handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction CodeActions
 handleResolveCodeAction :: Handlers (LspT c StaticLs)
 handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve CodeActions.handleResolveCodeAction
 
+handleCompletion :: Handlers (LspT c StaticLs)
+handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res -> do
+  let params = req._params
+  let tdi = params._textDocument
+    -- let completionParams = req._params
+    -- completions <- lift $ getCompletions completionParams._textDocument completionParams._position
+    -- res $ Right $ completions
+  pure ()
 -----------------------------------------------------------------
 ----------------------- Server definition -----------------------
 -----------------------------------------------------------------
@@ -217,29 +225,10 @@ serverDef argOptions logger =
                     , handleResolveCodeAction
                     ]
         , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO
-        , options
+        , options = lspOptions
         , defaultConfig = ()
         }
     where
-        options = 
-          LSP.defaultOptions
-            {
-              LSP.optTextDocumentSync =
-                Just
-                  LSP.TextDocumentSyncOptions
-                    { LSP._openClose = Just True
-                    , LSP._change = Just LSP.TextDocumentSyncKind_Incremental
-                    , LSP._willSave = Just False
-                    , LSP._willSaveWaitUntil = Just False
-                    , LSP._save =
-                        Just $
-                          InR $
-                            LSP.SaveOptions
-                              { LSP._includeText = Just False
-                              }
-                    }
-              
-            }
         catchAndLog m = do
             Exception.catchAny m $ \e ->
                 LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
@@ -249,6 +238,27 @@ serverDef argOptions logger =
         goNot f = \msg -> do
           catchAndLog $ f msg
 
+lspOptions :: LSP.Options
+lspOptions =
+  LSP.defaultOptions
+    {
+      LSP.optTextDocumentSync =
+        Just
+          LSP.TextDocumentSyncOptions
+            { LSP._openClose = Just True
+            , LSP._change = Just LSP.TextDocumentSyncKind_Incremental
+            , LSP._willSave = Just False
+            , LSP._willSaveWaitUntil = Just False
+            , LSP._save =
+                Just $
+                  InR $
+                    LSP.SaveOptions
+                      { LSP._includeText = Just False
+                      }
+            }
+    , LSP.optCompletionTriggerCharacters = Just ['.']
+    }
+    
 runServer :: StaticEnvOptions -> LoggerM IO -> IO Int
 runServer argOptions logger = do
     LSP.runServer (serverDef argOptions logger)

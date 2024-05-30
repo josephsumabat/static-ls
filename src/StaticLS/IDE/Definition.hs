@@ -6,22 +6,22 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.List (isSuffixOf)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import Development.IDE.GHC.Error (
     srcSpanToFilename,
     srcSpanToRange,
  )
-import qualified GHC.Data.FastString as GHC
-import qualified GHC.Iface.Ext.Types as GHC
-import qualified GHC.Iface.Ext.Utils as GHC
-import qualified GHC.Iface.Type as GHC
-import qualified GHC.Plugins as GHC
+import GHC.Data.FastString qualified as GHC
+import GHC.Iface.Ext.Types qualified as GHC
+import GHC.Iface.Ext.Utils qualified as GHC
+import GHC.Iface.Type qualified as GHC
+import GHC.Plugins qualified as GHC
 import GHC.Stack (HasCallStack)
 import GHC.Utils.Monad (mapMaybeM)
-import qualified HieDb
-import qualified Language.LSP.Protocol.Types as LSP
+import HieDb qualified
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File

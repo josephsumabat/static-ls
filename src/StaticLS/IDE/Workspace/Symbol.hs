@@ -6,11 +6,11 @@ module StaticLS.IDE.Workspace.Symbol where
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Maybe (catMaybes, fromMaybe)
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Development.IDE.GHC.Util (printOutputable)
 import Development.IDE.Types.Location
 import GHC.Plugins hiding ((<>))
-import qualified HieDb
+import HieDb qualified
 import Language.LSP.Protocol.Types
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
 import StaticLS.Maybe

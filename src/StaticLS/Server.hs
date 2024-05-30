@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExplicitNamespaces #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module StaticLS.Server (
     runServer,
@@ -23,15 +23,15 @@ import Language.LSP.Server (
     LanguageContextEnv,
     LspT,
     ServerDefinition (..),
-    type (<~>) (Iso),
     mapHandlers,
+    type (<~>) (Iso),
  )
 
+import Colog.Core qualified as Colog
+import Language.LSP.Logging qualified as LSP.Logging
 import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..))
 import Language.LSP.Protocol.Types
-import qualified Language.LSP.Server as LSP
-import qualified Language.LSP.Logging as LSP.Logging
-import qualified Colog.Core as Colog
+import Language.LSP.Server qualified as LSP
 
 ---- Local imports
 
@@ -43,11 +43,11 @@ import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 
 -- Temporary imports
-import qualified StaticLS.IDE.CodeActions as CodeActions
+import StaticLS.IDE.CodeActions qualified as CodeActions
 
 import Control.Monad.IO.Unlift
-import qualified Data.Text as T
-import qualified UnliftIO.Exception as Exception
+import Data.Text qualified as T
+import UnliftIO.Exception qualified as Exception
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -122,7 +122,7 @@ data LspEnv config = LspEnv
     , config :: LanguageContextEnv config
     }
 
-initServer :: StaticEnvOptions -> LoggerM IO -> LanguageContextEnv config ->  TMessage 'Method_Initialize -> IO (Either ResponseError (LspEnv config))
+initServer :: StaticEnvOptions -> LoggerM IO -> LanguageContextEnv config -> TMessage 'Method_Initialize -> IO (Either ResponseError (LspEnv config))
 initServer staticEnvOptions logger serverConfig _ = do
     runExceptT $ do
         wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
@@ -171,15 +171,14 @@ serverDef argOptions logger =
         , options = LSP.defaultOptions
         , defaultConfig = ()
         }
-    where
-        catchAndLog m = do
-            Exception.catchAny m $ \e ->
-                LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
+  where
+    catchAndLog m = do
+        Exception.catchAny m $ \e ->
+            LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
 
-        goReq f msg k = catchAndLog $ f msg k
+    goReq f msg k = catchAndLog $ f msg k
 
-        goNot f msg = catchAndLog $ f msg
-
+    goNot f msg = catchAndLog $ f msg
 
 runServer :: StaticEnvOptions -> LoggerM IO -> IO Int
 runServer argOptions logger = do

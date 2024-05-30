@@ -23,18 +23,18 @@ module StaticLS.StaticEnv (
 )
 where
 
+import Colog.Core qualified as Colog
 import Control.Exception (Exception, IOException, SomeException, catch)
+import Control.Monad.Reader
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
+import Data.Text (Text)
 import Database.SQLite.Simple (SQLError)
-import qualified HieDb
+import HieDb qualified
+import StaticLS.Logger
+import StaticLS.Logger qualified as Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import System.FilePath ((</>))
-import Data.Text (Text)
-import qualified Colog.Core as Colog
-import StaticLS.Logger
-import qualified StaticLS.Logger as Logger
-import Control.Monad.Reader
 
 runStaticLs :: StaticEnv -> StaticLs a -> IO a
 runStaticLs = flip runReaderT
@@ -115,13 +115,13 @@ runHieDbMaybeT = exceptToMaybeT . runHieDbExceptT
 logWith :: Colog.Severity -> Text -> Logger.CallStack -> StaticLs ()
 logWith severity text stack = do
     env <- ask
-    env.logger Colog.<& Logger.Msg { severity, text, stack }
-    
-logInfo :: HasCallStack => Text -> StaticLs ()
+    env.logger Colog.<& Logger.Msg{severity, text, stack}
+
+logInfo :: (HasCallStack) => Text -> StaticLs ()
 logInfo text = logWith Colog.Info text Logger.callStack
 
-logError :: HasCallStack => Text -> StaticLs ()
+logError :: (HasCallStack) => Text -> StaticLs ()
 logError text = logWith Colog.Error text Logger.callStack
 
-logWarn :: HasCallStack => Text -> StaticLs ()
+logWarn :: (HasCallStack) => Text -> StaticLs ()
 logWarn text = logWith Colog.Warning text Logger.callStack

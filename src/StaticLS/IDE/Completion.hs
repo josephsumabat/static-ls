@@ -2,10 +2,10 @@
 
 module StaticLS.IDE.Completion where
 
-import Language.LSP.Protocol.Types qualified as LSP
+import qualified Language.LSP.Protocol.Types as LSP
 import StaticLS.StaticEnv
 import TreeSitter.Query
-import TreeSitter.Api qualified as TS
+import qualified TreeSitter.Api as TS
 
 getCompletion :: LSP.Uri -> StaticLs ()
 getCompletion uri = do

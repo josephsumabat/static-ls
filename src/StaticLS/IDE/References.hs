@@ -5,9 +5,9 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.Maybe (catMaybes, fromMaybe)
-import qualified GHC.Plugins as GHC
-import qualified HieDb
-import qualified Language.LSP.Protocol.Types as LSP
+import GHC.Plugins qualified as GHC
+import HieDb qualified
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Except
 import StaticLS.HIE
 import StaticLS.HIE.File

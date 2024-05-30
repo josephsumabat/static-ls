@@ -7,8 +7,8 @@ import StaticLS.StaticEnv
 import System.Directory
 import System.FilePath
 import Test.Hspec
-import qualified TestImport as Test
-import qualified TestImport.Assert as Test
+import TestImport qualified as Test
+import TestImport.Assert qualified as Test
 
 spec :: Spec
 spec = do

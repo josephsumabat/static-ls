@@ -3,7 +3,7 @@
 module StaticLS.HIE.File.Except where
 
 import Control.Exception
-import qualified GHC.Iface.Ext.Binary as GHC
+import GHC.Iface.Ext.Binary qualified as GHC
 
 data HieFileReadException
     = HieFileReadException

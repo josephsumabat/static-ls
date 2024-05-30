@@ -7,7 +7,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.Maybe
 import Data.Text (Text, intercalate)
-import qualified GHC.Iface.Ext.Types as GHC
+import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins as GHC
 import HieDb (pointCommand)
 import Language.LSP.Protocol.Types (

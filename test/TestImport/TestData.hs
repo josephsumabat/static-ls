@@ -2,8 +2,8 @@
 
 module TestImport.TestData where
 
-import qualified Language.LSP.Protocol.Types as LSP
-import qualified System.Directory as Dir
+import Language.LSP.Protocol.Types qualified as LSP
+import System.Directory qualified as Dir
 
 myFunDefTdiAndPosition :: (LSP.TextDocumentIdentifier, LSP.Position)
 myFunDefTdiAndPosition =

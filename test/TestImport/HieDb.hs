@@ -1,6 +1,6 @@
 module TestImport.HieDb where
 
-import qualified GHC.Paths as GHC
+import GHC.Paths qualified as GHC
 import HieDb.Create
 import HieDb.Run
 import HieDb.Types

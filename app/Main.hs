@@ -1,8 +1,8 @@
 module Main where
 
-import qualified App.Arguments as App
-import qualified StaticLS.Server as StaticLS
-import qualified StaticLS.Logger as StaticLS.Logger
+import App.Arguments qualified as App
+import StaticLS.Logger qualified as StaticLS.Logger
+import StaticLS.Server qualified as StaticLS
 
 main :: IO ()
 main = do

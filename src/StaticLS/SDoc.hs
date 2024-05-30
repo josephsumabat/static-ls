@@ -1,6 +1,6 @@
 module StaticLS.SDoc where
 
-import qualified Data.Text as T
+import Data.Text qualified as T
 import GHC.Plugins hiding ((<>))
 
 showGhc :: (Outputable a) => a -> T.Text

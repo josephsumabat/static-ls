@@ -3,9 +3,9 @@ module StaticLS.IDE.HoverSpec where
 import StaticLS.IDE.Hover
 import StaticLS.StaticEnv
 import Test.Hspec
-import qualified TestImport as Test
-import qualified TestImport.Assert as Test
-import qualified TestImport.TestData as Test
+import TestImport qualified as Test
+import TestImport.Assert qualified as Test
+import TestImport.TestData qualified as Test
 
 spec :: Spec
 spec =

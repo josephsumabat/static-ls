@@ -37,11 +37,6 @@ import StaticLS.Logger
 import StaticLS.Logger qualified as Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import System.FilePath ((</>))
-import Data.Text (Text)
-import qualified Colog.Core as Colog
-import StaticLS.Logger
-import qualified StaticLS.Logger as Logger
-import Control.Monad.Reader
 import qualified Data.Text.Utf16.Rope.Mixed as Rope
 import qualified TreeSitter.Api as TS
 import Data.Tree (Tree)
@@ -83,7 +78,6 @@ data StaticEnv = StaticEnv
     , wsRoot :: FilePath
     -- ^ workspace root
     , srcDirs :: [FilePath]
-    , logger :: Logger
     -- ^ directories to search for source code in order of priority
     , logger :: Logger
     , fileStates :: IORef.IORef (HashMap LSP.NormalizedUri FileState)

@@ -29,16 +29,16 @@ import Language.LSP.Server (
 
 import Colog.Core qualified as Colog
 import Language.LSP.Logging qualified as LSP.Logging
-import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..))
+import Language.LSP.Protocol.Message
+    ( Method(..),
+      ResponseError(..),
+      SMethod(..),
+      TMessage,
+      TRequestMessage(..),
+      TNotificationMessage(..) )
 import Language.LSP.Protocol.Types
 import Language.LSP.Server qualified as LSP
-import Language.LSP.Protocol.Message (Method (..), ResponseError (..), SMethod (..), TMessage, TRequestMessage (..), TNotificationMessage (..))
-import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
-import qualified Language.LSP.Server as LSP
-import qualified Language.LSP.Logging as LSP.Logging
-import qualified Colog.Core as Colog
-import Language.LSP.VFS qualified as VFS
 import Language.LSP.VFS (VirtualFile(..))
 import TreeSitter.Haskell qualified as TS.Haskell
 import TreeSitter.Api qualified as TS
@@ -59,11 +59,8 @@ import StaticLS.StaticEnv.Options
 -- Temporary imports
 import StaticLS.IDE.CodeActions qualified as CodeActions
 
-import Control.Monad.IO.Unlift
 import Data.Text qualified as T
 import UnliftIO.Exception qualified as Exception
-import qualified Data.Text as T
-import Data.Text (Text)
 import StaticLS.Utils
 
 -----------------------------------------------------------------
@@ -121,7 +118,7 @@ updateFileState uri virtualFile = do
   IORef.modifyIORef' env.fileStates $ \fileStates ->
     HashMap.adjust (const FileState { contents, contentsText, tree }) uri fileStates
   pure ()
-  
+
 updateFileStateForUri :: Uri -> (LspT c StaticLs) ()
 updateFileStateForUri uri = do
   uri <- pure $ toNormalizedUri uri
@@ -129,7 +126,7 @@ updateFileStateForUri uri = do
   virtualFile <- isJustOrThrow "no virtual file" virtualFile
   lift $ updateFileState uri virtualFile
   pure ()
-  
+
 handleDidChange :: Handlers (LspT c StaticLs)
 handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \message -> do
   let params = message._params

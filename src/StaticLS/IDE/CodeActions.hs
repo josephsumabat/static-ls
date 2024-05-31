@@ -1,9 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC  #-}
-{-# HLINT ignore "Use second" #-}
-{-# HLINT ignore "Eta reduce" #-}
-{-# HLINT ignore "Use hPrint" #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
@@ -26,7 +22,6 @@ import StaticLS.IDE.CodeActions.Types
 import StaticLS.StaticEnv
 import System.IO
 import UnliftIO.Exception qualified as Exception
-import qualified UnliftIO.Exception as Exception
 import StaticLS.Utils
 
 -- TODO: rename these to static code actions

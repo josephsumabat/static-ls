@@ -48,7 +48,7 @@ dependencies:
   - co-log-core >= 0.3 && < 0.4
   - tree-sitter-simple
   - tree-sitter-haskell
-default-language: GHC2021
+language: GHC2021
 
 default-extensions:
 - ExplicitNamespaces

@@ -75,7 +75,7 @@ library
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall -Wincomplete-record-updates -Wredundant-constraints -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -Wredundant-constraints -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
       aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
@@ -99,6 +99,7 @@ library
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
+    , transformers >=0.5.6.2 && <0.7
     , tree-sitter-haskell
     , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
@@ -126,7 +127,7 @@ executable static-ls
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall -Wincomplete-record-updates -Wredundant-constraints
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -Wredundant-constraints
   build-depends:
       aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
@@ -192,7 +193,7 @@ test-suite static-ls-test
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall -Wincomplete-record-updates -Wredundant-constraints -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -Wredundant-constraints -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       aeson >=2 && <2.3

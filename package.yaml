@@ -48,8 +48,7 @@ dependencies:
   - co-log-core >= 0.3 && < 0.4
   - tree-sitter-simple
   - tree-sitter-haskell
-
-language: GHC2021
+default-language: GHC2021
 
 default-extensions:
 - ExplicitNamespaces
@@ -63,12 +62,9 @@ default-extensions:
 
 ghc-options:
   - -Wall
-<<<<<<< HEAD
   - -Wno-name-shadowing 
-=======
   - -Wincomplete-record-updates
   - -Wredundant-constraints
->>>>>>> a6f32d6 (reparse while typing)
 
 library:
   source-dirs: src

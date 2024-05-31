@@ -83,6 +83,7 @@ data StaticEnv = StaticEnv
     , wsRoot :: FilePath
     -- ^ workspace root
     , srcDirs :: [FilePath]
+    , logger :: Logger
     -- ^ directories to search for source code in order of priority
     , logger :: Logger
     , fileStates :: IORef.IORef (HashMap LSP.NormalizedUri FileState)

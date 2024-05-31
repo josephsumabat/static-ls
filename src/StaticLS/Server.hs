@@ -258,7 +258,7 @@ lspOptions =
             }
     , LSP.optCompletionTriggerCharacters = Just ['.']
     }
-    
+
 runServer :: StaticEnvOptions -> LoggerM IO -> IO Int
 runServer argOptions logger = do
     LSP.runServer (serverDef argOptions logger)

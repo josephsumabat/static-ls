@@ -2,7 +2,7 @@
 
 module StaticLS.IDE.Completion where
 
-import qualified Language.LSP.Protocol.Types as LSP
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.StaticEnv
 
 getCompletion :: LSP.Uri -> StaticLs ()

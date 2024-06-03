@@ -20,9 +20,9 @@ import Language.LSP.VFS
 import StaticLS.IDE.CodeActions.AutoImport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.StaticEnv
+import StaticLS.Utils
 import System.IO
 import UnliftIO.Exception qualified as Exception
-import StaticLS.Utils
 
 -- TODO: rename these to static code actions
 -- these are the code actions that will always either be present or not present, and are not dynamically generated
@@ -60,51 +60,51 @@ handleCodeAction req resp = do
 
 handleResolveCodeAction :: Handler (LspT c StaticLs) Method_CodeActionResolve
 handleResolveCodeAction req resp = do
-  let action = req._params
-  liftIO $ do
-    hPutStrLn stderr "Resolving code action"
-    hPutStrLn stderr $ show action
-  let resultSuccessOrThrow res = case res of
-        Success a -> pure a
-        Error e -> Exception.throwString ("failed to parse json: " ++ e)
-  message <- isJustOrThrow "expected data in code action" action._data_
-  message <- pure $ fromJSON @CodeActionMessage message
-  message <- resultSuccessOrThrow message
-  virtualFile <- getVirtualFile (toNormalizedUri message.tdi._uri)
-  virtualFile <- isJustOrThrow "no virtual file" virtualFile
-  let contents = Rope.toText virtualFile._file_text
-  (lineNum, lineLength) <-
+    let action = req._params
+    liftIO $ do
+        hPutStrLn stderr "Resolving code action"
+        hPutStrLn stderr $ show action
+    let resultSuccessOrThrow res = case res of
+            Success a -> pure a
+            Error e -> Exception.throwString ("failed to parse json: " ++ e)
+    message <- isJustOrThrow "expected data in code action" action._data_
+    message <- pure $ fromJSON @CodeActionMessage message
+    message <- resultSuccessOrThrow message
+    virtualFile <- getVirtualFile (toNormalizedUri message.tdi._uri)
+    virtualFile <- isJustOrThrow "no virtual file" virtualFile
+    let contents = Rope.toText virtualFile._file_text
+    (lineNum, lineLength) <-
         T.lines contents
             & List.zip [0 :: Int ..]
             & List.find (\(_i, line) -> T.count (T.pack "where") line == 1)
             & fmap (\(i, line) -> (i, T.length line))
             & isJustOrThrow "could not find where in the header of the module"
-  case message.kind of
-      AutoImportActionMessage toImport -> do
-          liftIO $ hPutStrLn stderr "Resolving auto import action"
-          let textDocumentEdit =
-                  TextDocumentEdit
-                      { _textDocument =
-                          OptionalVersionedTextDocumentIdentifier
-                              { _uri = message.tdi._uri
-                              , _version = InR Null
-                              }
-                      , _edits =
-                          fmap
-                              InL
-                              [ textEditInsert (Position (fromIntegral lineNum) (fromIntegral lineLength)) (T.pack "\n\nimport " <> toImport)
-                              ]
-                      }
-          let workspaceEdit =
-                  WorkspaceEdit
-                      { _changes = Nothing
-                      , _documentChanges = Just [InL textDocumentEdit]
-                      , _changeAnnotations = Nothing
-                      }
-          liftIO $ hPutStrLn stderr ("workspace edit: " ++ show workspaceEdit)
-          resp (Right (action{_edit = Just workspaceEdit}))
-          pure ()
-      _ -> Exception.throwString "don't know how to resolve this code action"
+    case message.kind of
+        AutoImportActionMessage toImport -> do
+            liftIO $ hPutStrLn stderr "Resolving auto import action"
+            let textDocumentEdit =
+                    TextDocumentEdit
+                        { _textDocument =
+                            OptionalVersionedTextDocumentIdentifier
+                                { _uri = message.tdi._uri
+                                , _version = InR Null
+                                }
+                        , _edits =
+                            fmap
+                                InL
+                                [ textEditInsert (Position (fromIntegral lineNum) (fromIntegral lineLength)) (T.pack "\n\nimport " <> toImport)
+                                ]
+                        }
+            let workspaceEdit =
+                    WorkspaceEdit
+                        { _changes = Nothing
+                        , _documentChanges = Just [InL textDocumentEdit]
+                        , _changeAnnotations = Nothing
+                        }
+            liftIO $ hPutStrLn stderr ("workspace edit: " ++ show workspaceEdit)
+            resp (Right (action{_edit = Just workspaceEdit}))
+            pure ()
+        _ -> Exception.throwString "don't know how to resolve this code action"
 
 textEditInsert :: Position -> Text -> TextEdit
 textEditInsert pos text = TextEdit (Range pos pos) text

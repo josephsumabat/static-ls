@@ -110,8 +110,6 @@ updateFileState uri virtualFile = do
     let contents = virtualFile._file_text
     let contentsText = Rope.toText contents
     let tree = Haskell.parse contentsText
-    -- just for now to make sure parsing is okay
-    tree <- Exception.evaluate tree
     env <- ask
     IORef.modifyIORef' env.fileStates $ \fileStates ->
         HashMap.insert uri FileState{contents, contentsText, tree} fileStates

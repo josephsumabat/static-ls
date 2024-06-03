@@ -18,7 +18,6 @@ import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
 import GHC.Iface.Type qualified as GHC
 import GHC.Plugins qualified as GHC
-import GHC.Stack (HasCallStack)
 import GHC.Utils.Monad (mapMaybeM)
 import HieDb qualified
 import Language.LSP.Protocol.Types qualified as LSP

@@ -44,7 +44,6 @@ import StaticLS.Logger qualified as Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import System.FilePath ((</>))
 import UnliftIO.IORef qualified as IORef
-import qualified Data.Text as T
 
 runStaticLs :: StaticEnv -> StaticLs a -> IO a
 runStaticLs = flip runReaderT

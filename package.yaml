@@ -67,7 +67,6 @@ ghc-options:
   - -Wall
   - -Wno-name-shadowing 
   - -Wincomplete-record-updates
-  - -Wredundant-constraints
 
 library:
   source-dirs: src

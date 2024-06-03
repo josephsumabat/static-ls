@@ -37,7 +37,7 @@ data Msg = Msg
     deriving (Show)
 
 msgToText :: Msg -> Text
-msgToText msg = T.pack $ show msg
+msgToText msg = msg.text
 
 -- | Intended to inspect environment variables and then log stuff out
 setupLogger :: IO (LoggerM IO)

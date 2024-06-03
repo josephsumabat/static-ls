@@ -23,6 +23,7 @@ dependencies:
   - array >= 0.5.4 && < 0.6
   - base >= 4.17.0 && < 4.19
   - containers >= 0.6.0 && < 0.7
+  - unordered-containers >= 0.2 && < 0.3
   - directory >= 1.3.7 && < 1.4
   - errors >= 2.3.0 && < 2.4
   - extra >= 1.7.12 && < 1.8
@@ -45,8 +46,12 @@ dependencies:
   - aeson >=2 && <2.3
   - text-rope >= 0.2 && < 0.3
   - co-log-core >= 0.3 && < 0.4
-
-default-language: GHC2021
+  - tree-sitter-simple
+  - tree-sitter-haskell
+  - tree-sitter-ast
+  - haskell-ast
+  - pretty-simple
+language: GHC2021
 
 default-extensions:
 - ExplicitNamespaces
@@ -61,6 +66,7 @@ default-extensions:
 ghc-options:
   - -Wall
   - -Wno-name-shadowing 
+  - -Wincomplete-record-updates
 
 library:
   source-dirs: src

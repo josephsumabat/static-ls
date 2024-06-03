@@ -8,9 +8,11 @@ module StaticLS.HIE (
     hiedbCoordsToLspPosition,
     lspPositionToHieDbCoords,
     namesAtPoint,
+    lspPositionToASTPoint,
 )
 where
 
+import AST qualified
 import Control.Error.Util (hush)
 import Control.Exception (Exception)
 import Control.Monad (join, (<=<))
@@ -23,7 +25,9 @@ import GHC.Iface.Ext.Types qualified as GHC
 import HieDb (pointCommand)
 import Language.LSP.Protocol.Types qualified as LSP
 
--- | Note HieDbCoords are 1 indexed
+{- | LSP Position is 0 indexed
+Note HieDbCoords are 1 indexed
+-}
 type HieDbCoords = (Int, Int)
 
 data UIntConversionException = UIntConversionException
@@ -55,6 +59,13 @@ hiedbCoordsToLspPosition (line, col) = LSP.Position <$> intToUInt (line - 1) <*>
 
 lspPositionToHieDbCoords :: LSP.Position -> HieDbCoords
 lspPositionToHieDbCoords position = (fromIntegral position._line + 1, fromIntegral position._character + 1)
+
+lspPositionToASTPoint :: LSP.Position -> AST.Point
+lspPositionToASTPoint position =
+    AST.Point
+        { row = fromIntegral position._line
+        , col = fromIntegral position._character
+        }
 
 -- | Use 'fromIntegral' when it is safe to do so
 intToUInt :: (Monad m) => Int -> ExceptT UIntConversionException m LSP.UInt

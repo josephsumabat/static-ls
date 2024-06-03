@@ -1,9 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC  #-}
-{-# HLINT ignore "Use second" #-}
-{-# HLINT ignore "Eta reduce" #-}
-{-# HLINT ignore "Use hPrint" #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
@@ -24,6 +20,7 @@ import Language.LSP.VFS
 import StaticLS.IDE.CodeActions.AutoImport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.StaticEnv
+import StaticLS.Utils
 import System.IO
 import UnliftIO.Exception qualified as Exception
 
@@ -52,6 +49,7 @@ createAutoImportCodeActions tdi toImport =
 
 handleCodeAction :: Handler (LspT c StaticLs) Method_TextDocumentCodeAction
 handleCodeAction req resp = do
+    lift $ logInfo "handleCodeAction"
     let params = req._params
     let tdi = params._textDocument
     let range = params._range
@@ -69,9 +67,6 @@ handleResolveCodeAction req resp = do
     let resultSuccessOrThrow res = case res of
             Success a -> pure a
             Error e -> Exception.throwString ("failed to parse json: " ++ e)
-    let isJustOrThrow s m = case m of
-            Just a -> pure a
-            Nothing -> Exception.throwString s
     message <- isJustOrThrow "expected data in code action" action._data_
     message <- pure $ fromJSON @CodeActionMessage message
     message <- resultSuccessOrThrow message

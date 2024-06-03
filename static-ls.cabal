@@ -45,6 +45,7 @@ library
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AutoImport
       StaticLS.IDE.CodeActions.Types
+      StaticLS.IDE.Completion
       StaticLS.IDE.Definition
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
@@ -57,6 +58,7 @@ library
       StaticLS.SrcFiles
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
+      StaticLS.Utils
   other-modules:
       Paths_static_ls
   autogen-modules:
@@ -72,7 +74,7 @@ library
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
       aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
@@ -87,18 +89,24 @@ library
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , haskell-ast
     , hiedb ==0.6.*
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
+    , pretty-simple
     , sqlite-simple >=0.4.18 && <0.5
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-ast
+    , tree-sitter-haskell
+    , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
+    , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
@@ -121,7 +129,7 @@ executable static-ls
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates
   build-depends:
       aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
@@ -136,20 +144,26 @@ executable static-ls
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , haskell-ast
     , hiedb ==0.6.*
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
+    , pretty-simple
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-ast
+    , tree-sitter-haskell
+    , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
+    , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
@@ -184,7 +198,7 @@ test-suite static-ls-test
       LambdaCase
       RecordWildCards
       TypeApplications
-  ghc-options: -Wall -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       aeson >=2 && <2.3
@@ -200,20 +214,26 @@ test-suite static-ls-test
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , haskell-ast
     , hiedb ==0.6.*
     , hspec ==2.*
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
+    , pretty-simple
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-ast
+    , tree-sitter-haskell
+    , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
+    , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables

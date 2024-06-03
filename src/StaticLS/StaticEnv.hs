@@ -7,6 +7,7 @@ module StaticLS.StaticEnv (
     getStaticEnv,
     runHieDbExceptT,
     runHieDbMaybeT,
+    getFileState,
     StaticEnv (..),
     StaticLs,
     HieDbPath,
@@ -16,31 +17,41 @@ module StaticLS.StaticEnv (
     LoggerM,
     Logger,
     HasCallStack,
+    FileState (..),
     logWith,
     logError,
     logInfo,
     logWarn,
+    getHaskell,
 )
 where
 
+import AST.Haskell qualified as Haskell
 import Colog.Core qualified as Colog
 import Control.Exception (Exception, IOException, SomeException, catch)
 import Control.Monad.Reader
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
+import Data.HashMap.Strict (HashMap)
+import Data.HashMap.Strict qualified as HashMap
 import Data.Text (Text)
+import Data.Text.Utf16.Rope.Mixed qualified as Rope
 import Database.SQLite.Simple (SQLError)
 import HieDb qualified
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger
 import StaticLS.Logger qualified as Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import System.FilePath ((</>))
+import UnliftIO.IORef qualified as IORef
 
 runStaticLs :: StaticEnv -> StaticLs a -> IO a
 runStaticLs = flip runReaderT
 
 type HieDbPath = FilePath
+
 type HieFilePath = FilePath
+
 type HiFilePath = FilePath
 
 data HieDbException
@@ -54,6 +65,13 @@ instance Exception HieDbException
 
 type Logger = LoggerM IO
 
+data FileState = FileState
+    { contents :: Rope.Rope
+    , contentsText :: Text
+    , tree :: Haskell.Haskell
+    }
+    deriving (Show)
+
 -- | Static environment used to fetch data
 data StaticEnv = StaticEnv
     { hieDbPath :: HieDbPath
@@ -63,9 +81,23 @@ data StaticEnv = StaticEnv
     , wsRoot :: FilePath
     -- ^ workspace root
     , srcDirs :: [FilePath]
-    , logger :: Logger
     -- ^ directories to search for source code in order of priority
+    , logger :: Logger
+    , fileStates :: IORef.IORef (HashMap LSP.NormalizedUri FileState)
     }
+
+getFileState :: LSP.Uri -> StaticLs (Maybe FileState)
+getFileState uri = do
+    uri <- pure $ LSP.toNormalizedUri uri
+    env <- ask
+    fileStates <- IORef.readIORef env.fileStates
+    let fileState = HashMap.lookup uri fileStates
+    pure fileState
+
+getHaskell :: LSP.Uri -> StaticLs (Maybe Haskell.Haskell)
+getHaskell uri = do
+    fileState <- getFileState uri
+    pure $ (.tree) <$> fileState
 
 type StaticLs = ReaderT StaticEnv IO
 
@@ -81,7 +113,7 @@ initStaticEnv wsRoot staticEnvOptions logger =
             hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
             srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
             hiFilesPath = wsRoot </> staticEnvOptions.optionHiFilesPath
-
+        fileStates <- IORef.newIORef mempty
         let serverStaticEnv =
                 StaticEnv
                     { hieDbPath = databasePath
@@ -90,6 +122,7 @@ initStaticEnv wsRoot staticEnvOptions logger =
                     , wsRoot = wsRoot
                     , srcDirs = srcDirs
                     , logger = Colog.liftLogIO logger
+                    , fileStates
                     }
 
         pure serverStaticEnv

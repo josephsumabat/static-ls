@@ -28,3 +28,6 @@ TAGS
 ghcid.txt
 .vscode/
 .zed/
+errors.txt
+*.swp
+.direnv/

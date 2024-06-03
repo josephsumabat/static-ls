@@ -48,6 +48,9 @@ dependencies:
   - co-log-core >= 0.3 && < 0.4
   - tree-sitter-simple
   - tree-sitter-haskell
+  - tree-sitter-ast
+  - haskell-ast
+  - pretty-simple
 language: GHC2021
 
 default-extensions:

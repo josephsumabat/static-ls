@@ -58,7 +58,6 @@ library
       StaticLS.SrcFiles
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
-      StaticLS.TreeSitter.Query
       StaticLS.Utils
   other-modules:
       Paths_static_ls
@@ -90,16 +89,19 @@ library
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , haskell-ast
     , hiedb ==0.6.*
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
+    , pretty-simple
     , sqlite-simple >=0.4.18 && <0.5
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-ast
     , tree-sitter-haskell
     , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
@@ -142,18 +144,21 @@ executable static-ls
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , haskell-ast
     , hiedb ==0.6.*
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
+    , pretty-simple
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-ast
     , tree-sitter-haskell
     , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3
@@ -209,18 +214,21 @@ test-suite static-ls-test
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , haskell-ast
     , hiedb ==0.6.*
     , hspec ==2.*
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
+    , pretty-simple
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*
     , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-ast
     , tree-sitter-haskell
     , tree-sitter-simple
     , unliftio >=0.2.1 && <0.3

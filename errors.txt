@@ -1,174 +1,28 @@
-All good (26 modules)
-src/StaticLS/IDE/CodeActions/AutoImport.hs:6:1: warning: [-Wunused-imports]
-    The import of ‘Language.LSP.Server’ is redundant
-      except perhaps to import instances from ‘Language.LSP.Server’
-    To import instances alone, use: import Language.LSP.Server()
-  |
-6 | import Language.LSP.Server
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:14:1: warning: [-Wunused-imports]
-    The import of ‘Control.Monad’ is redundant
-      except perhaps to import instances from ‘Control.Monad’
-    To import instances alone, use: import Control.Monad()
+src/StaticLS/Logger.hs:15:1: warning: [-Wunused-imports]
+    The qualified import of ‘Data.Text’ is redundant
+      except perhaps to import instances from ‘Data.Text’
+    To import instances alone, use: import Data.Text()
    |
-14 | import Control.Monad (guard, join)
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:15:1: warning: [-Wunused-imports]
-    The import of ‘Control.Monad.IO.Class’ is redundant
-      except perhaps to import instances from ‘Control.Monad.IO.Class’
-    To import instances alone, use: import Control.Monad.IO.Class()
-   |
-15 | import Control.Monad.IO.Class (MonadIO, liftIO)
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:16:1: warning: [-Wunused-imports]
-    The import of ‘Control.Monad.Trans.Class’ is redundant
-      except perhaps to import instances from ‘Control.Monad.Trans.Class’
-    To import instances alone, use: import Control.Monad.Trans.Class()
-   |
-16 | import Control.Monad.Trans.Class (lift)
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:18:1: warning: [-Wunused-imports]
-    The import of ‘Data.List’ is redundant
-      except perhaps to import instances from ‘Data.List’
-    To import instances alone, use: import Data.List()
-   |
-18 | import Data.List (isSuffixOf, head)
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:19:1: warning: [-Wunused-imports]
-    The qualified import of ‘Data.Map’ is redundant
-      except perhaps to import instances from ‘Data.Map’
-    To import instances alone, use: import Data.Map()
-   |
-19 | import qualified Data.Map as Map
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:20:1: warning: [-Wunused-imports]
-    The import of ‘Data.Maybe’ is redundant
-      except perhaps to import instances from ‘Data.Maybe’
-    To import instances alone, use: import Data.Maybe()
-   |
-20 | import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:21:1: warning: [-Wunused-imports]
-    The qualified import of ‘Data.Set’ is redundant
-      except perhaps to import instances from ‘Data.Set’
-    To import instances alone, use: import Data.Set()
-   |
-21 | import qualified Data.Set as Set
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:22:1: warning: [-Wunused-imports]
-    The import of ‘Development.IDE.GHC.Error’ is redundant
-      except perhaps to import instances from ‘Development.IDE.GHC.Error’
-    To import instances alone, use: import Development.IDE.GHC.Error()
-   |
-22 | import Development.IDE.GHC.Error (
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^...
-src/StaticLS/IDE/CodeActions/AutoImport.hs:26:1: warning: [-Wunused-imports]
-    The qualified import of ‘GHC.Data.FastString’ is redundant
-      except perhaps to import instances from ‘GHC.Data.FastString’
-    To import instances alone, use: import GHC.Data.FastString()
-   |
-26 | import qualified GHC.Data.FastString as GHC
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:27:1: warning: [-Wunused-imports]
-    The qualified import of ‘GHC.Iface.Ext.Types’ is redundant
-      except perhaps to import instances from ‘GHC.Iface.Ext.Types’
-    To import instances alone, use: import GHC.Iface.Ext.Types()
-   |
-27 | import qualified GHC.Iface.Ext.Types as GHC
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:28:1: warning: [-Wunused-imports]
-    The qualified import of ‘GHC.Iface.Ext.Utils’ is redundant
-      except perhaps to import instances from ‘GHC.Iface.Ext.Utils’
-    To import instances alone, use: import GHC.Iface.Ext.Utils()
-   |
-28 | import qualified GHC.Iface.Ext.Utils as GHC
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:29:1: warning: [-Wunused-imports]
-    The qualified import of ‘GHC.Iface.Type’ is redundant
-      except perhaps to import instances from ‘GHC.Iface.Type’
-    To import instances alone, use: import GHC.Iface.Type()
-   |
-29 | import qualified GHC.Iface.Type as GHC
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:31:1: warning: [-Wunused-imports]
-    The import of ‘GHC.Stack’ is redundant
-      except perhaps to import instances from ‘GHC.Stack’
-    To import instances alone, use: import GHC.Stack()
-   |
-31 | import GHC.Stack (HasCallStack)
+15 | import Data.Text qualified as T
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:32:1: warning: [-Wunused-imports]
-    The import of ‘GHC.Utils.Monad’ is redundant
-      except perhaps to import instances from ‘GHC.Utils.Monad’
-    To import instances alone, use: import GHC.Utils.Monad()
+src/StaticLS/StaticEnv.hs:93:13: error: [GHC-88464] [-Wdeferred-out-of-scope-variables, Werror=deferred-out-of-scope-variables]
+    Variable not in scope: T.pack :: [Char] -> Text
+    NB: no module named ‘T’ is imported.
    |
-32 | import GHC.Utils.Monad (mapMaybeM)
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:33:1: warning: [-Wunused-imports]
-    The qualified import of ‘HieDb’ is redundant
-      except perhaps to import instances from ‘HieDb’
-    To import instances alone, use: import HieDb()
-   |
-33 | import qualified HieDb
-   | ^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:34:1: warning: [-Wunused-imports]
-    The qualified import of ‘Language.LSP.Protocol.Types’ is redundant
-      except perhaps to import instances from ‘Language.LSP.Protocol.Types’
-    To import instances alone, use: import Language.LSP.Protocol.Types()
-   |
-34 | import qualified Language.LSP.Protocol.Types as LSP
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:35:1: warning: [-Wunused-imports]
-    The import of ‘StaticLS.Except’ is redundant
-      except perhaps to import instances from ‘StaticLS.Except’
-    To import instances alone, use: import StaticLS.Except()
-   |
-35 | import StaticLS.Except
-   | ^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:38:1: warning: [-Wunused-imports]
-    The import of ‘StaticLS.Maybe’ is redundant
-      except perhaps to import instances from ‘StaticLS.Maybe’
-    To import instances alone, use: import StaticLS.Maybe()
-   |
-38 | import StaticLS.Maybe
-   | ^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:40:1: warning: [-Wunused-imports]
-    The import of ‘System.Directory’ is redundant
-      except perhaps to import instances from ‘System.Directory’
-    To import instances alone, use: import System.Directory()
-   |
-40 | import System.Directory (doesFileExist)
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:41:1: warning: [-Wunused-imports]
-    The import of ‘System.FilePath’ is redundant
-      except perhaps to import instances from ‘System.FilePath’
-    To import instances alone, use: import System.FilePath()
-   |
-41 | import System.FilePath ((</>))
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:42:1: warning: [-Wunused-imports]
-    The import of ‘System.IO’ is redundant
-      except perhaps to import instances from ‘System.IO’
-    To import instances alone, use: import System.IO()
-   |
-42 | import System.IO
-   | ^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:43:1: warning: [-Wunused-imports]
-    The import of ‘Data.Maybe’ is redundant
-      except perhaps to import instances from ‘Data.Maybe’
-    To import instances alone, use: import Data.Maybe()
-   |
-43 | import Data.Maybe
-   | ^^^^^^^^^^^^^^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:78:15: warning: [-Wname-shadowing]
-    This binding for ‘res'’ shadows the existing binding
-      bound at src/StaticLS/IDE/CodeActions/AutoImport.hs:73:11
-   |
-78 |         Right res' -> do
-   |               ^^^^
-src/StaticLS/IDE/CodeActions/AutoImport.hs:79:11: warning: [-Wname-shadowing]
-    This binding for ‘res'’ shadows the existing binding
-      bound at src/StaticLS/IDE/CodeActions/AutoImport.hs:78:15
-   |
-79 |           res' <- pure $ concat res'
-   |           ^^^^
+93 |   logInfo $ T.pack $ "fileStates: " ++ show fileStates
+   |             ^^^^^^
+src/StaticLS/StaticEnv.hs:148:12: warning: [GHC-30606] [-Wredundant-constraints]
+    Redundant constraint: HasCallStack
+    In the type signature for:
+         logWith :: forall (m :: * -> *).
+                    (HasCallStack, HasStaticEnv m, MonadIO m) =>
+                    Colog.Severity -> Text -> CallStack -> m ()
+    |
+148 | logWith :: (HasCallStack, HasStaticEnv m, MonadIO m) => Colog.Severity -> Text -> Logger.CallStack -> m ()
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/StaticLS/TreeSitter/Query.hs:9:47: warning: [-Wunused-imports]
+    The import of ‘liftA2’
+    from module ‘Control.Applicative’ is redundant
+  |
+9 | import Control.Applicative (Alternative (..), liftA2)
+  |                                               ^^^^^^

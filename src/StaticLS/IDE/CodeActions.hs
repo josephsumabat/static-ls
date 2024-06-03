@@ -49,6 +49,7 @@ createAutoImportCodeActions tdi toImport =
 
 handleCodeAction :: Handler (LspT c StaticLs) Method_TextDocumentCodeAction
 handleCodeAction req resp = do
+    lift $ logInfo "handleCodeAction"
     let params = req._params
     let tdi = params._textDocument
     let range = params._range
@@ -66,7 +67,7 @@ handleResolveCodeAction req resp = do
   let resultSuccessOrThrow res = case res of
         Success a -> pure a
         Error e -> Exception.throwString ("failed to parse json: " ++ e)
-  message <- isJustOrThrow "expected data in code action" action._data_ 
+  message <- isJustOrThrow "expected data in code action" action._data_
   message <- pure $ fromJSON @CodeActionMessage message
   message <- resultSuccessOrThrow message
   virtualFile <- getVirtualFile (toNormalizedUri message.tdi._uri)

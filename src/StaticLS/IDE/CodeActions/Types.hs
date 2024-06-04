@@ -5,7 +5,7 @@ module StaticLS.IDE.CodeActions.Types where
 import Data.Aeson.TH
 import Data.Text
 import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
-import StaticLS.StaticEnv
+import StaticLS.StaticLsEnv
 
 data Context = Context
     { textDocument :: !TextDocumentIdentifier
@@ -23,7 +23,7 @@ data CodeActionMessage = CodeActionMessage
 
 data GlobalCodeAction = GlobalCodeAction
     { name :: !Text
-    , run :: Context -> StaticLs (Maybe ())
+    , run :: Context -> StaticLsM (Maybe ())
     }
 
 $(deriveJSON defaultOptions ''CodeActionMessageKind)

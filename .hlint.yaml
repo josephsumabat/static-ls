@@ -75,3 +75,4 @@
 - ignore: {name: Use fmap}
 - ignore: {name: Redundant lambda}
 - ignore: {name: Use lambda-case}
+- ignore: {name: Use newtype instead of data}

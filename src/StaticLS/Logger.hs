@@ -1,21 +1,47 @@
 module StaticLS.Logger (
     Msg (..),
+    Logger,
     LoggerM,
+    HasLogger,
     setupLogger,
     noOpLogger,
     HasCallStack,
     CallStack,
     callStack,
+    logWith,
+    logInfo,
+    logError,
+    logWarn,
+    getLogger,
 )
 where
 
 import Colog.Core qualified as Colog
+import Control.Monad.IO.Class (MonadIO (..))
 import Data.ByteString qualified as B
 import Data.Text (Text)
-import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
 import GHC.Stack (CallStack, HasCallStack, callStack)
 import System.IO qualified as IO
+
+type Logger = LoggerM IO
+
+class HasLogger m where
+    getLogger :: m Logger
+
+logWith :: (HasCallStack, HasLogger m, MonadIO m) => Colog.Severity -> Text -> CallStack -> m ()
+logWith severity text stack = do
+    logger <- getLogger
+    liftIO $ logger Colog.<& Msg{severity, text, stack}
+
+logInfo :: (HasCallStack, HasLogger m, MonadIO m) => Text -> m ()
+logInfo text = logWith Colog.Info text callStack
+
+logError :: (HasCallStack, HasLogger m, MonadIO m) => Text -> m ()
+logError text = logWith Colog.Error text callStack
+
+logWarn :: (HasCallStack, HasLogger m, MonadIO m) => Text -> m ()
+logWarn text = logWith Colog.Warning text callStack
 
 textStderrLogger :: Colog.LogAction IO Text
 textStderrLogger = Colog.LogAction $ \msg ->

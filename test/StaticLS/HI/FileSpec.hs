@@ -17,7 +17,7 @@ spec = do
             it "returns a valid hi file when called on a src file" $ do
                 staticEnv <- Test.initStaticEnv
                 hiFile <-
-                    runStaticLs staticEnv $
+                    runStaticEnv staticEnv $
                         runMaybeT $
                             srcFilePathToHiFilePath "test/TestData/Mod1.hs"
                 let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile
@@ -29,7 +29,7 @@ spec = do
             it "returns a valid hi file when called on a test/ file" $ do
                 staticEnv <- Test.initStaticEnv
                 hiFile <-
-                    runStaticLs staticEnv $
+                    runStaticEnv staticEnv $
                         runMaybeT $
                             srcFilePathToHiFilePath "test/TestData/Mod1.hs"
                 let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile

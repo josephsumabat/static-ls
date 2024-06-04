@@ -17,10 +17,9 @@ data PrgOptions = PrgOptions
     , showHelp :: Bool
     }
 
-{- | Run an argument parser but suppress invalid arguments (simply running the server instead)
-Helpful for people on emacs or whose default configurations from HLS pass in
-unsupported arguments to static-ls
--}
+-- | Run an argument parser but suppress invalid arguments (simply running the server instead)
+-- Helpful for people on emacs or whose default configurations from HLS pass in
+-- unsupported arguments to static-ls
 execArgParser :: IO StaticEnvOptions
 execArgParser =
     getArgs >>= handleParseResultWithSuppression . execParserPure defaultPrefs progParseInfo

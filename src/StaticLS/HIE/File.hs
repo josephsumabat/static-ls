@@ -52,9 +52,8 @@ modToHieFile = exceptToMaybeT . getHieFile <=< modToHieFilePath
 modToSrcFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m SrcFilePath
 modToSrcFile = hieFilePathToSrcFilePath <=< modToHieFilePath
 
-{- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
-if not indexed
--}
+-- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
+-- if not indexed
 srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 srcFilePathToHieFilePath srcPath =
     srcFilePathToHieFilePathFromFile srcPath
@@ -122,14 +121,13 @@ hieFilePathToSrcFilePathFromFile hiePath = do
     hieFile <- exceptToMaybeT $ getHieFile hiePath
     liftIO $ Dir.makeAbsolute hieFile.hie_hs_file
 
-{- | Retrieve a hie file path from a src path
-
-Substitutes the src directory with the hie directory and the src file extension with
-the hie file extension. Fragile, but works well in practice.
-
-Presently necessary because hiedb does not currently index the hs_src file location
-in the `mods` table
--}
+-- | Retrieve a hie file path from a src path
+--
+-- Substitutes the src directory with the hie directory and the src file extension with
+-- the hie file extension. Fragile, but works well in practice.
+--
+-- Presently necessary because hiedb does not currently index the hs_src file location
+-- in the `mods` table
 srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 srcFilePathToHieFilePathFromFile srcPath = do
     staticEnv <- getStaticEnv

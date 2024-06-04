@@ -25,9 +25,8 @@ import GHC.Iface.Ext.Types qualified as GHC
 import HieDb (pointCommand)
 import Language.LSP.Protocol.Types qualified as LSP
 
-{- | LSP Position is 0 indexed
-Note HieDbCoords are 1 indexed
--}
+-- | LSP Position is 0 indexed
+-- Note HieDbCoords are 1 indexed
 type HieDbCoords = (Int, Int)
 
 data UIntConversionException = UIntConversionException

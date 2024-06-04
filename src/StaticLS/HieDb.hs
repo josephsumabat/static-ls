@@ -6,9 +6,8 @@ import Data.List (intercalate)
 import Database.SQLite.Simple
 import HieDb
 
-{- | Lookup 'HieModule' row from 'HieDb' given the path to the Haskell hie file
-A temporary function until this is supported in hiedb proper
--}
+-- | Lookup 'HieModule' row from 'HieDb' given the path to the Haskell hie file
+-- A temporary function until this is supported in hiedb proper
 lookupHieFileFromHie :: HieDb -> FilePath -> IO (Maybe HieModuleRow)
 lookupHieFileFromHie (getConn -> conn) fp = do
     files <- query conn "SELECT * FROM mods WHERE hieFile = ?" (Only fp)

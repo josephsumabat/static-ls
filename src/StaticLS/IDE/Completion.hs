@@ -3,9 +3,9 @@
 module StaticLS.IDE.Completion where
 
 import Language.LSP.Protocol.Types qualified as LSP
-import StaticLS.StaticEnv
+import StaticLS.StaticLsEnv
 
-getCompletion :: LSP.Uri -> StaticLs ()
+getCompletion :: (HasStaticLsEnv m) => LSP.Uri -> m ()
 getCompletion uri = do
     fileState <- getFileState uri
     case fileState of

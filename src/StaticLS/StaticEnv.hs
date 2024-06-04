@@ -3,50 +3,28 @@
 
 module StaticLS.StaticEnv (
     initStaticEnv,
-    runStaticLs,
     getStaticEnv,
     runHieDbExceptT,
     runHieDbMaybeT,
-    getFileState,
     StaticEnv (..),
-    StaticLs,
     HieDbPath,
     HieFilePath,
     HiFilePath,
     HasStaticEnv,
-    LoggerM,
-    Logger,
     HasCallStack,
-    FileState (..),
-    logWith,
-    logError,
-    logInfo,
-    logWarn,
-    getHaskell,
+    runStaticEnv,
 )
 where
 
-import AST.Haskell qualified as Haskell
-import Colog.Core qualified as Colog
 import Control.Exception (Exception, IOException, SomeException, catch)
 import Control.Monad.Reader
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
-import Data.HashMap.Strict (HashMap)
-import Data.HashMap.Strict qualified as HashMap
-import Data.Text (Text)
-import Data.Text.Utf16.Rope.Mixed qualified as Rope
 import Database.SQLite.Simple (SQLError)
 import HieDb qualified
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger
-import StaticLS.Logger qualified as Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import System.FilePath ((</>))
-import UnliftIO.IORef qualified as IORef
-
-runStaticLs :: StaticEnv -> StaticLs a -> IO a
-runStaticLs = flip runReaderT
 
 type HieDbPath = FilePath
 
@@ -63,16 +41,12 @@ data HieDbException
 
 instance Exception HieDbException
 
-type Logger = LoggerM IO
-
-data FileState = FileState
-    { contents :: Rope.Rope
-    , contentsText :: Text
-    , tree :: Haskell.Haskell
-    }
-    deriving (Show)
-
--- | Static environment used to fetch data
+-- | Imuttable references to "static sources" of language information. Should
+--     be low overhead and should be sources for language information only.
+--
+-- Functions that make use of this should ensure that they are robust against
+-- exceptions i.e. that the language server does not crash if something goes
+-- wrong with fetching information from a static source
 data StaticEnv = StaticEnv
     { hieDbPath :: HieDbPath
     -- ^ Path to the hiedb file
@@ -82,38 +56,30 @@ data StaticEnv = StaticEnv
     -- ^ workspace root
     , srcDirs :: [FilePath]
     -- ^ directories to search for source code in order of priority
-    , logger :: Logger
-    , fileStates :: IORef.IORef (HashMap LSP.NormalizedUri FileState)
     }
 
-getFileState :: LSP.Uri -> StaticLs (Maybe FileState)
-getFileState uri = do
-    uri <- pure $ LSP.toNormalizedUri uri
-    env <- ask
-    fileStates <- IORef.readIORef env.fileStates
-    let fileState = HashMap.lookup uri fileStates
-    pure fileState
+class (Monad m) => HasStaticEnv m where
+    getStaticEnv :: m StaticEnv
 
-getHaskell :: LSP.Uri -> StaticLs (Maybe Haskell.Haskell)
-getHaskell uri = do
-    fileState <- getFileState uri
-    pure $ (.tree) <$> fileState
+instance (Monad m) => HasStaticEnv (ReaderT StaticEnv m) where
+    getStaticEnv = ask
 
-type StaticLs = ReaderT StaticEnv IO
+instance (HasStaticEnv m) => HasStaticEnv (MaybeT m) where
+    getStaticEnv = lift getStaticEnv
 
-type HasStaticEnv = MonadReader StaticEnv
+instance (HasStaticEnv m) => HasStaticEnv (ExceptT e m) where
+    getStaticEnv = lift getStaticEnv
 
-getStaticEnv :: (HasStaticEnv m) => m StaticEnv
-getStaticEnv = ask
+runStaticEnv :: StaticEnv -> ReaderT StaticEnv IO a -> IO a
+runStaticEnv = flip runReaderT
 
-initStaticEnv :: FilePath -> StaticEnvOptions -> LoggerM IO -> IO StaticEnv
-initStaticEnv wsRoot staticEnvOptions logger =
+initStaticEnv :: FilePath -> StaticEnvOptions -> IO StaticEnv
+initStaticEnv wsRoot staticEnvOptions =
     do
         let databasePath = wsRoot </> staticEnvOptions.optionHieDbPath
             hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
             srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
             hiFilesPath = wsRoot </> staticEnvOptions.optionHiFilesPath
-        fileStates <- IORef.newIORef mempty
         let serverStaticEnv =
                 StaticEnv
                     { hieDbPath = databasePath
@@ -121,8 +87,6 @@ initStaticEnv wsRoot staticEnvOptions logger =
                     , hiFilesPath = hiFilesPath
                     , wsRoot = wsRoot
                     , srcDirs = srcDirs
-                    , logger = Colog.liftLogIO logger
-                    , fileStates
                     }
 
         pure serverStaticEnv
@@ -144,17 +108,3 @@ runHieDbExceptT hieDbFn =
 -- | Run an hiedb action with the MaybeT Monad
 runHieDbMaybeT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> MaybeT m a
 runHieDbMaybeT = exceptToMaybeT . runHieDbExceptT
-
-logWith :: (HasCallStack, HasStaticEnv m, MonadIO m) => Colog.Severity -> Text -> Logger.CallStack -> m ()
-logWith severity text stack = do
-    env <- ask
-    liftIO $ env.logger Colog.<& Logger.Msg{severity, text, stack}
-
-logInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => Text -> m ()
-logInfo text = logWith Colog.Info text Logger.callStack
-
-logError :: (HasCallStack, HasStaticEnv m, MonadIO m) => Text -> m ()
-logError text = logWith Colog.Error text Logger.callStack
-
-logWarn :: (HasCallStack, HasStaticEnv m, MonadIO m) => Text -> m ()
-logWarn text = logWith Colog.Warning text Logger.callStack

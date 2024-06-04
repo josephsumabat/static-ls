@@ -18,7 +18,7 @@ spec = do
             it "returns a valid hie file when called on a src file" $ do
                 staticEnv <- Test.initStaticEnv
                 hieFile <-
-                    runStaticLs staticEnv $
+                    runStaticEnv staticEnv $
                         runMaybeT $
                             srcFilePathToHieFilePath "src/StaticLS/HIE/File.hs"
                 let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
@@ -30,7 +30,7 @@ spec = do
             it "returns a valid hie file when called on a test/ file" $ do
                 staticEnv <- Test.initStaticEnv
                 hieFile <-
-                    runStaticLs staticEnv $
+                    runStaticEnv staticEnv $
                         runMaybeT $
                             srcFilePathToHieFilePath "test/TestData/Mod1.hs"
                 let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
@@ -43,7 +43,7 @@ spec = do
         it "Returns a valid hie file" $ do
             staticEnv <- Test.initStaticEnv
             hieFile <-
-                runStaticLs staticEnv $
+                runStaticEnv staticEnv $
                     runExceptT $
                         getHieFile "test/TestData/.hiefiles/TestData/Mod1.hie"
             _ <- Test.assertRight "expected succesful read" hieFile
@@ -59,7 +59,7 @@ spec = do
                         }
             staticEnv <- Test.initStaticEnvOpts emptyOpts
             hieFile <-
-                runStaticLs staticEnv $
+                runStaticEnv staticEnv $
                     runExceptT $
                         getHieFile "./test/TestData/Mod1.hs"
             _ <- Test.assertLeft "expected failure" hieFile
@@ -75,7 +75,7 @@ spec = do
                         }
             staticEnv <- Test.initStaticEnvOpts emptyOpts
             hieFile <-
-                runStaticLs staticEnv $
+                runStaticEnv staticEnv $
                     runExceptT $
                         getHieFile ""
             _ <- Test.assertLeft "expected failure" hieFile

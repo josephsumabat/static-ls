@@ -35,6 +35,7 @@ flag dev
 library
   exposed-modules:
       StaticLS.Except
+      StaticLS.FileEnv
       StaticLS.FilePath
       StaticLS.HI
       StaticLS.HI.File
@@ -58,6 +59,7 @@ library
       StaticLS.SrcFiles
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
+      StaticLS.StaticLsEnv
       StaticLS.Utils
   other-modules:
       Paths_static_ls

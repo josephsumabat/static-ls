@@ -20,7 +20,6 @@ where
 import AST.Haskell qualified as Haskell
 import Colog.Core qualified as Colog
 import Control.Monad.Reader
-import Control.Monad.Trans.Class
 import Control.Monad.Trans.Except
 import Data.HashMap.Strict qualified as HashMap
 import Data.List as X
@@ -48,16 +47,16 @@ import Language.LSP.Server (
  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
+import StaticLS.FileEnv
 import StaticLS.IDE.CodeActions qualified as CodeActions
 import StaticLS.IDE.Definition
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
 import StaticLS.IDE.Workspace.Symbol
-import StaticLS.StaticEnv
+import StaticLS.Logger
 import StaticLS.StaticEnv.Options
+import StaticLS.StaticLsEnv
 import StaticLS.Utils
-import TreeSitter.Api qualified as TS
-import TreeSitter.Haskell qualified as TS.Haskell
 import UnliftIO.Exception qualified as Exception
 import UnliftIO.IORef qualified as IORef
 
@@ -65,57 +64,57 @@ import UnliftIO.IORef qualified as IORef
 --------------------- LSP event handlers ------------------------
 -----------------------------------------------------------------
 
-handleChangeConfiguration :: Handlers (LspT c StaticLs)
+handleChangeConfiguration :: Handlers (LspT c StaticLsM)
 handleChangeConfiguration = LSP.notificationHandler SMethod_WorkspaceDidChangeConfiguration $ pure $ pure ()
 
-handleInitialized :: Handlers (LspT c StaticLs)
+handleInitialized :: Handlers (LspT c StaticLsM)
 handleInitialized = LSP.notificationHandler SMethod_Initialized $ pure $ pure ()
 
-handleTextDocumentHoverRequest :: Handlers (LspT c StaticLs)
+handleTextDocumentHoverRequest :: Handlers (LspT c StaticLsM)
 handleTextDocumentHoverRequest = LSP.requestHandler SMethod_TextDocumentHover $ \req resp -> do
     let hoverParams = req._params
     hover <- lift $ retrieveHover hoverParams._textDocument hoverParams._position
     resp $ Right $ maybeToNull hover
 
-handleDefinitionRequest :: Handlers (LspT c StaticLs)
+handleDefinitionRequest :: Handlers (LspT c StaticLsM)
 handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \req resp -> do
     lift $ logInfo "Received definition request."
     let defParams = req._params
     defs <- lift $ getDefinition defParams._textDocument defParams._position
     resp $ Right . InR . InL $ defs
 
-handleTypeDefinitionRequest :: Handlers (LspT c StaticLs)
+handleTypeDefinitionRequest :: Handlers (LspT c StaticLsM)
 handleTypeDefinitionRequest = LSP.requestHandler SMethod_TextDocumentTypeDefinition $ \req resp -> do
     let typeDefParams = req._params
     defs <- lift $ getTypeDefinition typeDefParams._textDocument typeDefParams._position
     resp $ Right . InR . InL $ defs
 
-handleReferencesRequest :: Handlers (LspT c StaticLs)
+handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \req res -> do
     let refParams = req._params
     refs <- lift $ findRefs refParams._textDocument refParams._position
     res $ Right . InL $ refs
 
-handleCancelNotification :: Handlers (LspT c StaticLs)
+handleCancelNotification :: Handlers (LspT c StaticLsM)
 handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()
 
-handleDidOpen :: Handlers (LspT c StaticLs)
+handleDidOpen :: Handlers (LspT c StaticLsM)
 handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -> do
     lift $ logInfo "did open"
     let params = message._params
     updateFileStateForUri params._textDocument._uri
 
-updateFileState :: NormalizedUri -> VirtualFile -> StaticLs ()
+updateFileState :: NormalizedUri -> VirtualFile -> StaticLsM ()
 updateFileState uri virtualFile = do
     let contents = virtualFile._file_text
     let contentsText = Rope.toText contents
     let tree = Haskell.parse contentsText
-    env <- ask
-    IORef.modifyIORef' env.fileStates $ \fileStates ->
+    fileStates <- getFileEnv
+    IORef.modifyIORef' fileStates $ \fileStates ->
         HashMap.insert uri FileState{contents, contentsText, tree} fileStates
     pure ()
 
-updateFileStateForUri :: Uri -> (LspT c StaticLs) ()
+updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
     uri <- pure $ toNormalizedUri uri
     virtualFile <- LSP.getVirtualFile uri
@@ -123,44 +122,44 @@ updateFileStateForUri uri = do
     lift $ updateFileState uri virtualFile
     pure ()
 
-handleDidChange :: Handlers (LspT c StaticLs)
+handleDidChange :: Handlers (LspT c StaticLsM)
 handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \message -> do
     let params = message._params
     let uri = params._textDocument._uri
     updateFileStateForUri uri
 
-handleDidClose :: Handlers (LspT c StaticLs)
+handleDidClose :: Handlers (LspT c StaticLsM)
 handleDidClose = LSP.notificationHandler SMethod_TextDocumentDidClose $ \_ -> do
     -- TODO: remove stuff from file state
     lift $ logInfo "did close"
     pure ()
 
-handleDidSave :: Handlers (LspT c StaticLs)
+handleDidSave :: Handlers (LspT c StaticLsM)
 handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \message -> do
     let params = message._params
     let uri = params._textDocument._uri
     updateFileStateForUri uri
     pure ()
 
-handleWorkspaceSymbol :: Handlers (LspT c StaticLs)
+handleWorkspaceSymbol :: Handlers (LspT c StaticLsM)
 handleWorkspaceSymbol = LSP.requestHandler SMethod_WorkspaceSymbol $ \req res -> do
     -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
     symbols <- lift (symbolInfo req._params._query)
     res $ Right . InL $ symbols
 
-handleSetTrace :: Handlers (LspT c StaticLs)
+handleSetTrace :: Handlers (LspT c StaticLsM)
 handleSetTrace = LSP.notificationHandler SMethod_SetTrace $ \_ -> pure ()
 
-handleCodeAction :: Handlers (LspT c StaticLs)
+handleCodeAction :: Handlers (LspT c StaticLsM)
 handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction CodeActions.handleCodeAction
 
-handleResolveCodeAction :: Handlers (LspT c StaticLs)
+handleResolveCodeAction :: Handlers (LspT c StaticLsM)
 handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve CodeActions.handleResolveCodeAction
 
-handleCompletion :: Handlers (LspT c StaticLs)
-handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res -> do
+_handleCompletion :: Handlers (LspT c StaticLsM)
+_handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req _res -> do
     let params = req._params
-    let tdi = params._textDocument
+    let _tdi = params._textDocument
     -- let completionParams = req._params
     -- completions <- lift $ getCompletions completionParams._textDocument completionParams._position
     -- res $ Right $ completions
@@ -171,7 +170,7 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
 -----------------------------------------------------------------
 
 data LspEnv config = LspEnv
-    { staticEnv :: StaticEnv
+    { staticLsEnv :: StaticLsEnv
     , config :: LanguageContextEnv config
     }
 
@@ -179,10 +178,10 @@ initServer :: StaticEnvOptions -> LoggerM IO -> LanguageContextEnv config -> TMe
 initServer staticEnvOptions logger serverConfig _ = do
     runExceptT $ do
         wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
-        serverStaticEnv <- ExceptT $ Right <$> initStaticEnv wsRoot staticEnvOptions logger
+        serverStaticEnv <- ExceptT $ Right <$> initStaticLsEnv wsRoot staticEnvOptions logger
         pure $
             LspEnv
-                { staticEnv = serverStaticEnv
+                { staticLsEnv = serverStaticEnv
                 , config = serverConfig
                 }
   where
@@ -220,7 +219,7 @@ serverDef argOptions logger =
                     , handleCodeAction
                     , handleResolveCodeAction
                     ]
-        , interpretHandler = \env -> Iso (runStaticLs env.staticEnv . LSP.runLspT env.config) liftIO
+        , interpretHandler = \env -> Iso (runStaticLsM env.staticLsEnv . LSP.runLspT env.config) liftIO
         , options = lspOptions
         , defaultConfig = ()
         }

@@ -31,6 +31,7 @@ dependencies:
   - ghc >= 9.4.3 && < 9.7
   - ghc-paths >= 0.1.0 && < 0.2
   - ghcide >= 2.5.0 && < 2.8.0
+  - haskell-lexer >=1.1.1 && <1.2.0
   - hiedb >= 0.6 && < 0.7
   - lsp >= 2.3 && < 2.6
   - lsp-types >= 2.1 && < 2.3

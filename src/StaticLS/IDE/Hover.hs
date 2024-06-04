@@ -3,13 +3,15 @@ module StaticLS.IDE.Hover
   )
 where
 
+import Data.Text.Lazy qualified as TL
+import Text.Pretty.Simple
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.Maybe
 import Data.Text (Text, intercalate)
 import Data.Text.Encoding qualified as T.Encoding
 import GHC.Iface.Ext.Types qualified as GHC
-import GHC.Plugins as GHC
+import GHC.Plugins as GHC hiding ((<>))
 import HieDb (pointCommand)
 import Language.LSP.Protocol.Types
   ( Hover (..),
@@ -48,17 +50,20 @@ retrieveHover identifier position = do
   let pos = Position.lineColToPos source lineCol
   runMaybeT $ do
     hieFile <- getHieFileFromTdi identifier
-    let hieSource = GHC.hie_hs_src hieFile
-
-    let diff = diffText source (T.Encoding.decodeUtf8 hieSource)
+    let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
+    let diff = diffText source hieSource
     let pos' = updatePositionUsingDiff pos diff
-    let lineCol' = Position.posToLineCol source pos'
-
-    lift $ logInfo $ T.pack $ "lineCol: " ++ show lineCol
-    lift $ logInfo $ T.pack $ "pos: " ++ show pos
-    lift $ logInfo $ T.pack $ "lineCol': " ++ show lineCol'
-    lift $ logInfo $ T.pack $ "pos': " ++ show pos'
-
+    let lineCol' = Position.posToLineCol hieSource pos'
+    -- lift $ logInfo $ TL.toStrict $ "diff: " <> pShowNoColor diff
+    -- lift $ logInfo $ TL.toStrict $ "lineCol: " <> pShowNoColor lineCol
+    -- lift $ logInfo $ TL.toStrict $ "pos: " <> pShowNoColor pos
+    -- lift $ logInfo $ TL.toStrict $ "lineCol': " <> pShowNoColor lineCol'
+    -- lift $ logInfo $ TL.toStrict $ "pos': " <> pShowNoColor pos'
+    lift $ logInfo $ T.pack $ "diff: " <> show diff
+    lift $ logInfo $ T.pack $ "lineCol: " <> show lineCol
+    lift $ logInfo $ T.pack $ "pos: " <> show pos
+    lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
+    lift $ logInfo $ T.pack $ "pos': " <> show pos'
     docs <- docsAtPoint hieFile (ProtoLSP.lineColToProto lineCol')
     let info =
           listToMaybe $

@@ -103,7 +103,7 @@ updateFileState uri virtualFile = do
     let contentsText = Rope.toText contents
     let tree = Haskell.parse contentsText
     let tokens = Haskell.lexerPass1 $ T.unpack contentsText
-    fileStates <- getFileEnv
+    fileStates <- asks (.fileEnv)
     IORef.modifyIORef' fileStates $ \fileStates ->
         HashMap.insert uri FileState{contents, contentsText, tree, tokens} fileStates
     pure ()

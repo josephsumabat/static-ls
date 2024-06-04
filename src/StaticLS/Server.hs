@@ -166,6 +166,15 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
     -- res $ Right $ completions
     pure ()
 
+handleDocumentSymbols :: Handlers (LspT c StaticLs)
+handleDocumentSymbols = LSP.requestHandler SMethod_TextDocumentDocumentSymbol $ \req res -> do
+    let params = req._params
+    let uri = params._textDocument._uri
+    -- haskell <- getHaskell uri
+    -- symbols <- lift $ getDocumentSymbols params._textDocument
+    -- res $ Right $ symbols
+    pure ()
+
 -----------------------------------------------------------------
 ----------------------- Server definition -----------------------
 -----------------------------------------------------------------

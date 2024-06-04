@@ -44,7 +44,7 @@ declToSymbol decl =
         Just $
           mkDocumentSymbol
             (nodeToText name)
-            (LSP.SymbolKind_Function)
+            LSP.SymbolKind_Function
             (astRangeToLspRange $ AST.nodeToRange decl)
             (astRangeToLspRange $ AST.nodeToRange name)
     Inj @Haskell.Function fun -> do
@@ -54,7 +54,7 @@ declToSymbol decl =
         Just $
           mkDocumentSymbol
             (nodeToText name)
-            (LSP.SymbolKind_Function)
+            LSP.SymbolKind_Function
             (astRangeToLspRange $ AST.nodeToRange decl)
             (astRangeToLspRange $ AST.nodeToRange name)
     _ -> pure []

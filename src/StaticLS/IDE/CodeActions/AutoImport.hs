@@ -50,6 +50,7 @@ getModulesToImport tdi pos = do
     _ <- logInfo "getModulesToImport"
     let uri = tdi._uri
     haskell <- getHaskell uri
+
     let astPoint = lspPositionToASTPoint pos
     _ <- logInfo $ T.pack $ "astPoint: " ++ show astPoint
     case haskell of

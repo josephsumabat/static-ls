@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeApplications #-}
 
-module StaticLS.HIE (
-    hieAstNodeToIdentifiers,
+module StaticLS.HIE
+  ( hieAstNodeToIdentifiers,
     identifiersToNames,
     hieAstToNames,
     hieAstsAtPoint,
@@ -9,7 +9,8 @@ module StaticLS.HIE (
     lspPositionToHieDbCoords,
     namesAtPoint,
     lspPositionToASTPoint,
-)
+    astRangeToLspRange,
+  )
 where
 
 import AST qualified
@@ -30,25 +31,25 @@ import Language.LSP.Protocol.Types qualified as LSP
 type HieDbCoords = (Int, Int)
 
 data UIntConversionException = UIntConversionException
-    deriving (Show)
+  deriving (Show)
 
 instance Exception UIntConversionException
 
 namesAtPoint :: GHC.HieFile -> HieDbCoords -> [GHC.Name]
 namesAtPoint hieFile position =
-    identifiersToNames $ join (pointCommand hieFile position Nothing hieAstNodeToIdentifiers)
+  identifiersToNames $ join (pointCommand hieFile position Nothing hieAstNodeToIdentifiers)
 
 hieAstNodeToIdentifiers :: GHC.HieAST a -> [GHC.Identifier]
 hieAstNodeToIdentifiers =
-    (Set.toList . Map.keysSet) <=< fmap GHC.nodeIdentifiers . Map.elems . GHC.getSourcedNodeInfo . GHC.sourcedNodeInfo
+  (Set.toList . Map.keysSet) <=< fmap GHC.nodeIdentifiers . Map.elems . GHC.getSourcedNodeInfo . GHC.sourcedNodeInfo
 
 identifiersToNames :: [GHC.Identifier] -> [GHC.Name]
 identifiersToNames =
-    mapMaybe hush
+  mapMaybe hush
 
 hieAstToNames :: GHC.HieAST a -> [GHC.Name]
 hieAstToNames =
-    identifiersToNames . hieAstNodeToIdentifiers
+  identifiersToNames . hieAstNodeToIdentifiers
 
 hieAstsAtPoint :: GHC.HieFile -> HieDbCoords -> Maybe HieDbCoords -> [GHC.HieAST GHC.TypeIndex]
 hieAstsAtPoint hiefile start end = pointCommand hiefile start end id
@@ -61,17 +62,39 @@ lspPositionToHieDbCoords position = (fromIntegral position._line + 1, fromIntegr
 
 lspPositionToASTPoint :: LSP.Position -> AST.Point
 lspPositionToASTPoint position =
-    AST.Point
-        { row = fromIntegral position._line
-        , col = fromIntegral position._character
-        }
+  AST.Point
+    { row = fromIntegral position._line,
+      col = fromIntegral position._character
+    }
+
+-- TODO: this is wrong, ast positions can hit the end of the line exclusive
+-- but if lsp positions want to hit include the newline, it must start at the next line
+astRangeToLspRange :: AST.Range -> LSP.Range
+astRangeToLspRange range =
+  LSP.Range
+    { _start =
+        LSP.Position
+          { _line =
+              fromIntegral $
+                AST.row $
+                  AST.startPoint range,
+            _character = fromIntegral $ AST.col $ AST.startPoint range
+          },
+      _end =
+        LSP.Position
+          { _line =
+              fromIntegral $ AST.row $ AST.endPoint range,
+            _character =
+              fromIntegral (AST.col (AST.endPoint range))
+          }
+    }
 
 -- | Use 'fromIntegral' when it is safe to do so
 intToUInt :: (Monad m) => Int -> ExceptT UIntConversionException m LSP.UInt
 intToUInt x =
-    if minBoundAsInt <= x && x <= maxBoundAsInt
-        then pure $ fromIntegral x
-        else throwE UIntConversionException
+  if minBoundAsInt <= x && x <= maxBoundAsInt
+    then pure $ fromIntegral x
+    else throwE UIntConversionException
   where
     minBoundAsInt = fromIntegral $ minBound @LSP.UInt
     maxBoundAsInt = fromIntegral $ maxBound @LSP.UInt

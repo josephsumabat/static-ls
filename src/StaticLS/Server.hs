@@ -43,6 +43,7 @@ import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.FileEnv
 import StaticLS.IDE.CodeActions qualified as CodeActions
 import StaticLS.IDE.Definition
+import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
 import StaticLS.IDE.Workspace.Symbol
@@ -159,6 +160,15 @@ _handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req _re
     -- res $ Right $ completions
     pure ()
 
+handleDocumentSymbols :: Handlers (LspT c StaticLsM)
+handleDocumentSymbols = LSP.requestHandler SMethod_TextDocumentDocumentSymbol $ \req res -> do
+    let params = req._params
+    let uri = params._textDocument._uri
+    symbols <- lift $ getDocumentSymbols uri
+    lift $ logInfo $ T.pack $ "Document symbols: " <> show symbols
+    res $ Right $ InR $ InL symbols
+    pure ()
+
 -----------------------------------------------------------------
 ----------------------- Server definition -----------------------
 -----------------------------------------------------------------
@@ -212,6 +222,7 @@ serverDef argOptions logger =
                     , handleSetTrace
                     , handleCodeAction
                     , handleResolveCodeAction
+                    , handleDocumentSymbols
                     ]
         , interpretHandler = \env -> Iso (runStaticLsM env.staticLsEnv . LSP.runLspT env.config) liftIO
         , options = lspOptions

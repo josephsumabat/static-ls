@@ -76,3 +76,4 @@
 - ignore: {name: Redundant lambda}
 - ignore: {name: Use lambda-case}
 - ignore: {name: Use newtype instead of data}
+- ignore: {name: Redundant pure}

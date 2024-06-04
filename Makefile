@@ -5,3 +5,6 @@ watch:
 hpack:
 	hpack package.yaml
 	haskell-ci regenerate
+
+format:
+	fourmolu . -i

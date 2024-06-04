@@ -69,7 +69,7 @@ retrieveHover identifier position = do
           listToMaybe $
             pointCommand
               hieFile
-              (lspPositionToHieDbCoords position)
+              (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
               Nothing
               (hoverInfo (GHC.hie_types hieFile) docs)
     toAlt $ hoverInfoToHover <$> info

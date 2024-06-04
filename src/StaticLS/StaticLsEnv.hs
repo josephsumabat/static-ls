@@ -10,6 +10,7 @@ import StaticLS.FileEnv
 import StaticLS.Logger
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
+import Data.Text (Text)
 
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information
@@ -56,6 +57,11 @@ getHaskell uri = do
     fileState <- getFileState uri
     pure $ (.tree) <$> fileState
 
+getSource :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe Text)
+getSource uri = do
+    fileState <- getFileState uri
+    pure $ (.contentsText) <$> fileState
+    
 getFileState :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe FileState)
 getFileState uri = do
     uri <- pure $ LSP.toNormalizedUri uri

@@ -15,7 +15,7 @@ import StaticLS.StaticEnv.Options
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data StaticLsEnv = StaticLsEnv
-    { fileEnv :: FileEnv
+    { fileEnv :: IORef.IORef FileEnv
     , staticEnv :: StaticEnv
     , logger :: Logger
     }
@@ -26,7 +26,9 @@ class (HasFileEnv m, HasLogger m, HasStaticEnv m, MonadIO m) => HasStaticLsEnv m
     getStaticLsEnv :: m StaticLsEnv
 
 instance HasFileEnv StaticLsM where
-    getFileEnv = asks (.fileEnv)
+    getFileEnv = do
+        fileEnv <- asks (.fileEnv)
+        liftIO $ IORef.readIORef fileEnv
 
 instance HasLogger StaticLsM where
     getLogger = asks (.logger)
@@ -57,7 +59,6 @@ getHaskell uri = do
 getFileState :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe FileState)
 getFileState uri = do
     uri <- pure $ LSP.toNormalizedUri uri
-    fileEnv <- getFileEnv
-    fileStates <- liftIO $ IORef.readIORef fileEnv
+    fileStates <- getFileEnv
     let fileState = HashMap.lookup uri fileStates
     pure fileState

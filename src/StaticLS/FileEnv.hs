@@ -6,10 +6,9 @@ import Data.Text (Text)
 import Data.Text.Utf16.Rope.Mixed qualified as Rope
 import Language.Haskell.Lexer qualified as Haskell
 import Language.LSP.Protocol.Types qualified as LSP
-import UnliftIO qualified as IORef
 
 -- | In memory representation of the current file system
-type FileEnv = IORef.IORef (HashMap LSP.NormalizedUri FileState)
+type FileEnv = HashMap LSP.NormalizedUri FileState
 
 data FileState = FileState
     { contents :: Rope.Rope

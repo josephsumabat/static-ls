@@ -23,7 +23,7 @@ spec = do
             fnLocation <- myFunDefLocation
             let position = lspPositionToHieDbCoords fnLocation._range._start
                 names = namesAtPoint hieFile position
-                expectedDocs = ["Lsp Position line: 11,  character: 0\nanother line of comments\n"]
+                expectedDocs = ["Lsp Position line: 10,  character: 0\n another line of comments"]
                 readDocs = renderNameDocs <$> getDocsBatch names modiface
 
             _ <- readDocs `shouldBe` expectedDocs

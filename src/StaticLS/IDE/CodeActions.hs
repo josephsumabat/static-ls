@@ -19,7 +19,8 @@ import Language.LSP.Server
 import Language.LSP.VFS
 import StaticLS.IDE.CodeActions.AutoImport
 import StaticLS.IDE.CodeActions.Types
-import StaticLS.StaticEnv
+import StaticLS.Logger (logInfo)
+import StaticLS.StaticLsEnv
 import StaticLS.Utils
 import System.IO
 import UnliftIO.Exception qualified as Exception
@@ -32,7 +33,7 @@ globalCodeActions =
 
 -- GlobalCodeAction { run = runCodeAction }
 
-createAutoImportCodeActions :: TextDocumentIdentifier -> Text -> StaticLs [CodeAction]
+createAutoImportCodeActions :: TextDocumentIdentifier -> Text -> StaticLsM [CodeAction]
 createAutoImportCodeActions tdi toImport =
     pure
         [ CodeAction
@@ -47,18 +48,18 @@ createAutoImportCodeActions tdi toImport =
             }
         ]
 
-handleCodeAction :: Handler (LspT c StaticLs) Method_TextDocumentCodeAction
+handleCodeAction :: Handler (LspT c StaticLsM) Method_TextDocumentCodeAction
 handleCodeAction req resp = do
-    lift $ logInfo "handleCodeAction"
+    _ <- lift $ logInfo "handleCodeAction"
     let params = req._params
     let tdi = params._textDocument
     let range = params._range
-    modulesToImport <- lift $ getModulesToImport tdi (range._start)
+    modulesToImport <- lift $ getModulesToImport tdi range._start
     codeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions tdi) modulesToImport
     resp (Right (InL (fmap InR codeActions)))
     pure ()
 
-handleResolveCodeAction :: Handler (LspT c StaticLs) Method_CodeActionResolve
+handleResolveCodeAction :: Handler (LspT c StaticLsM) Method_CodeActionResolve
 handleResolveCodeAction req resp = do
     let action = req._params
     liftIO $ do

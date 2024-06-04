@@ -14,7 +14,7 @@ spec =
         describe "All available sources" $ do
             it "retrieves the myFun definition from a different module" $ do
                 staticEnv <- Test.initStaticEnv
-                defnLinks <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
+                defnLinks <- runStaticEnv staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
                 defnLink <- Test.assertHead "no definition link found" defnLinks
                 expectedDefnLink <- Test.myFunDefDefinitionLink
                 defnLink `shouldBe` expectedDefnLink
@@ -30,7 +30,7 @@ spec =
                                 , optionHiFilesPath = "test/TestData/.hifiles"
                                 }
                     staticEnv <- Test.initStaticEnvOpts emptyOpts
-                    defnLinks <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
+                    defnLinks <- runStaticEnv staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
                     defnLink <- Test.assertHead "no definition link found" defnLinks
                     expectedDefnLink <- Test.myFunDefDefinitionLink
                     defnLink `shouldBe` expectedDefnLink
@@ -44,7 +44,7 @@ spec =
                                 , optionHiFilesPath = "test/TestData/.hifiles"
                                 }
                     staticEnv <- Test.initStaticEnvOpts emptyOpts
-                    defnLinks <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
+                    defnLinks <- runStaticEnv staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
                     defnLink <- Test.assertHead "no definition link found" defnLinks
                     expectedDefnLink <- Test.myFunDefDefinitionLink
                     defnLink `shouldBe` expectedDefnLink
@@ -58,5 +58,5 @@ spec =
                             , optionHiFilesPath = ""
                             }
                 staticEnv <- Test.initStaticEnvOpts emptyOpts
-                locs <- runStaticLs staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
+                locs <- runStaticEnv staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
                 locs `shouldBe` []

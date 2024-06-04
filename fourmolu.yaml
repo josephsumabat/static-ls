@@ -1,0 +1,1 @@
+haddock-style: single-line # 'signle-line' or 'multi-line', i.e., '--' vs. '{-'

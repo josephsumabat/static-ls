@@ -1,9 +1,9 @@
 {-# LANGUAGE BlockArguments #-}
 
-module StaticLS.IDE.Completion (
-  getCompletion,
-  Completion (..),
-)
+module StaticLS.IDE.Completion
+  ( getCompletion,
+    Completion (..),
+  )
 where
 
 import AST qualified
@@ -50,7 +50,7 @@ getHeader haskell = do
 
 getCompletion :: LSP.Uri -> StaticLsM [Completion]
 getCompletion uri = do
-  haskell <- getHaskell uri >>= isJustOrThrow "No Source found"
+  haskell <- getHaskell uri
   header <- getHeader haskell & isRightOrThrowT
   mod <- uriToModule uri
   case (header, mod) of
@@ -60,7 +60,7 @@ getCompletion uri = do
     (_, _) -> pure []
 
 data Completion = Completion
-  { label :: !Text
-  , insertText :: !Text
+  { label :: !Text,
+    insertText :: !Text
   }
   deriving (Show, Eq)

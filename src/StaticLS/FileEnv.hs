@@ -11,12 +11,15 @@ import StaticLS.PositionDiff qualified as PositionDiff
 type FileEnv = HashMap LSP.NormalizedUri FileState
 
 data FileState = FileState
-  { contents :: Rope.Rope
-  , contentsText :: Text
-  , tree :: Haskell.Haskell
-  , tokens :: [PositionDiff.Token]
+  { contents :: Rope.Rope,
+    contentsText :: Text,
+    tree :: Haskell.Haskell,
+    tokens :: [PositionDiff.Token]
   }
   deriving (Show)
 
-class HasFileEnv m where
+class (Monad m) => HasFileEnv m where
   getFileEnv :: m FileEnv
+
+class (HasFileEnv m) => SetFileEnv m where
+  setFileEnv :: FileEnv -> m ()

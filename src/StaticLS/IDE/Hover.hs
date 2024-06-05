@@ -1,8 +1,9 @@
-module StaticLS.IDE.Hover (
-  retrieveHover,
-)
+module StaticLS.IDE.Hover
+  ( retrieveHover,
+  )
 where
 
+import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.RWS
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
@@ -13,16 +14,16 @@ import Data.Text.Encoding qualified as T.Encoding
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins as GHC hiding ((<>))
 import HieDb (pointCommand)
-import Language.LSP.Protocol.Types (
-  Hover (..),
-  MarkupContent (..),
-  MarkupKind (..),
-  Position,
-  Range (..),
-  TextDocumentIdentifier (..),
-  sectionSeparator,
-  type (|?) (..),
- )
+import Language.LSP.Protocol.Types
+  ( Hover (..),
+    MarkupContent (..),
+    MarkupKind (..),
+    Position,
+    Range (..),
+    TextDocumentIdentifier (..),
+    sectionSeparator,
+    type (|?) (..),
+  )
 import StaticLS.FileEnv
 import StaticLS.HI
 import StaticLS.HI.File
@@ -39,11 +40,19 @@ import StaticLS.StaticLsEnv
 import StaticLS.Utils (isJustOrThrow)
 
 -- | Retrieve hover information.
-retrieveHover :: (HasCallStack, HasLogger m, HasStaticEnv m, MonadIO m, HasFileEnv m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
+retrieveHover ::
+  ( HasLogger m,
+    HasStaticEnv m,
+    MonadIO m,
+    HasFileEnv m,
+    MonadThrow m
+  ) =>
+  TextDocumentIdentifier ->
+  Position ->
+  m (Maybe Hover)
 retrieveHover identifier position = do
   let uri = identifier._uri
   source <- getSource uri
-  source <- isJustOrThrow "No source found" source
   let lineCol = ProtoLSP.lineColFromProto position
   let pos = Position.lineColToPos source lineCol
   runMaybeT $ do
@@ -66,13 +75,13 @@ retrieveHover identifier position = do
               Nothing
               (hoverInfo (GHC.hie_types hieFile) docs)
     toAlt $ hoverInfoToHover <$> info
- where
-  hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
-  hoverInfoToHover (mRange, contents) =
-    Hover
-      { _range = mRange
-      , _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
-      }
+  where
+    hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
+    hoverInfoToHover (mRange, contents) =
+      Hover
+        { _range = mRange,
+          _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
+        }
 
 docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.HieFile -> Position -> m [NameDocs]
 docsAtPoint hieFile position = do

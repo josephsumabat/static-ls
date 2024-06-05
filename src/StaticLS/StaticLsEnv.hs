@@ -8,11 +8,8 @@ import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
 import Data.IORef qualified as IORef
 import Data.Text (Text)
-import Data.Text.Encoding qualified as T.Encoding
-import GHC.Iface.Ext.Types qualified as GHC
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
-import StaticLS.HIE.File (getHieFileFromUri)
 import StaticLS.Logger
 import StaticLS.Position (LineCol, Pos)
 import StaticLS.Position qualified as Position
@@ -25,9 +22,9 @@ import StaticLS.Utils (isJustOrThrow)
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data StaticLsEnv = StaticLsEnv
-  { fileEnv :: IORef.IORef FileEnv,
-    staticEnv :: StaticEnv,
-    logger :: Logger
+  { fileEnv :: IORef.IORef FileEnv
+  , staticEnv :: StaticEnv
+  , logger :: Logger
   }
 
 type StaticLsM = ReaderT StaticLsEnv IO
@@ -58,9 +55,9 @@ initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
   let logger = Colog.liftLogIO loggerToUse
   pure $
     StaticLsEnv
-      { staticEnv = staticEnv,
-        fileEnv = fileEnv,
-        logger = logger
+      { staticEnv = staticEnv
+      , fileEnv = fileEnv
+      , logger = logger
       }
 
 runStaticLsM :: StaticLsEnv -> StaticLsM a -> IO a

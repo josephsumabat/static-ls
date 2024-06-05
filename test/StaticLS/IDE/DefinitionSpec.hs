@@ -2,8 +2,8 @@ module StaticLS.IDE.DefinitionSpec (spec) where
 
 import StaticLS.IDE.Definition
 import StaticLS.StaticEnv
-import StaticLS.StaticLsEnv
 import StaticLS.StaticEnv.Options
+import StaticLS.StaticLsEnv
 import Test.Hspec
 import TestImport qualified as Test
 import TestImport.Assert qualified as Test

@@ -1,6 +1,6 @@
-module StaticLS.IDE.Hover
-  ( retrieveHover,
-  )
+module StaticLS.IDE.Hover (
+  retrieveHover,
+)
 where
 
 import Control.Monad.Catch
@@ -14,16 +14,16 @@ import Data.Text.Encoding qualified as T.Encoding
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins as GHC hiding ((<>))
 import HieDb (pointCommand)
-import Language.LSP.Protocol.Types
-  ( Hover (..),
-    MarkupContent (..),
-    MarkupKind (..),
-    Position,
-    Range (..),
-    TextDocumentIdentifier (..),
-    sectionSeparator,
-    type (|?) (..),
-  )
+import Language.LSP.Protocol.Types (
+  Hover (..),
+  MarkupContent (..),
+  MarkupKind (..),
+  Position,
+  Range (..),
+  TextDocumentIdentifier (..),
+  sectionSeparator,
+  type (|?) (..),
+ )
 import StaticLS.FileEnv
 import StaticLS.HI
 import StaticLS.HI.File
@@ -38,11 +38,11 @@ import StaticLS.StaticLsEnv
 
 -- | Retrieve hover information.
 retrieveHover ::
-  ( HasLogger m,
-    HasStaticEnv m,
-    MonadIO m,
-    HasFileEnv m,
-    MonadThrow m
+  ( HasLogger m
+  , HasStaticEnv m
+  , MonadIO m
+  , HasFileEnv m
+  , MonadThrow m
   ) =>
   TextDocumentIdentifier ->
   Position ->
@@ -65,14 +65,14 @@ retrieveHover identifier position = do
               Nothing
               (hoverInfo (GHC.hie_types hieFile) docs)
     toAlt $ hoverInfoToHover <$> info
-  where
-    -- TODO: use the original range in the hover
-    hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
-    hoverInfoToHover (mRange, contents) =
-      Hover
-        { _range = mRange,
-          _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
-        }
+ where
+  -- TODO: use the original range in the hover
+  hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
+  hoverInfoToHover (mRange, contents) =
+    Hover
+      { _range = mRange
+      , _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
+      }
 
 docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.HieFile -> Position -> m [NameDocs]
 docsAtPoint hieFile position = do

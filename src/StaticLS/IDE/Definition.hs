@@ -1,15 +1,17 @@
 module StaticLS.IDE.Definition (getDefinition, getTypeDefinition)
 where
 
-import StaticLS.StaticLsEnv
 import Control.Monad (guard, join)
+import Control.Monad.Catch
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Foldable qualified as Foldable
 import Data.List (isSuffixOf)
 import Data.Map qualified as Map
-import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
+import Data.Maybe (fromMaybe, maybeToList)
 import Data.Set qualified as Set
+import Data.Text.Encoding qualified as T.Encoding
 import Development.IDE.GHC.Error (
   srcSpanToFilename,
   srcSpanToRange,
@@ -23,22 +25,15 @@ import GHC.Utils.Monad (mapMaybeM)
 import HieDb qualified
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Except
+import StaticLS.FileEnv
 import StaticLS.HIE
 import StaticLS.HIE.File
 import StaticLS.Maybe
+import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
+import StaticLS.StaticLsEnv
 import System.Directory (doesFileExist)
 import System.FilePath ((</>))
-import StaticLS.ProtoLSP qualified as ProtoLSP
-import StaticLS.Except
-import StaticLS.HIE
-import StaticLS.HIE.File
-import StaticLS.Maybe
-import StaticLS.StaticEnv
-import StaticLS.FileEnv
-import Data.Text.Encoding qualified as T.Encoding
-import Control.Monad.Catch
-import qualified Data.Foldable as Foldable
 
 getDefinition ::
   (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
@@ -89,20 +84,30 @@ getTypeDefinition tdi position = do
           join $
             HieDb.pointCommand
               hieFile
+              (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
+              Nothing
               (GHC.nodeType . nodeInfo')
         types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
     join <$> mapM (lift . nameToLocation) (typeToName =<< types)
   pure $ maybe [] (map LSP.DefinitionLink) mLocationLinks
  where
   typeToName = goTypeToName []
-  
+
   goTypeToName :: [GHC.Name] -> GHC.HieTypeFix -> [GHC.Name]
-  goTypeToName acc (GHC.Roll tyFix) = 
+  goTypeToName acc (GHC.Roll tyFix) =
     Foldable.foldl' goTypeToName (name ++ acc) tyFix
-    where
-      name = case tyFix of
-        (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
-        _ -> []
+   where
+    name = case tyFix of
+      (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
+      _ -> []
+  -- GHC.Roll (GHC.HTyVarTy name) -> name : acc
+  -- GHC.Roll (GHC.HAppTy ty (GHC.HieArgs _args)) -> foldl' (\z arg -> goToTypeName z arg) (goTypeToName acc ty) (filter fst args)
+  -- GHC.Roll (GHC.HForAllTy ((name, _ty1), _forallFlag) _ty2) -> name : acc
+  -- GHC.Roll (GHC.HFunTy ty1 _ty2 _ty3) -> goTypeToName acc ty1
+  -- GHC.Roll (GHC.HQualTy _constraint ty) -> goTypeToName  ty
+  -- GHC.Roll (GHC.HLitTy _ifaceTyLit) -> Nothing
+  -- GHC.Roll (GHC.HCastTy ty) -> typeToName ty
+  -- GHC.Roll GHC.HCoercionTy -> Nothing
 
   -- pulled from https://github.com/wz1000/HieDb/blob/6905767fede641747f5c24ce02f1ea73fc8c26e5/src/HieDb/Compat.hs#L147
   nodeInfo' :: GHC.HieAST GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex

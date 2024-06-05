@@ -1,9 +1,9 @@
 {-# LANGUAGE BlockArguments #-}
 
-module StaticLS.IDE.Completion
-  ( getCompletion,
-    Completion (..),
-  )
+module StaticLS.IDE.Completion (
+  getCompletion,
+  Completion (..),
+)
 where
 
 import AST qualified
@@ -60,7 +60,7 @@ getCompletion uri = do
     (_, _) -> pure []
 
 data Completion = Completion
-  { label :: !Text,
-    insertText :: !Text
+  { label :: !Text
+  , insertText :: !Text
   }
   deriving (Show, Eq)

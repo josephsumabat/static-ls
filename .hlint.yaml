@@ -78,3 +78,4 @@
 - ignore: {name: Use newtype instead of data}
 - ignore: {name: Redundant pure}
 - ignore: {name: Use zipWith}
+- ignore: {name: Avoid lambda using `infix`}

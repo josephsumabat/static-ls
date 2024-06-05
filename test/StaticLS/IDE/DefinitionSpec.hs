@@ -1,7 +1,6 @@
 module StaticLS.IDE.DefinitionSpec (spec) where
 
 import StaticLS.IDE.Definition
-import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import StaticLS.StaticLsEnv
 import Test.Hspec
@@ -11,11 +10,14 @@ import TestImport.TestData qualified as Test
 
 spec :: Spec
 spec =
-  xdescribe "Correctly retrieves definitions" $ do
+  describe "Correctly retrieves definitions" $ do
     describe "All available sources" $ do
       it "retrieves the myFun definition from a different module" $ do
         staticEnv <- Test.initStaticLsEnv
-        defnLinks <- runStaticLsM staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
+        defnLinks <- runStaticLsM staticEnv $ do
+          let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+          _ <- Test.updateTestFileState tdi
+          uncurry getDefinition tdiAndPos
         defnLink <- Test.assertHead "no definition link found" defnLinks
         expectedDefnLink <- Test.myFunDefDefinitionLink
         defnLink `shouldBe` expectedDefnLink
@@ -31,7 +33,10 @@ spec =
                   , optionHiFilesPath = "test/TestData/.hifiles"
                   }
           staticEnv <- Test.initStaticLsEnvOpts emptyOpts
-          defnLinks <- runStaticLsM staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
+          defnLinks <- runStaticLsM staticEnv $ do
+            let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+            _ <- Test.updateTestFileState tdi
+            uncurry getDefinition tdiAndPos
           defnLink <- Test.assertHead "no definition link found" defnLinks
           expectedDefnLink <- Test.myFunDefDefinitionLink
           defnLink `shouldBe` expectedDefnLink
@@ -45,7 +50,10 @@ spec =
                   , optionHiFilesPath = "test/TestData/.hifiles"
                   }
           staticEnv <- Test.initStaticLsEnvOpts emptyOpts
-          defnLinks <- runStaticLsM staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
+          defnLinks <- runStaticLsM staticEnv $ do
+            let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+            _ <- Test.updateTestFileState tdi
+            uncurry getDefinition tdiAndPos
           defnLink <- Test.assertHead "no definition link found" defnLinks
           expectedDefnLink <- Test.myFunDefDefinitionLink
           defnLink `shouldBe` expectedDefnLink
@@ -59,5 +67,8 @@ spec =
                 , optionHiFilesPath = ""
                 }
         staticEnv <- Test.initStaticLsEnvOpts emptyOpts
-        locs <- runStaticLsM staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
+        locs <- runStaticLsM staticEnv $ do
+          let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+          _ <- Test.updateTestFileState tdi
+          uncurry getDefinition tdiAndPos
         locs `shouldBe` []

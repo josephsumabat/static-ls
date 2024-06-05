@@ -1,7 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module StaticLS.Position
-  ( LineCol (..),
+module StaticLS.Position (
+    LineCol (..),
     Pos (..),
     LineColRange (..),
     PosRange (..),
@@ -9,7 +9,7 @@ module StaticLS.Position
     posToLineCol,
     splitLinesWithEnd,
     splitLines,
-  )
+)
 where
 
 import Data.Function ((&))
@@ -20,30 +20,30 @@ import Data.Text qualified as T
 
 -- 0 based
 data LineCol = LineCol
-  { line :: !Int,
-    col :: !Int
-  }
-  deriving (Eq, Show)
+    { line :: !Int
+    , col :: !Int
+    }
+    deriving (Eq, Show)
 
 -- 0 based char position
 newtype Pos = Pos {pos :: Int}
-  deriving (Show, Eq, Ord)
+    deriving (Show, Eq, Ord)
 
 data LineColRange = LineColRange
-  { start :: !LineCol,
-    end :: !LineCol
-  }
-  deriving (Eq, Show)
+    { start :: !LineCol
+    , end :: !LineCol
+    }
+    deriving (Eq, Show)
 
 data PosRange = PosRange
-  { start :: !Pos,
-    end :: !Pos
-  }
-  deriving (Eq, Show)
+    { start :: !Pos
+    , end :: !Pos
+    }
+    deriving (Eq, Show)
 
 lineColToPos :: Text -> LineCol -> Pos
-lineColToPos source LineCol {line, col} =
-  Pos pos
+lineColToPos source LineCol{line, col} =
+    Pos pos
   where
     (before, after) = splitAt line lines
     (beforeCol, _afterCol) = T.splitAt col (T.concat after)
@@ -51,8 +51,8 @@ lineColToPos source LineCol {line, col} =
     lines = splitLinesWithEnd source & NE.toList
 
 posToLineCol :: Text -> Pos -> LineCol
-posToLineCol source Pos {pos} =
-  LineCol {line, col}
+posToLineCol source Pos{pos} =
+    LineCol{line, col}
   where
     (beforePos, _afterPos) = T.splitAt pos source
     linesBeforePos = splitLinesWithEnd beforePos
@@ -63,10 +63,10 @@ posToLineCol source Pos {pos} =
 -- never empty
 splitLinesWithEnd :: Text -> NonEmpty Text
 splitLinesWithEnd t =
-  lines
-    & zip [0 :: Int ..]
-    & map (\(i, l) -> if i == linesLen - 1 then l else l <> "\n")
-    & NE.fromList
+    lines
+        & zip [0 :: Int ..]
+        & map (\(i, l) -> if i == linesLen - 1 then l else l <> "\n")
+        & NE.fromList
   where
     lines = T.splitOn "\n" t
     linesLen = length lines

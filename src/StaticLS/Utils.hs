@@ -1,8 +1,8 @@
 module StaticLS.Utils where
 
 import Control.Monad.IO.Class (MonadIO)
-import UnliftIO.Exception qualified as Exception
 import GHC.Stack (HasCallStack)
+import UnliftIO.Exception qualified as Exception
 
 isJustOrThrow :: (HasCallStack, MonadIO m) => String -> Maybe a -> m a
 isJustOrThrow s m = case m of

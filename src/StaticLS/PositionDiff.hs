@@ -52,9 +52,9 @@ flipDiff = fmap $ \case
 
 updatePositionUsingDiff :: Pos -> TokenDiff -> Pos
 updatePositionUsingDiff (Pos pos) diff =
-   -- say the cursor was on the first deletion
-   -- then in the new text the cursor would have a negative position
-   -- so we clamp it to 0
+    -- say the cursor was on the first deletion
+    -- then in the new text the cursor would have a negative position
+    -- so we clamp it to 0
     Pos (max (pos + delta) 0)
   where
     diffBeforePos = getDiffBeforePos pos diff

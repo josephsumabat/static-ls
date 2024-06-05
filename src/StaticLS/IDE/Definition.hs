@@ -89,8 +89,6 @@ getTypeDefinition tdi position = do
           join $
             HieDb.pointCommand
               hieFile
-              (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
-              Nothing
               (GHC.nodeType . nodeInfo')
         types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
     join <$> mapM (lift . nameToLocation) (typeToName =<< types)
@@ -105,14 +103,6 @@ getTypeDefinition tdi position = do
       name = case tyFix of
         (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
         _ -> []
-      -- GHC.Roll (GHC.HTyVarTy name) -> name : acc
-      -- GHC.Roll (GHC.HAppTy ty (GHC.HieArgs _args)) -> foldl' (\z arg -> goToTypeName z arg) (goTypeToName acc ty) (filter fst args)
-      -- GHC.Roll (GHC.HForAllTy ((name, _ty1), _forallFlag) _ty2) -> name : acc
-      -- GHC.Roll (GHC.HFunTy ty1 _ty2 _ty3) -> goTypeToName acc ty1
-      -- GHC.Roll (GHC.HQualTy _constraint ty) -> goTypeToName  ty
-      -- GHC.Roll (GHC.HLitTy _ifaceTyLit) -> Nothing
-      -- GHC.Roll (GHC.HCastTy ty) -> typeToName ty
-      -- GHC.Roll GHC.HCoercionTy -> Nothing
 
   -- pulled from https://github.com/wz1000/HieDb/blob/6905767fede641747f5c24ce02f1ea73fc8c26e5/src/HieDb/Compat.hs#L147
   nodeInfo' :: GHC.HieAST GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex

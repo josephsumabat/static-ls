@@ -41,6 +41,7 @@ import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.FileEnv
 import StaticLS.IDE.CodeActions qualified as CodeActions
+import StaticLS.IDE.Completion (Completion (..), getCompletion)
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Hover
@@ -151,13 +152,43 @@ handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction CodeActions
 handleResolveCodeAction :: Handlers (LspT c StaticLsM)
 handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve CodeActions.handleResolveCodeAction
 
-_handleCompletion :: Handlers (LspT c StaticLsM)
-_handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req _res -> do
+toLspCompletion :: Completion -> CompletionItem
+toLspCompletion Completion{label, insertText} =
+    LSP.CompletionItem
+        { _label = label
+        , _labelDetails = Nothing
+        , _kind = Just LSP.CompletionItemKind_Function
+        , _textEditText = Nothing
+        , _data_ = Nothing
+        , _tags = Nothing
+        , _insertTextMode = Nothing
+        , _deprecated = Nothing
+        , _preselect = Nothing
+        , _detail = Nothing
+        , _documentation = Nothing
+        , _sortText = Nothing
+        , _filterText = Nothing
+        , _insertText = Just insertText
+        , _insertTextFormat = Just LSP.InsertTextFormat_Snippet
+        , _textEdit = Nothing
+        , _additionalTextEdits = Nothing
+        , _commitCharacters = Nothing
+        , _command = Nothing
+        }
+
+handleCompletion :: Handlers (LspT c StaticLsM)
+handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res -> do
     let params = req._params
-    let _tdi = params._textDocument
-    -- let completionParams = req._params
-    -- completions <- lift $ getCompletions completionParams._textDocument completionParams._position
-    -- res $ Right $ completions
+    let tdi = params._textDocument
+    completions <- lift $ getCompletion tdi._uri
+    let lspCompletions = fmap toLspCompletion completions
+    let lspList =
+            LSP.CompletionList
+                { _isIncomplete = False
+                , _itemDefaults = Nothing
+                , _items = lspCompletions
+                }
+    res $ Right $ InR $ InL lspList
     pure ()
 
 handleDocumentSymbols :: Handlers (LspT c StaticLsM)
@@ -223,6 +254,7 @@ serverDef argOptions logger =
                     , handleCodeAction
                     , handleResolveCodeAction
                     , handleDocumentSymbols
+                    , handleCompletion
                     ]
         , interpretHandler = \env -> Iso (runStaticLsM env.staticLsEnv . LSP.runLspT env.config) liftIO
         , options = lspOptions

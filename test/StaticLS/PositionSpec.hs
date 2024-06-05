@@ -35,7 +35,8 @@ instance Arbitrary TextAndLineCol where
         text <- suchThat arbitrary (not . T.null)
         line <- choose (0, length (splitLines text) - 1)
         let theLine = NE.toList (splitLinesWithEnd text) !! line
-        col <- choose (0, T.length theLine - 1)
+        -- the last line could be empty, ex "a\n"
+        col <- choose (0, max 0 (T.length theLine - 1))
         pure $ TextAndLineCol text LineCol{line, col}
 
 spec :: Spec

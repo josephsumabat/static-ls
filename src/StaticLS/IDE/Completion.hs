@@ -40,7 +40,7 @@ uriToModule uri = do
         modPath <- asum ((\srcDir -> makeRelativeMaybe srcDir fp) <$> srcDirs)
         let (modPathWithoutExt, ext) = splitExtension modPath
         guard $ ext == ".hs"
-        let modText = T.replace (T.pack [pathSeparator]) "." (T.pack (modPathWithoutExt))
+        let modText = T.replace (T.pack [pathSeparator]) "." (T.pack modPathWithoutExt)
         pure modText
 
 getHeader :: Haskell.Haskell -> AST.Err (Maybe Haskell.Header)

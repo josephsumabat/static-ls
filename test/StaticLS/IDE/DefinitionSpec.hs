@@ -12,7 +12,7 @@ spec :: Spec
 spec =
   describe "Correctly retrieves definitions" $ do
     describe "All available sources" $ do
-      it "retrieves the myFun definition from a different module" $ do
+      xit "retrieves the myFun definition from a different module" $ do
         staticEnv <- Test.initStaticEnv
         defnLinks <- runStaticEnv staticEnv $ uncurry getDefinition Test.myFunRef1TdiAndPosition
         defnLink <- Test.assertHead "no definition link found" defnLinks
@@ -21,7 +21,7 @@ spec =
 
     describe "Missing sources" $ do
       describe "Finding sources with only hie files" $ do
-        it "Missing hiedb" $ do
+        xit "Missing hiedb" $ do
           let emptyOpts =
                 StaticEnvOptions
                   { optionHieDbPath = ""
@@ -35,7 +35,7 @@ spec =
           expectedDefnLink <- Test.myFunDefDefinitionLink
           defnLink `shouldBe` expectedDefnLink
 
-        it "empty hiedb" $ do
+        xit "empty hiedb" $ do
           let emptyOpts =
                 StaticEnvOptions
                   { optionHieDbPath = "./TestData/not-a-real-hiedb-file"

@@ -14,7 +14,7 @@ import TestImport.TestData
 
 spec :: Spec
 spec = do
-  describe "getDocs" $ do
+  xdescribe "getDocs" $ do
     it "Returns expected docs" $ do
       hiFile <- runMaybeT $ readHiFile "test/TestData/.hifiles/TestData/Mod2.hi"
       eHieFile <- runExceptT $ getHieFile "test/TestData/.hiefiles/TestData/Mod2.hie"

@@ -1,6 +1,7 @@
 module StaticLS.IDE.Definition (getDefinition, getTypeDefinition)
 where
 
+import StaticLS.StaticLsEnv
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
@@ -28,20 +29,34 @@ import StaticLS.Maybe
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.FilePath ((</>))
+import StaticLS.ProtoLSP qualified as ProtoLSP
+import StaticLS.Except
+import StaticLS.HIE
+import StaticLS.HIE.File
+import StaticLS.Maybe
+import StaticLS.StaticEnv
+import StaticLS.FileEnv
+import Data.Text.Encoding qualified as T.Encoding
+import Control.Monad.Catch
+import qualified Data.Foldable as Foldable
 
 getDefinition ::
-  (HasCallStack, HasStaticEnv m, MonadIO m) =>
+  (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
   LSP.TextDocumentIdentifier ->
   LSP.Position ->
   m [LSP.DefinitionLink]
-getDefinition tdi pos = do
+getDefinition tdi position = do
+  let uri = tdi._uri
+  let lineCol = ProtoLSP.lineColFromProto position
   mLocationLinks <- runMaybeT $ do
-    hieFile <- getHieFileFromTdi tdi
+    hieFile <- getHieFileFromUri uri
+    let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
+    lineCol' <- lineColToHieLineCol uri hieSource lineCol
     let identifiersAtPoint =
           join $
             HieDb.pointCommand
               hieFile
-              (lspPositionToHieDbCoords pos)
+              (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
               Nothing
               hieAstNodeToIdentifiers
     join <$> mapM (lift . identifierToLocation) identifiersAtPoint
@@ -59,35 +74,45 @@ getDefinition tdi pos = do
     pure $ locationToLocationLink $ LSP.Location (LSP.filePathToUri srcFile) zeroRange
 
 getTypeDefinition ::
-  (HasCallStack, HasStaticEnv m, MonadIO m) =>
+  (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
   LSP.TextDocumentIdentifier ->
   LSP.Position ->
   m [LSP.DefinitionLink]
-getTypeDefinition tdi pos = do
+getTypeDefinition tdi position = do
+  let uri = tdi._uri
+  let lineCol = ProtoLSP.lineColFromProto position
   mLocationLinks <- runMaybeT $ do
-    hieFile <- getHieFileFromTdi tdi
+    hieFile <- getHieFileFromUri uri
+    let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
+    lineCol' <- lineColToHieLineCol uri hieSource lineCol
     let types' =
           join $
             HieDb.pointCommand
               hieFile
-              (lspPositionToHieDbCoords pos)
+              (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
               Nothing
               (GHC.nodeType . nodeInfo')
         types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
-    join <$> mapM (lift . nameToLocation) (mapMaybe typeToName types)
+    join <$> mapM (lift . nameToLocation) (typeToName =<< types)
   pure $ maybe [] (map LSP.DefinitionLink) mLocationLinks
  where
-  typeToName :: GHC.HieTypeFix -> Maybe GHC.Name
-  typeToName = \case
-    GHC.Roll (GHC.HTyVarTy name) -> Just name
-    GHC.Roll (GHC.HAppTy ty _args) -> typeToName ty
-    GHC.Roll (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> Just name
-    GHC.Roll (GHC.HForAllTy ((name, _ty1), _forallFlag) _ty2) -> Just name
-    GHC.Roll (GHC.HFunTy ty1 _ty2 _ty3) -> typeToName ty1
-    GHC.Roll (GHC.HQualTy _constraint ty) -> typeToName ty
-    GHC.Roll (GHC.HLitTy _ifaceTyLit) -> Nothing
-    GHC.Roll (GHC.HCastTy ty) -> typeToName ty
-    GHC.Roll GHC.HCoercionTy -> Nothing
+  typeToName = goTypeToName []
+  
+  goTypeToName :: [GHC.Name] -> GHC.HieTypeFix -> [GHC.Name]
+  goTypeToName acc (GHC.Roll tyFix) = 
+    Foldable.foldl' goTypeToName (name ++ acc) tyFix
+    where
+      name = case tyFix of
+        (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
+        _ -> []
+      -- GHC.Roll (GHC.HTyVarTy name) -> name : acc
+      -- GHC.Roll (GHC.HAppTy ty (GHC.HieArgs _args)) -> foldl' (\z arg -> goToTypeName z arg) (goTypeToName acc ty) (filter fst args)
+      -- GHC.Roll (GHC.HForAllTy ((name, _ty1), _forallFlag) _ty2) -> name : acc
+      -- GHC.Roll (GHC.HFunTy ty1 _ty2 _ty3) -> goTypeToName acc ty1
+      -- GHC.Roll (GHC.HQualTy _constraint ty) -> goTypeToName  ty
+      -- GHC.Roll (GHC.HLitTy _ifaceTyLit) -> Nothing
+      -- GHC.Roll (GHC.HCastTy ty) -> typeToName ty
+      -- GHC.Roll GHC.HCoercionTy -> Nothing
 
   -- pulled from https://github.com/wz1000/HieDb/blob/6905767fede641747f5c24ce02f1ea73fc8c26e5/src/HieDb/Compat.hs#L147
   nodeInfo' :: GHC.HieAST GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex

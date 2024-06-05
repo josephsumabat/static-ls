@@ -4,12 +4,19 @@ import AST.Haskell qualified as Haskell
 import Colog.Core.IO qualified as Colog
 import Control.Monad.Catch
 import Control.Monad.Reader
+import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
 import Data.IORef qualified as IORef
 import Data.Text (Text)
+import Data.Text.Encoding qualified as T.Encoding
+import GHC.Iface.Ext.Types qualified as GHC
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
+import StaticLS.HIE.File (getHieFileFromUri)
 import StaticLS.Logger
+import StaticLS.Position (LineCol, Pos)
+import StaticLS.Position qualified as Position
+import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import StaticLS.Utils (isJustOrThrow)
@@ -18,9 +25,9 @@ import StaticLS.Utils (isJustOrThrow)
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data StaticLsEnv = StaticLsEnv
-  { fileEnv :: IORef.IORef FileEnv
-  , staticEnv :: StaticEnv
-  , logger :: Logger
+  { fileEnv :: IORef.IORef FileEnv,
+    staticEnv :: StaticEnv,
+    logger :: Logger
   }
 
 type StaticLsM = ReaderT StaticLsEnv IO
@@ -51,9 +58,9 @@ initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
   let logger = Colog.liftLogIO loggerToUse
   pure $
     StaticLsEnv
-      { staticEnv = staticEnv
-      , fileEnv = fileEnv
-      , logger = logger
+      { staticEnv = staticEnv,
+        fileEnv = fileEnv,
+        logger = logger
       }
 
 runStaticLsM :: StaticLsEnv -> StaticLsM a -> IO a
@@ -81,7 +88,17 @@ getFileStateThrow uri = do
   fileState <- getFileState uri
   isJustOrThrow ("File not found: " ++ show uri) fileState
 
-posToHiePos :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> LSP.Position -> m LSP.Position
-posToHiePos uri pos = do
-  source <- getSource uri
-  undefined
+posToHiePos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> Pos -> MaybeT m Pos
+posToHiePos uri hieSource pos = do
+  source <- lift $ getSource uri
+  let diff = PositionDiff.diffText source hieSource
+  let pos' = PositionDiff.updatePositionUsingDiff pos diff
+  pure pos'
+
+lineColToHieLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> LineCol -> MaybeT m LineCol
+lineColToHieLineCol uri hieSource lineCol = do
+  source <- lift $ getSource uri
+  let pos = Position.lineColToPos source lineCol
+  pos' <- posToHiePos uri hieSource pos
+  let lineCol' = Position.posToLineCol hieSource pos'
+  pure lineCol'

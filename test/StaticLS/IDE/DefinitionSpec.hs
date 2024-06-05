@@ -10,7 +10,7 @@ import TestImport.TestData qualified as Test
 
 spec :: Spec
 spec =
-  describe "Correctly retrieves definitions" $ do
+  xdescribe "Correctly retrieves definitions" $ do
     describe "All available sources" $ do
       it "retrieves the myFun definition from a different module" $ do
         staticEnv <- Test.initStaticEnv

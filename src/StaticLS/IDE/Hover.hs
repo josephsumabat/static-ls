@@ -10,7 +10,6 @@ import Data.Maybe
 import Data.Text (Text, intercalate)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
-import Data.Text.Lazy qualified as TL
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins as GHC hiding ((<>))
 import HieDb (pointCommand)
@@ -38,7 +37,6 @@ import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 import StaticLS.Utils (isJustOrThrow)
-import Text.Pretty.Simple
 
 -- | Retrieve hover information.
 retrieveHover :: (HasCallStack, HasLogger m, HasStaticEnv m, MonadIO m, HasFileEnv m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
@@ -54,11 +52,6 @@ retrieveHover identifier position = do
         let diff = diffText source hieSource
         let pos' = updatePositionUsingDiff pos diff
         let lineCol' = Position.posToLineCol hieSource pos'
-        -- lift $ logInfo $ TL.toStrict $ "diff: " <> pShowNoColor diff
-        -- lift $ logInfo $ TL.toStrict $ "lineCol: " <> pShowNoColor lineCol
-        -- lift $ logInfo $ TL.toStrict $ "pos: " <> pShowNoColor pos
-        -- lift $ logInfo $ TL.toStrict $ "lineCol': " <> pShowNoColor lineCol'
-        -- lift $ logInfo $ TL.toStrict $ "pos': " <> pShowNoColor pos'
         lift $ logInfo $ T.pack $ "diff: " <> show diff
         lift $ logInfo $ T.pack $ "lineCol: " <> show lineCol
         lift $ logInfo $ T.pack $ "pos: " <> show pos

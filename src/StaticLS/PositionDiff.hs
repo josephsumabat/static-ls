@@ -52,6 +52,9 @@ flipDiff = fmap $ \case
 
 updatePositionUsingDiff :: Pos -> TokenDiff -> Pos
 updatePositionUsingDiff (Pos pos) diff =
+   -- say the cursor was on the first deletion
+   -- then in the new text the cursor would have a negative position
+   -- so we clamp it to 0
     Pos (max (pos + delta) 0)
   where
     diffBeforePos = getDiffBeforePos pos diff
@@ -81,7 +84,8 @@ getDiffBeforePos pos diff = go diff 0
     go (d : ds) at =
         case d of
             Delete t ->
-                -- position might be contained inside of the diff
+                -- position might be contained inside of the diff,
+                -- so the deletion goes up to the position
                 if at + t.len > pos
                     then [Delete (mkToken (T.take (pos - at + 1) t.text))]
                     else d : go ds (at + t.len)

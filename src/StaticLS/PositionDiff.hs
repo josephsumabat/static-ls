@@ -83,10 +83,8 @@ getDiffBeforePos pos diff = go diff 0
             Delete t ->
                 -- position might be contained inside of the diff
                 if at + t.len > pos
-                    then
-                        [Delete (mkToken (T.take (pos - at + 1) t.text))]
-                    else
-                        d : go ds (at + t.len)
+                    then [Delete (mkToken (T.take (pos - at + 1) t.text))]
+                    else d : go ds (at + t.len)
             -- insertions are not part of the original text
             Insert _ -> d : go ds at
             -- keeps are part of the original text

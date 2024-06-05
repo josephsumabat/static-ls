@@ -5,6 +5,7 @@
 
 module StaticLS.Server (
   runServer,
+  updateFileState,
   module X,
 )
 where
@@ -99,9 +100,9 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   let params = message._params
   updateFileStateForUri params._textDocument._uri
 
-updateFileState :: NormalizedUri -> VirtualFile -> StaticLsM ()
-updateFileState uri virtualFile = do
-  let contents = virtualFile._file_text
+updateFileState :: NormalizedUri -> Rope.Rope -> StaticLsM ()
+updateFileState uri virtualFileContents = do
+  let contents = virtualFileContents
   let contentsText = Rope.toText contents
   let tree = Haskell.parse contentsText
   let tokens = PositionDiff.lex $ T.unpack contentsText
@@ -115,7 +116,7 @@ updateFileStateForUri uri = do
   uri <- pure $ toNormalizedUri uri
   virtualFile <- LSP.getVirtualFile uri
   virtualFile <- isJustOrThrow "no virtual file" virtualFile
-  lift $ updateFileState uri virtualFile
+  lift $ updateFileState uri virtualFile._file_text
   pure ()
 
 handleDidChange :: Handlers (LspT c StaticLsM)

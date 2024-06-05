@@ -17,7 +17,7 @@ import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger (logInfo)
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
-import StaticLS.Utils (isJustOrThrow, isRightOrThrowT)
+import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath
 
 makeRelativeMaybe :: FilePath -> FilePath -> Maybe FilePath

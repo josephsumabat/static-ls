@@ -1,15 +1,30 @@
 module TestImport where
 
+import Control.Monad.IO.Class
+import Data.Text.IO qualified as T
+import Data.Text.Utf16.Rope.Mixed qualified as Rope
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger
+import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
 import StaticLS.StaticLsEnv as StaticLsEnv
 import System.Directory (makeAbsolute)
+import TestImport.Assert
 
 initStaticLsEnv :: IO StaticLsEnv
 initStaticLsEnv = do
   wsRoot <- makeAbsolute "."
   StaticLsEnv.initStaticLsEnv wsRoot defaultTestStaticEnvOptions noOpLogger
+
+updateTestFileState :: LSP.TextDocumentIdentifier -> StaticLsM ()
+updateTestFileState (LSP.TextDocumentIdentifier uri) = do
+  filePath <- assertJust "Could not convert uri to filepath" (LSP.uriToFilePath uri)
+  contentsText <- liftIO $ T.readFile filePath
+  let contents = Rope.fromText contentsText
+  let normalizedUri = LSP.toNormalizedUri uri
+  _ <- Server.updateFileState normalizedUri contents
+  pure ()
 
 initStaticEnv :: IO StaticEnv
 initStaticEnv = do

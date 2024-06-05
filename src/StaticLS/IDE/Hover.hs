@@ -3,6 +3,7 @@ module StaticLS.IDE.Hover (
 )
 where
 
+import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.RWS
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
@@ -36,14 +37,21 @@ import StaticLS.PositionDiff
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
-import StaticLS.Utils (isJustOrThrow)
 
 -- | Retrieve hover information.
-retrieveHover :: (HasCallStack, HasLogger m, HasStaticEnv m, MonadIO m, HasFileEnv m) => TextDocumentIdentifier -> Position -> m (Maybe Hover)
+retrieveHover ::
+  ( HasLogger m
+  , HasStaticEnv m
+  , MonadIO m
+  , HasFileEnv m
+  , MonadThrow m
+  ) =>
+  TextDocumentIdentifier ->
+  Position ->
+  m (Maybe Hover)
 retrieveHover identifier position = do
   let uri = identifier._uri
   source <- getSource uri
-  source <- isJustOrThrow "No source found" source
   let lineCol = ProtoLSP.lineColFromProto position
   let pos = Position.lineColToPos source lineCol
   runMaybeT $ do

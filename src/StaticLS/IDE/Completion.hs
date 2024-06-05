@@ -50,7 +50,7 @@ getHeader haskell = do
 
 getCompletion :: LSP.Uri -> StaticLsM [Completion]
 getCompletion uri = do
-  haskell <- getHaskell uri >>= isJustOrThrow "No Source found"
+  haskell <- getHaskell uri
   header <- getHeader haskell & isRightOrThrowT
   mod <- uriToModule uri
   case (header, mod) of

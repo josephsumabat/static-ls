@@ -2,6 +2,7 @@ module StaticLS.StaticLsEnv where
 
 import AST.Haskell qualified as Haskell
 import Colog.Core.IO qualified as Colog
+import Control.Monad.Catch
 import Control.Monad.Reader
 import Data.HashMap.Strict qualified as HashMap
 import Data.IORef qualified as IORef
@@ -11,6 +12,7 @@ import StaticLS.FileEnv
 import StaticLS.Logger
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
+import StaticLS.Utils (isJustOrThrow)
 
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information
@@ -30,6 +32,11 @@ instance HasFileEnv StaticLsM where
   getFileEnv = do
     fileEnv <- asks (.fileEnv)
     liftIO $ IORef.readIORef fileEnv
+
+instance SetFileEnv StaticLsM where
+  setFileEnv fileEnv = do
+    fileEnvRef <- asks (.fileEnv)
+    liftIO $ IORef.writeIORef fileEnvRef fileEnv
 
 instance HasLogger StaticLsM where
   getLogger = asks (.logger)
@@ -52,19 +59,29 @@ initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
 runStaticLsM :: StaticLsEnv -> StaticLsM a -> IO a
 runStaticLsM = flip runReaderT
 
-getHaskell :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe Haskell.Haskell)
+getHaskell :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m Haskell.Haskell
 getHaskell uri = do
-  fileState <- getFileState uri
-  pure $ (.tree) <$> fileState
+  fileState <- getFileStateThrow uri
+  pure $ fileState.tree
 
-getSource :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe Text)
+getSource :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m Text
 getSource uri = do
-  fileState <- getFileState uri
-  pure $ (.contentsText) <$> fileState
+  fileState <- getFileStateThrow uri
+  pure $ fileState.contentsText
 
-getFileState :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe FileState)
+getFileState :: (HasFileEnv m) => LSP.Uri -> m (Maybe FileState)
 getFileState uri = do
   uri <- pure $ LSP.toNormalizedUri uri
   fileStates <- getFileEnv
   let fileState = HashMap.lookup uri fileStates
   pure fileState
+
+getFileStateThrow :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m FileState
+getFileStateThrow uri = do
+  fileState <- getFileState uri
+  isJustOrThrow ("File not found: " ++ show uri) fileState
+
+posToHiePos :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> LSP.Position -> m LSP.Position
+posToHiePos uri pos = do
+  source <- getSource uri
+  undefined

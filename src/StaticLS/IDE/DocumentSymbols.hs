@@ -80,20 +80,15 @@ getDocumentSymbols :: LSP.Uri -> StaticLsM [LSP.DocumentSymbol]
 getDocumentSymbols uri = do
   logInfo "get document symbols"
   logInfo $ T.pack $ "uri: " ++ show uri
-  maybeHaskell <- getHaskell uri
-  case maybeHaskell of
-    Nothing -> do
+  haskell <- getHaskell uri
+  let documentSymbolsRes = do
+        decls <- queryDeclarations haskell
+        symbols <- traverse declarationToSymbol decls
+        symbols <- pure $ concat symbols
+        pure symbols
+  case documentSymbolsRes of
+    Left e -> do
+      logError $ "e: " <> e
       pure []
-    Just haskell -> do
-      logInfo "got haskell"
-      let documentSymbolsRes = do
-            decls <- queryDeclarations haskell
-            symbols <- traverse declarationToSymbol decls
-            symbols <- pure $ concat symbols
-            pure symbols
-      case documentSymbolsRes of
-        Left e -> do
-          logError $ "e: " <> e
-          pure []
-        Right documentSymbols -> do
-          pure documentSymbols
+    Right documentSymbols -> do
+      pure documentSymbols

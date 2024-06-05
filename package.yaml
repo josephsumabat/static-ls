@@ -53,6 +53,7 @@ dependencies:
   - haskell-ast
   - pretty-simple
   - Diff
+  - exceptions
 language: GHC2021
 
 default-extensions:

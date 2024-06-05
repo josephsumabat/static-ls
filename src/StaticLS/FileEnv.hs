@@ -18,5 +18,8 @@ data FileState = FileState
   }
   deriving (Show)
 
-class HasFileEnv m where
+class (Monad m) => HasFileEnv m where
   getFileEnv :: m FileEnv
+
+class (HasFileEnv m) => SetFileEnv m where
+  setFileEnv :: FileEnv -> m ()

@@ -41,13 +41,12 @@ data HieDbException
 
 instance Exception HieDbException
 
-{- | Imuttable references to "static sources" of language information. Should
-    be low overhead and should be sources for language information only.
-
-Functions that make use of this should ensure that they are robust against
-exceptions i.e. that the language server does not crash if something goes
-wrong with fetching information from a static source
--}
+-- | Imuttable references to "static sources" of language information. Should
+--     be low overhead and should be sources for language information only.
+--
+-- Functions that make use of this should ensure that they are robust against
+-- exceptions i.e. that the language server does not crash if something goes
+-- wrong with fetching information from a static source
 data StaticEnv = StaticEnv
   { hieDbPath :: HieDbPath
   -- ^ Path to the hiedb file

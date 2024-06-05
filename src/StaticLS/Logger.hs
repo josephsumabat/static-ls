@@ -1,18 +1,18 @@
 module StaticLS.Logger (
-    Msg (..),
-    Logger,
-    LoggerM,
-    HasLogger,
-    setupLogger,
-    noOpLogger,
-    HasCallStack,
-    CallStack,
-    callStack,
-    logWith,
-    logInfo,
-    logError,
-    logWarn,
-    getLogger,
+  Msg (..),
+  Logger,
+  LoggerM,
+  HasLogger,
+  setupLogger,
+  noOpLogger,
+  HasCallStack,
+  CallStack,
+  callStack,
+  logWith,
+  logInfo,
+  logError,
+  logWarn,
+  getLogger,
 )
 where
 
@@ -27,12 +27,12 @@ import System.IO qualified as IO
 type Logger = LoggerM IO
 
 class HasLogger m where
-    getLogger :: m Logger
+  getLogger :: m Logger
 
 logWith :: (HasCallStack, HasLogger m, MonadIO m) => Colog.Severity -> Text -> CallStack -> m ()
 logWith severity text stack = do
-    logger <- getLogger
-    liftIO $ logger Colog.<& Msg{severity, text, stack}
+  logger <- getLogger
+  liftIO $ logger Colog.<& Msg {severity, text, stack}
 
 logInfo :: (HasCallStack, HasLogger m, MonadIO m) => Text -> m ()
 logInfo text = logWith Colog.Info text callStack
@@ -45,7 +45,7 @@ logWarn text = logWith Colog.Warning text callStack
 
 textStderrLogger :: Colog.LogAction IO Text
 textStderrLogger = Colog.LogAction $ \msg ->
-    B.hPutStr IO.stderr $ T.Encoding.encodeUtf8 (msg <> "\n")
+  B.hPutStr IO.stderr $ T.Encoding.encodeUtf8 (msg <> "\n")
 
 noOpLogger :: Colog.LogAction IO Msg
 noOpLogger = Colog.LogAction $ \_msg -> pure ()
@@ -56,11 +56,11 @@ logger = Colog.cmap msgToText textStderrLogger
 type LoggerM m = Colog.LogAction m Msg
 
 data Msg = Msg
-    { severity :: !Colog.Severity
-    , stack :: !CallStack
-    , text :: !Text
-    }
-    deriving (Show)
+  { severity :: !Colog.Severity
+  , stack :: !CallStack
+  , text :: !Text
+  }
+  deriving (Show)
 
 msgToText :: Msg -> Text
 msgToText msg = msg.text
@@ -68,4 +68,4 @@ msgToText msg = msg.text
 -- | Intended to inspect environment variables and then log stuff out
 setupLogger :: IO (LoggerM IO)
 setupLogger = do
-    pure logger
+  pure logger

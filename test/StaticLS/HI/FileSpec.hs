@@ -12,44 +12,44 @@ import TestImport.Assert qualified as Test
 
 spec :: Spec
 spec = do
-    describe "Can convert from src to hi file" $ do
-        describe "src file to hi file" $ do
-            it "returns a valid hi file when called on a src file" $ do
-                staticEnv <- Test.initStaticEnv
-                hiFile <-
-                    runStaticEnv staticEnv $
-                        runMaybeT $
-                            srcFilePathToHiFilePath "test/TestData/Mod1.hs"
-                let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile
-                hiFileExists <- maybe (pure False) doesFileExist relativeHiFile
+  describe "Can convert from src to hi file" $ do
+    describe "src file to hi file" $ do
+      it "returns a valid hi file when called on a src file" $ do
+        staticEnv <- Test.initStaticEnv
+        hiFile <-
+          runStaticEnv staticEnv $
+            runMaybeT $
+              srcFilePathToHiFilePath "test/TestData/Mod1.hs"
+        let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile
+        hiFileExists <- maybe (pure False) doesFileExist relativeHiFile
 
-                relativeHiFile `shouldBe` Just "test/TestData/.hifiles/TestData/Mod1.hi"
-                hiFileExists `shouldBe` True
+        relativeHiFile `shouldBe` Just "test/TestData/.hifiles/TestData/Mod1.hi"
+        hiFileExists `shouldBe` True
 
-            it "returns a valid hi file when called on a test/ file" $ do
-                staticEnv <- Test.initStaticEnv
-                hiFile <-
-                    runStaticEnv staticEnv $
-                        runMaybeT $
-                            srcFilePathToHiFilePath "test/TestData/Mod1.hs"
-                let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile
-                hiFileExists <- maybe (pure False) doesFileExist relativeHiFile
+      it "returns a valid hi file when called on a test/ file" $ do
+        staticEnv <- Test.initStaticEnv
+        hiFile <-
+          runStaticEnv staticEnv $
+            runMaybeT $
+              srcFilePathToHiFilePath "test/TestData/Mod1.hs"
+        let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile
+        hiFileExists <- maybe (pure False) doesFileExist relativeHiFile
 
-                relativeHiFile `shouldBe` Just "test/TestData/.hifiles/TestData/Mod1.hi"
-                hiFileExists `shouldBe` True
+        relativeHiFile `shouldBe` Just "test/TestData/.hifiles/TestData/Mod1.hi"
+        hiFileExists `shouldBe` True
 
-    describe "readHiFile" $ do
-        it "Returns a valid hi file" $ do
-            hiFile <- runMaybeT $ readHiFile "test/TestData/.hifiles/TestData/Mod1.hi"
-            _ <- Test.assertJust "expected succesful read" hiFile
-            (pure () :: IO ())
+  describe "readHiFile" $ do
+    it "Returns a valid hi file" $ do
+      hiFile <- runMaybeT $ readHiFile "test/TestData/.hifiles/TestData/Mod1.hi"
+      _ <- Test.assertJust "expected succesful read" hiFile
+      (pure () :: IO ())
 
-        it "Does not crash when given an invalid hi file to read " $ do
-            hiFile <- runMaybeT $ readHiFile "./test/TestData/Mod1.hs"
-            _ <- Test.assertNothing "expected failure" hiFile
-            (pure () :: IO ())
+    it "Does not crash when given an invalid hi file to read " $ do
+      hiFile <- runMaybeT $ readHiFile "./test/TestData/Mod1.hs"
+      _ <- Test.assertNothing "expected failure" hiFile
+      (pure () :: IO ())
 
-        it "Does not crash when given no file to read" $ do
-            hiFile <- runMaybeT $ readHiFile ""
-            _ <- Test.assertNothing "expected failure" hiFile
-            (pure () :: IO ())
+    it "Does not crash when given no file to read" $ do
+      hiFile <- runMaybeT $ readHiFile ""
+      _ <- Test.assertNothing "expected failure" hiFile
+      (pure () :: IO ())

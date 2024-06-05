@@ -6,7 +6,7 @@ import StaticLS.Server qualified as StaticLS
 
 main :: IO ()
 main = do
-    staticEnvOpts <- App.execArgParser
-    logger <- StaticLS.Logger.setupLogger
-    _ <- StaticLS.runServer staticEnvOpts logger
-    pure ()
+  staticEnvOpts <- App.execArgParser
+  logger <- StaticLS.Logger.setupLogger
+  _ <- StaticLS.runServer staticEnvOpts logger
+  pure ()

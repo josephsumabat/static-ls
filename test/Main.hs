@@ -12,14 +12,14 @@ import Test.Tasty.Expect
 
 main :: IO ()
 main = do
-    hspecWith defaultConfig{configFormatter = Just progress} Spec.spec
+  hspecWith defaultConfig {configFormatter = Just progress} Spec.spec
 
 -- defaultMainWithIngredients (expectIngredient : defaultIngredients) tests
 
 tests :: TestTree
 tests =
-    testGroup
-        "Tests"
-        [ test "" [expect||] $ do
-            pure $ T.pack $ show $ Lexer.lexerPass0 "module Main where\nmain :: IO ()"
-        ]
+  testGroup
+    "Tests"
+    [ test "" [expect||] $ do
+        pure $ T.pack $ show $ Lexer.lexerPass0 "module Main where\nmain :: IO ()"
+    ]

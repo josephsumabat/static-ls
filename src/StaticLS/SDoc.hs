@@ -11,13 +11,13 @@ showSD = T.pack . printSDocSimple
 
 printSDocSimple :: SDoc -> String
 printSDocSimple = renderWithContext sdocContext
-  where
-    sdocContext = pprStyleToSDocContext $ mkUserStyle neverQualify AllTheWay
+ where
+  sdocContext = pprStyleToSDocContext $ mkUserStyle neverQualify AllTheWay
 
 pprStyleToSDocContext :: PprStyle -> SDocContext
-pprStyleToSDocContext pprStyle = defaultSDocContext{sdocStyle = pprStyle}
+pprStyleToSDocContext pprStyle = defaultSDocContext {sdocStyle = pprStyle}
 
 showNameWithoutUniques :: (Outputable a) => a -> T.Text
 showNameWithoutUniques outputable = T.pack $ renderWithContext sdocContext (ppr outputable)
-  where
-    sdocContext = pprStyleToSDocContext $ mkUserStyle neverQualify AllTheWay
+ where
+  sdocContext = pprStyleToSDocContext $ mkUserStyle neverQualify AllTheWay

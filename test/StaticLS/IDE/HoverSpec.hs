@@ -9,10 +9,10 @@ import TestImport.TestData qualified as Test
 
 spec :: Spec
 spec =
-    describe "Correctly retrieves hover information" $ do
-        describe "All available sources" $ do
-            xit "retrieves the myFun definition from a different module" $ do
-                staticLsEnv <- Test.initStaticLsEnv
-                mHoverInfo <- runStaticLsM staticLsEnv $ uncurry retrieveHover Test.myFunRef1TdiAndPosition
-                _ <- Test.assertJust "no hover info found" mHoverInfo
-                pure ()
+  describe "Correctly retrieves hover information" $ do
+    describe "All available sources" $ do
+      xit "retrieves the myFun definition from a different module" $ do
+        staticLsEnv <- Test.initStaticLsEnv
+        mHoverInfo <- runStaticLsM staticLsEnv $ uncurry retrieveHover Test.myFunRef1TdiAndPosition
+        _ <- Test.assertJust "no hover info found" mHoverInfo
+        pure ()

@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module StaticLS.HIE.File (
-  getHieFileFromTdi,
+  getHieFileFromUri,
   getHieFile,
   modToHieFile,
   modToSrcFile,
@@ -38,11 +38,14 @@ import System.Directory qualified as Dir
 import System.FilePath ((</>))
 
 -- | Retrieve a hie info from a lsp text document identifier
-getHieFileFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m GHC.HieFile
-getHieFileFromTdi = exceptToMaybeT . getHieFile <=< tdiToHieFilePath
+-- Returns a Maybe instead of throwing because we want to handle
+-- the case when there is no hie file and do something reasonable
+-- Most functions that get the file text will throw if the file text is not found
+getHieFileFromUri :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m GHC.HieFile
+getHieFileFromUri = exceptToMaybeT . getHieFile <=< uriToHieFilePath
 
-tdiToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m HieFilePath
-tdiToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSP.uriToFilePath . (._uri))
+uriToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m HieFilePath
+uriToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSP.uriToFilePath)
 
 -- | Retrieve an hie file from a module name
 modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile

@@ -1,8 +1,7 @@
 module TestData.Mod2 where
 
-{- | Lsp Position line: 10,  character: 0
-another line of comments
--}
+-- | Lsp Position line: 10,  character: 0
+-- another line of comments
 myFun ::
   -- | First int
   Int ->

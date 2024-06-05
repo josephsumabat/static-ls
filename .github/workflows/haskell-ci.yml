@@ -159,7 +159,7 @@ jobs:
           source-repository-package
             type:     git
             location: https://github.com/oberblastmeister/tasty-expect.git
-            tag:      a7ca6dc8d4a18d06b3bf4760bd22b9f6196feb05
+            tag:      ec14d702660c79a907e9c45812958cd0df0f036f
 
           source-repository-package
             type:     git

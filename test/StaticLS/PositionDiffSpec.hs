@@ -29,7 +29,7 @@ spec = do
                  ]
     updatePositionUsingDiff 0 (flipDiff diff) `shouldBe` 0
     updatePositionUsingDiff 6 (Diff.getDiff ts' ts) `shouldBe` 5
-    updatePositionUsingDiff 1 ([Delete (mkToken "hello")]) `shouldBe` 0
+    updatePositionUsingDiff 1 [Delete (mkToken "hello")] `shouldBe` 0
     pure @IO ()
   it "delete clip" do
     let ts = [mkToken "module", mkToken "da"]

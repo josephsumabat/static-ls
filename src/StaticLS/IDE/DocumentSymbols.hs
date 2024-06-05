@@ -63,14 +63,14 @@ declToSymbol decl =
 mkDocumentSymbol :: Text -> LSP.SymbolKind -> LSP.Range -> LSP.Range -> LSP.DocumentSymbol
 mkDocumentSymbol name kind range selectionRange =
   LSP.DocumentSymbol
-    { LSP._name = name
-    , LSP._detail = Nothing
-    , LSP._kind = kind
-    , LSP._tags = Nothing
-    , LSP._deprecated = Nothing
-    , LSP._range = range
-    , LSP._selectionRange = selectionRange
-    , LSP._children = Nothing
+    { LSP._name = name,
+      LSP._detail = Nothing,
+      LSP._kind = kind,
+      LSP._tags = Nothing,
+      LSP._deprecated = Nothing,
+      LSP._range = range,
+      LSP._selectionRange = selectionRange,
+      LSP._children = Nothing
     }
 
 nodeToText :: (AST.HasDynNode n) => n -> Text

@@ -55,6 +55,9 @@ library
       StaticLS.IDE.Workspace.Symbol
       StaticLS.Logger
       StaticLS.Maybe
+      StaticLS.Position
+      StaticLS.PositionDiff
+      StaticLS.ProtoLSP
       StaticLS.SDoc
       StaticLS.Server
       StaticLS.SrcFiles
@@ -79,7 +82,8 @@ library
       TypeApplications
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
-      aeson >=2 && <2.3
+      Diff
+    , aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , bytestring >=0.10 && <0.13
@@ -135,7 +139,8 @@ executable static-ls
       TypeApplications
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates
   build-depends:
-      aeson >=2 && <2.3
+      Diff
+    , aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , bytestring >=0.10 && <0.13
@@ -175,14 +180,17 @@ executable static-ls
 
 test-suite static-ls-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
+      Spec
       SpecHook
       StaticLS.HI.FileSpec
       StaticLS.HIE.FileSpec
       StaticLS.HISpec
       StaticLS.IDE.DefinitionSpec
       StaticLS.IDE.HoverSpec
+      StaticLS.PositionDiffSpec
+      StaticLS.PositionSpec
       TestData.Mod1
       TestData.Mod2
       TestImport
@@ -206,7 +214,9 @@ test-suite static-ls-test
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
-      aeson >=2 && <2.3
+      Diff
+    , QuickCheck
+    , aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
     , base >=4.17.0 && <4.19
     , bytestring >=0.10 && <0.13
@@ -228,8 +238,11 @@ test-suite static-ls-test
     , mtl >=2.2.2 && <2.4
     , parsec >=3.1.0 && <3.2
     , pretty-simple
+    , quickcheck-instances
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
+    , tasty
+    , tasty-expect
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-rope ==0.2.*

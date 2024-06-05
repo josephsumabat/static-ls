@@ -52,6 +52,7 @@ dependencies:
   - tree-sitter-ast
   - haskell-ast
   - pretty-simple
+  - Diff
 language: GHC2021
 
 default-extensions:
@@ -89,7 +90,16 @@ tests:
   static-ls-test:
     dependencies:
     - static-ls
-    defaults: hspec/hspec@main
+    - tasty-expect
+    - hspec == 2.*
+    - QuickCheck
+    - quickcheck-instances
+    - tasty
+    main: Main.hs
+    source-dirs: test
+    verbatim:
+      build-tool-depends:
+          hspec-discover:hspec-discover == 2.*
     ghc-options:
       - -fwrite-ide-info
       - -fwrite-interface

@@ -5,6 +5,7 @@ import Colog.Core.IO qualified as Colog
 import Control.Monad.Reader
 import Data.HashMap.Strict qualified as HashMap
 import Data.IORef qualified as IORef
+import Data.Text (Text)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
 import StaticLS.Logger
@@ -55,6 +56,11 @@ getHaskell :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe Haskell.Haskell)
 getHaskell uri = do
     fileState <- getFileState uri
     pure $ (.tree) <$> fileState
+
+getSource :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe Text)
+getSource uri = do
+    fileState <- getFileState uri
+    pure $ (.contentsText) <$> fileState
 
 getFileState :: (HasFileEnv m, MonadIO m) => LSP.Uri -> m (Maybe FileState)
 getFileState uri = do

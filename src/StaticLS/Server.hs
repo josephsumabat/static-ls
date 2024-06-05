@@ -18,7 +18,6 @@ import Data.List as X
 import Data.Maybe as X (fromMaybe)
 import Data.Text qualified as T
 import Data.Text.Utf16.Rope.Mixed qualified as Rope
-import Language.Haskell.Lexer qualified as Haskell
 import Language.LSP.Logging qualified as LSP.Logging
 import Language.LSP.Protocol.Message (
     Method (..),
@@ -48,6 +47,7 @@ import StaticLS.IDE.Hover
 import StaticLS.IDE.References
 import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
+import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv.Options
 import StaticLS.StaticLsEnv
 import StaticLS.Utils
@@ -103,7 +103,7 @@ updateFileState uri virtualFile = do
     let contents = virtualFile._file_text
     let contentsText = Rope.toText contents
     let tree = Haskell.parse contentsText
-    let tokens = Haskell.lexerPass1 $ T.unpack contentsText
+    let tokens = PositionDiff.lex $ T.unpack contentsText
     fileStates <- asks (.fileEnv)
     IORef.modifyIORef' fileStates $ \fileStates ->
         HashMap.insert uri FileState{contents, contentsText, tree, tokens} fileStates

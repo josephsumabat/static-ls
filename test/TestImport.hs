@@ -8,13 +8,13 @@ import System.Directory (makeAbsolute)
 
 initStaticLsEnv :: IO StaticLsEnv
 initStaticLsEnv = do
-    wsRoot <- makeAbsolute "."
-    StaticLsEnv.initStaticLsEnv wsRoot defaultTestStaticEnvOptions noOpLogger
+  wsRoot <- makeAbsolute "."
+  StaticLsEnv.initStaticLsEnv wsRoot defaultTestStaticEnvOptions noOpLogger
 
 initStaticEnv :: IO StaticEnv
 initStaticEnv = do
-    wsRoot <- makeAbsolute "."
-    StaticEnv.initStaticEnv wsRoot defaultTestStaticEnvOptions
+  wsRoot <- makeAbsolute "."
+  StaticEnv.initStaticEnv wsRoot defaultTestStaticEnvOptions
 
 testHieDir :: FilePath
 testHieDir = "test/TestData/.hiefiles"
@@ -30,19 +30,19 @@ testSrcDirs = Options.defaultSrcDirs
 
 defaultTestStaticEnvOptions :: StaticEnvOptions
 defaultTestStaticEnvOptions =
-    StaticEnvOptions
-        { optionHieDbPath = testHieDbDir
-        , optionHieFilesPath = testHieDir
-        , optionSrcDirs = testSrcDirs
-        , optionHiFilesPath = testHiDir
-        }
+  StaticEnvOptions
+    { optionHieDbPath = testHieDbDir
+    , optionHieFilesPath = testHieDir
+    , optionSrcDirs = testSrcDirs
+    , optionHiFilesPath = testHiDir
+    }
 
 initStaticEnvOpts :: StaticEnvOptions -> IO StaticEnv
 initStaticEnvOpts options = do
-    wsRoot <- makeAbsolute "."
-    StaticEnv.initStaticEnv wsRoot options
+  wsRoot <- makeAbsolute "."
+  StaticEnv.initStaticEnv wsRoot options
 
 initStaticLsEnvOpts :: StaticEnvOptions -> IO StaticLsEnv
 initStaticLsEnvOpts options = do
-    wsRoot <- makeAbsolute "."
-    StaticLsEnv.initStaticLsEnv wsRoot options noOpLogger
+  wsRoot <- makeAbsolute "."
+  StaticLsEnv.initStaticLsEnv wsRoot options noOpLogger

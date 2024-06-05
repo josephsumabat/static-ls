@@ -8,13 +8,13 @@ import UnliftIO.Exception qualified as Exception
 
 isJustOrThrow :: (HasCallStack, MonadIO m) => String -> Maybe a -> m a
 isJustOrThrow s m = case m of
-    Just a -> pure a
-    Nothing -> Exception.throwString s
+  Just a -> pure a
+  Nothing -> Exception.throwString s
 
 isRightOrThrow :: (HasCallStack, MonadIO m) => (a -> String) -> Either a b -> m b
 isRightOrThrow f e = case e of
-    Right b -> pure b
-    Left a -> Exception.throwString (f a)
+  Right b -> pure b
+  Left a -> Exception.throwString (f a)
 
 isRightOrThrowS :: (HasCallStack, MonadIO m) => Either String b -> m b
 isRightOrThrowS = isRightOrThrow id

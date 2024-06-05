@@ -2,17 +2,17 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module StaticLS.StaticEnv (
-    initStaticEnv,
-    getStaticEnv,
-    runHieDbExceptT,
-    runHieDbMaybeT,
-    StaticEnv (..),
-    HieDbPath,
-    HieFilePath,
-    HiFilePath,
-    HasStaticEnv,
-    HasCallStack,
-    runStaticEnv,
+  initStaticEnv,
+  getStaticEnv,
+  runHieDbExceptT,
+  runHieDbMaybeT,
+  StaticEnv (..),
+  HieDbPath,
+  HieFilePath,
+  HiFilePath,
+  HasStaticEnv,
+  HasCallStack,
+  runStaticEnv,
 )
 where
 
@@ -33,77 +33,78 @@ type HieFilePath = FilePath
 type HiFilePath = FilePath
 
 data HieDbException
-    = HieDbIOException IOException
-    | HieDbSqlException SQLError
-    | HieDbNoHieDbSourceException
-    | HieDbOtherException SomeException
-    deriving (Show)
+  = HieDbIOException IOException
+  | HieDbSqlException SQLError
+  | HieDbNoHieDbSourceException
+  | HieDbOtherException SomeException
+  deriving (Show)
 
 instance Exception HieDbException
 
--- | Imuttable references to "static sources" of language information. Should
---     be low overhead and should be sources for language information only.
---
--- Functions that make use of this should ensure that they are robust against
--- exceptions i.e. that the language server does not crash if something goes
--- wrong with fetching information from a static source
+{- | Imuttable references to "static sources" of language information. Should
+    be low overhead and should be sources for language information only.
+
+Functions that make use of this should ensure that they are robust against
+exceptions i.e. that the language server does not crash if something goes
+wrong with fetching information from a static source
+-}
 data StaticEnv = StaticEnv
-    { hieDbPath :: HieDbPath
-    -- ^ Path to the hiedb file
-    , hieFilesPath :: HieFilePath
-    , hiFilesPath :: HiFilePath
-    , wsRoot :: FilePath
-    -- ^ workspace root
-    , srcDirs :: [FilePath]
-    -- ^ directories to search for source code in order of priority
-    }
+  { hieDbPath :: HieDbPath
+  -- ^ Path to the hiedb file
+  , hieFilesPath :: HieFilePath
+  , hiFilesPath :: HiFilePath
+  , wsRoot :: FilePath
+  -- ^ workspace root
+  , srcDirs :: [FilePath]
+  -- ^ directories to search for source code in order of priority
+  }
 
 class (Monad m) => HasStaticEnv m where
-    getStaticEnv :: m StaticEnv
+  getStaticEnv :: m StaticEnv
 
 instance (Monad m) => HasStaticEnv (ReaderT StaticEnv m) where
-    getStaticEnv = ask
+  getStaticEnv = ask
 
 instance (HasStaticEnv m) => HasStaticEnv (MaybeT m) where
-    getStaticEnv = lift getStaticEnv
+  getStaticEnv = lift getStaticEnv
 
 instance (HasStaticEnv m) => HasStaticEnv (ExceptT e m) where
-    getStaticEnv = lift getStaticEnv
+  getStaticEnv = lift getStaticEnv
 
 runStaticEnv :: StaticEnv -> ReaderT StaticEnv IO a -> IO a
 runStaticEnv = flip runReaderT
 
 initStaticEnv :: FilePath -> StaticEnvOptions -> IO StaticEnv
 initStaticEnv wsRoot staticEnvOptions =
-    do
-        let databasePath = wsRoot </> staticEnvOptions.optionHieDbPath
-            hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
-            srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
-            hiFilesPath = wsRoot </> staticEnvOptions.optionHiFilesPath
-        let serverStaticEnv =
-                StaticEnv
-                    { hieDbPath = databasePath
-                    , hieFilesPath = hieFilesPath
-                    , hiFilesPath = hiFilesPath
-                    , wsRoot = wsRoot
-                    , srcDirs = srcDirs
-                    }
+  do
+    let databasePath = wsRoot </> staticEnvOptions.optionHieDbPath
+        hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
+        srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
+        hiFilesPath = wsRoot </> staticEnvOptions.optionHiFilesPath
+    let serverStaticEnv =
+          StaticEnv
+            { hieDbPath = databasePath
+            , hieFilesPath = hieFilesPath
+            , hiFilesPath = hiFilesPath
+            , wsRoot = wsRoot
+            , srcDirs = srcDirs
+            }
 
-        pure serverStaticEnv
+    pure serverStaticEnv
 
 -- | Run an hiedb action in an exceptT
 runHieDbExceptT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> ExceptT HieDbException m a
 runHieDbExceptT hieDbFn =
-    getStaticEnv
-        >>= \staticEnv ->
-            ( \hiedbPath ->
-                ExceptT . liftIO $
-                    HieDb.withHieDb hiedbPath (fmap Right . hieDbFn)
-                        `catch` (pure . Left . HieDbIOException)
-                        `catch` (pure . Left . HieDbSqlException)
-                        `catch` (\(e :: SomeException) -> pure . Left $ HieDbOtherException e)
-            )
-                staticEnv.hieDbPath
+  getStaticEnv
+    >>= \staticEnv ->
+      ( \hiedbPath ->
+          ExceptT . liftIO $
+            HieDb.withHieDb hiedbPath (fmap Right . hieDbFn)
+              `catch` (pure . Left . HieDbIOException)
+              `catch` (pure . Left . HieDbSqlException)
+              `catch` (\(e :: SomeException) -> pure . Left $ HieDbOtherException e)
+      )
+        staticEnv.hieDbPath
 
 -- | Run an hiedb action with the MaybeT Monad
 runHieDbMaybeT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> MaybeT m a

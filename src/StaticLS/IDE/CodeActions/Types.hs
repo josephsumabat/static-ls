@@ -8,23 +8,23 @@ import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
 import StaticLS.StaticLsEnv
 
 data Context = Context
-    { textDocument :: !TextDocumentIdentifier
-    , range :: !Range
-    }
+  { textDocument :: !TextDocumentIdentifier
+  , range :: !Range
+  }
 
 data CodeActionMessageKind
-    = GlobalActionMessage !Int
-    | AutoImportActionMessage !Text
+  = GlobalActionMessage !Int
+  | AutoImportActionMessage !Text
 
 data CodeActionMessage = CodeActionMessage
-    { kind :: !CodeActionMessageKind
-    , tdi :: !TextDocumentIdentifier
-    }
+  { kind :: !CodeActionMessageKind
+  , tdi :: !TextDocumentIdentifier
+  }
 
 data GlobalCodeAction = GlobalCodeAction
-    { name :: !Text
-    , run :: Context -> StaticLsM (Maybe ())
-    }
+  { name :: !Text
+  , run :: Context -> StaticLsM (Maybe ())
+  }
 
 $(deriveJSON defaultOptions ''CodeActionMessageKind)
 $(deriveJSON defaultOptions ''CodeActionMessage)

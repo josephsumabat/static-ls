@@ -16,30 +16,30 @@ import StaticLS.StaticEnv
 
 findRefs :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> LSP.Position -> m [LSP.Location]
 findRefs tdi position = do
-    mLocList <- runMaybeT $ do
-        hieFile <- getHieFileFromTdi tdi
-        let hiedbPosition = lspPositionToHieDbCoords position
-            names = namesAtPoint hieFile hiedbPosition
-            occNamesAndModNamesAtPoint =
-                (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
-                    <$> names
-        refResRows <-
-            lift $ fmap (fromMaybe []) $ runMaybeT $ runHieDbMaybeT $ \hieDb -> do
-                join
-                    <$> mapM
-                        ( \(occ, mModName) -> do
-                            HieDb.findReferences hieDb False occ mModName Nothing []
-                        )
-                        occNamesAndModNamesAtPoint
-        lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refResRows
-    pure $ fromMaybe [] mLocList
+  mLocList <- runMaybeT $ do
+    hieFile <- getHieFileFromTdi tdi
+    let hiedbPosition = lspPositionToHieDbCoords position
+        names = namesAtPoint hieFile hiedbPosition
+        occNamesAndModNamesAtPoint =
+          (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
+            <$> names
+    refResRows <-
+      lift $ fmap (fromMaybe []) $ runMaybeT $ runHieDbMaybeT $ \hieDb -> do
+        join
+          <$> mapM
+            ( \(occ, mModName) -> do
+                HieDb.findReferences hieDb False occ mModName Nothing []
+            )
+            occNamesAndModNamesAtPoint
+    lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refResRows
+  pure $ fromMaybe [] mLocList
 
 refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.RefRow -> MaybeT m LSP.Location
 refRowToLocation (refRow HieDb.:. _) = do
-    let start = exceptToMaybe $ hiedbCoordsToLspPosition (refRow.refSLine, refRow.refSCol)
-        end = exceptToMaybe $ hiedbCoordsToLspPosition (refRow.refELine, refRow.refECol)
-        range = LSP.Range <$> start <*> end
-        hieFilePath = refRow.refSrc
-    file <- hieFilePathToSrcFilePath hieFilePath
-    let lspUri = LSP.fromNormalizedUri . LSP.normalizedFilePathToUri . LSP.toNormalizedFilePath $ file
-    toAlt $ LSP.Location lspUri <$> range
+  let start = exceptToMaybe $ hiedbCoordsToLspPosition (refRow.refSLine, refRow.refSCol)
+      end = exceptToMaybe $ hiedbCoordsToLspPosition (refRow.refELine, refRow.refECol)
+      range = LSP.Range <$> start <*> end
+      hieFilePath = refRow.refSrc
+  file <- hieFilePathToSrcFilePath hieFilePath
+  let lspUri = LSP.fromNormalizedUri . LSP.normalizedFilePathToUri . LSP.toNormalizedFilePath $ file
+  toAlt $ LSP.Location lspUri <$> range

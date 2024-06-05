@@ -1,6 +1,6 @@
 module StaticLS.SrcFiles (
-    SrcFilePath,
-    srcDirs,
+  SrcFilePath,
+  srcDirs,
 ) where
 
 type SrcFilePath = FilePath

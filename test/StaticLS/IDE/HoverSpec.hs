@@ -11,8 +11,11 @@ spec :: Spec
 spec =
   describe "Correctly retrieves hover information" $ do
     describe "All available sources" $ do
-      xit "retrieves the myFun definition from a different module" $ do
+      it "retrieves the myFun definition from a different module" $ do
         staticLsEnv <- Test.initStaticLsEnv
-        mHoverInfo <- runStaticLsM staticLsEnv $ uncurry retrieveHover Test.myFunRef1TdiAndPosition
+        let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+        mHoverInfo <- runStaticLsM staticLsEnv $ do
+          _ <- Test.updateTestFileState tdi
+          uncurry retrieveHover tdiAndPos
         _ <- Test.assertJust "no hover info found" mHoverInfo
         pure ()

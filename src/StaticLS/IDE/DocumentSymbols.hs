@@ -31,7 +31,7 @@ declarationToSymbol :: Haskell.Declaration -> AST.Err [LSP.DocumentSymbol]
 declarationToSymbol decl =
   case decl.getDeclaration of
     Inj @Haskell.Decl decl -> declToSymbol decl
-    Inj @Haskell.DataType dataType -> pure []
+    Inj @Haskell.DataType _dataType -> pure []
     _ -> pure []
 
 declToSymbol :: Haskell.Decl -> AST.Err [LSP.DocumentSymbol]

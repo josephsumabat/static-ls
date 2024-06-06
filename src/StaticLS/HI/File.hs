@@ -73,6 +73,4 @@ readHiFileExceptT filePath = do
 srcFilePathToHiFilePath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 srcFilePathToHiFilePath srcPath = do
   staticEnv <- getStaticEnv
-  -- let hiFiles = staticEnv.hiFilesPath
-  --     hiDir = staticEnv.wsRoot </> hiFiles
   subRootExtensionFilepath staticEnv.wsRoot staticEnv.hiFilesPath ".hi" srcPath

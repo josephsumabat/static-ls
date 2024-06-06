@@ -46,16 +46,11 @@ type AbsPath = Path Abs
 
 type RelPath = Path Rel
 
--- toOsPath :: Path p -> OsPath
--- toOsPath = (.path)
-
 toFilePath :: (HasCallStack) => Path p -> FilePath
 toFilePath = (.path)
 
 filePathToRel :: (HasCallStack) => FilePath -> RelPath
 filePathToRel = UncheckedPath
-
--- filePathToRel = UncheckedPath . either Exception.throw id . OsPath.encodeUtf
 
 filePathToAbs :: (HasCallStack, MonadIO m, MonadThrow m) => FilePath -> m AbsPath
 filePathToAbs p = do
@@ -70,19 +65,6 @@ unsafeFilePathToAbs p =
 
 filePathToAbsThrow :: (MonadThrow m, HasCallStack) => FilePath -> m AbsPath
 filePathToAbsThrow p = pure $ UncheckedPath p
-
--- osPathToAbs :: (MonadIO m) => OsPath -> m AbsPath
--- osPathToAbs p = do
---   absPath <- liftIO $ Dir.makeAbsolute p
---   pure $ UncheckedPath absPath
-
--- unsafeOsPathToAbs :: (HasCallStack) => OsPath -> AbsPath
--- unsafeOsPathToAbs p =
---   if OsPath.isAbsolute p
---     then UncheckedPath p
---     else error "unsafeOsPathToAbs: path is not absolute"
-
--- TODO: use unsafeEncodeUtf when on the right version
 
 (</>) :: Path p -> Path Rel -> Path p
 (UncheckedPath p) </> (UncheckedPath p') = UncheckedPath (p FilePath.</> p')

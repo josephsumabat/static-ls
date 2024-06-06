@@ -18,9 +18,7 @@ modToFilePath modName ext =
 subRootExtensionFilepath :: (MonadIO m) => AbsPath -> AbsPath -> String -> AbsPath -> MaybeT m AbsPath
 subRootExtensionFilepath wsRoot parent extension srcPath =
   do
-    -- absoluteRoot <- liftIO $ Dir.makeAbsolute wsRoot
     let absoluteSrcDirs = (wsRoot Path.</>) <$> srcDirs
-    -- absoluteSrcPath <- liftIO $ Dir.makeAbsolute srcPath
     -- Normalize to absolute paths to drop the prefix
     let noPrefixSrcPath =
           List.foldl' (\path absSrcDir -> Path.makeRelative absSrcDir path) (Path.absToRel srcPath) absoluteSrcDirs

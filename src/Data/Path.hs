@@ -1,11 +1,8 @@
 module Data.Path (
   Path (path, Path),
-  OsString,
   KnownPathKind (sPathKind),
   AbsPath,
   RelPath,
-  osPathToAbs,
-  unsafeOsPathToAbs,
   filePathToAbs,
   unsafeFilePathToAbs,
   filePathToRel,
@@ -14,19 +11,15 @@ module Data.Path (
   makeRelative,
   absToRel,
   (<.>),
-  stringToOs,
   (-<.>),
   filePathToAbsThrow,
 ) where
 
-import Control.Exception qualified as Exception
-import Control.Monad ((<=<))
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import GHC.Stack (HasCallStack)
-import System.Directory.OsPath qualified as Dir
-import System.OsPath (OsPath, OsString)
-import System.OsPath qualified as OsPath
+import System.Directory qualified as Dir
+import System.FilePath qualified as FilePath
 
 data PathKind = Rel | Abs
 
@@ -43,62 +36,67 @@ instance KnownPathKind Abs where
 instance KnownPathKind Rel where
   sPathKind = SRel
 
-newtype Path p = UncheckedPath {path :: OsPath}
+newtype Path p = UncheckedPath {path :: FilePath}
   deriving (Show, Eq, Ord)
 
-pattern Path :: OsPath -> Path p
+pattern Path :: FilePath -> Path p
 pattern Path p <- UncheckedPath p
 
 type AbsPath = Path Abs
 
 type RelPath = Path Rel
 
-toOsPath :: Path p -> OsPath
-toOsPath = (.path)
+-- toOsPath :: Path p -> OsPath
+-- toOsPath = (.path)
 
 toFilePath :: (HasCallStack) => Path p -> FilePath
-toFilePath = either Exception.throw id . OsPath.decodeUtf . toOsPath
+toFilePath = (.path)
 
 filePathToRel :: (HasCallStack) => FilePath -> RelPath
-filePathToRel = UncheckedPath . either Exception.throw id . OsPath.encodeUtf
+filePathToRel = UncheckedPath
+
+-- filePathToRel = UncheckedPath . either Exception.throw id . OsPath.encodeUtf
 
 filePathToAbs :: (HasCallStack, MonadIO m, MonadThrow m) => FilePath -> m AbsPath
-filePathToAbs = osPathToAbs <=< OsPath.encodeUtf
-
-unsafeFilePathToAbs :: (HasCallStack) => FilePath -> AbsPath
-unsafeFilePathToAbs = unsafeOsPathToAbs . either Exception.throw id . OsPath.encodeUtf
-
-filePathToAbsThrow :: (MonadThrow m, HasCallStack) => FilePath -> m AbsPath
-filePathToAbsThrow p = UncheckedPath <$> OsPath.encodeUtf p
-
-osPathToAbs :: (MonadIO m) => OsPath -> m AbsPath
-osPathToAbs p = do
+filePathToAbs p = do
   absPath <- liftIO $ Dir.makeAbsolute p
   pure $ UncheckedPath absPath
 
-unsafeOsPathToAbs :: (HasCallStack) => OsPath -> AbsPath
-unsafeOsPathToAbs p =
-  if OsPath.isAbsolute p
+unsafeFilePathToAbs :: (HasCallStack) => FilePath -> AbsPath
+unsafeFilePathToAbs p =
+  if FilePath.isAbsolute p
     then UncheckedPath p
     else error "unsafeOsPathToAbs: path is not absolute"
 
+filePathToAbsThrow :: (MonadThrow m, HasCallStack) => FilePath -> m AbsPath
+filePathToAbsThrow p = pure $ UncheckedPath p
+
+-- osPathToAbs :: (MonadIO m) => OsPath -> m AbsPath
+-- osPathToAbs p = do
+--   absPath <- liftIO $ Dir.makeAbsolute p
+--   pure $ UncheckedPath absPath
+
+-- unsafeOsPathToAbs :: (HasCallStack) => OsPath -> AbsPath
+-- unsafeOsPathToAbs p =
+--   if OsPath.isAbsolute p
+--     then UncheckedPath p
+--     else error "unsafeOsPathToAbs: path is not absolute"
+
 -- TODO: use unsafeEncodeUtf when on the right version
-stringToOs :: (HasCallStack) => String -> OsString
-stringToOs = either Exception.throw id . OsPath.encodeUtf
 
 (</>) :: Path p -> Path Rel -> Path p
-(UncheckedPath p) </> (UncheckedPath p') = UncheckedPath (p OsPath.</> p')
+(UncheckedPath p) </> (UncheckedPath p') = UncheckedPath (p FilePath.</> p')
 
 infixr 5 </>
 
-(<.>) :: Path p -> OsString -> Path p
-(UncheckedPath p) <.> ext = UncheckedPath (p OsPath.<.> ext)
+(<.>) :: Path p -> String -> Path p
+(UncheckedPath p) <.> ext = UncheckedPath (p FilePath.<.> ext)
 
-(-<.>) :: Path p -> OsString -> Path p
-(UncheckedPath p) -<.> ext = UncheckedPath (p OsPath.-<.> ext)
+(-<.>) :: Path p -> String -> Path p
+(UncheckedPath p) -<.> ext = UncheckedPath (p FilePath.-<.> ext)
 
 absToRel :: AbsPath -> RelPath
 absToRel (UncheckedPath p) = UncheckedPath p
 
 makeRelative :: Path p -> Path q -> Path Rel
-makeRelative (UncheckedPath p) (UncheckedPath q) = UncheckedPath (OsPath.makeRelative p q)
+makeRelative (UncheckedPath p) (UncheckedPath q) = UncheckedPath (FilePath.makeRelative p q)

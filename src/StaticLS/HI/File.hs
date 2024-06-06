@@ -75,4 +75,4 @@ srcFilePathToHiFilePath srcPath = do
   staticEnv <- getStaticEnv
   -- let hiFiles = staticEnv.hiFilesPath
   --     hiDir = staticEnv.wsRoot </> hiFiles
-  subRootExtensionFilepath staticEnv.wsRoot staticEnv.hiFilesPath (Path.stringToOs ".hi") srcPath
+  subRootExtensionFilepath staticEnv.wsRoot staticEnv.hiFilesPath ".hi" srcPath

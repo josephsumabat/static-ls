@@ -137,7 +137,7 @@ srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => AbsPath -> Ma
 srcFilePathToHieFilePathFromFile srcPath = do
   staticEnv <- getStaticEnv
   -- let hieDir = staticEnv.wsRoot </> staticEnv.hieFilesPath
-  subRootExtensionFilepath staticEnv.wsRoot staticEnv.hieFilesPath (Path.stringToOs ".hie") srcPath
+  subRootExtensionFilepath staticEnv.wsRoot staticEnv.hieFilesPath ".hie" srcPath
 
 -----------------------------------------------------------------------------------
 -- Map index method for getting hie files - too slow in practice on startup but makes

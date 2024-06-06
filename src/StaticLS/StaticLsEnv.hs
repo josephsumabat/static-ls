@@ -67,12 +67,12 @@ runStaticLsM = flip runReaderT
 getHaskell :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m Haskell.Haskell
 getHaskell uri = do
   fileState <- getFileStateThrow uri
-  pure $ fileState.tree
+  pure fileState.tree
 
 getSource :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m Text
 getSource uri = do
   fileState <- getFileStateThrow uri
-  pure $ fileState.contentsText
+  pure fileState.contentsText
 
 getFileState :: (HasFileEnv m) => LSP.Uri -> m (Maybe FileState)
 getFileState uri = do
@@ -92,6 +92,21 @@ posToHiePos uri hieSource pos = do
   let diff = PositionDiff.diffText source hieSource
   let pos' = PositionDiff.updatePositionUsingDiff pos diff
   pure pos'
+
+hiePosToPos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> Pos -> MaybeT m Pos
+hiePosToPos uri hieSource hiePos = do
+  source <- lift $ getSource uri
+  let diff = PositionDiff.diffText hieSource source
+  let pos' = PositionDiff.updatePositionUsingDiff hiePos diff
+  pure pos'
+
+hieLineColToLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> LineCol -> MaybeT m LineCol
+hieLineColToLineCol uri hieSource lineCol = do
+  source <- lift $ getSource uri
+  let pos = Position.lineColToPos hieSource lineCol
+  pos' <- hiePosToPos uri hieSource pos
+  let lineCol' = Position.posToLineCol source pos'
+  pure lineCol'
 
 lineColToHieLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> LineCol -> MaybeT m LineCol
 lineColToHieLineCol uri hieSource lineCol = do

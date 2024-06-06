@@ -46,6 +46,6 @@ spec = do
   it "insert and delete clip" do
     let ts = [mkToken "module"]
     let ts' = [mkToken "another"]
-    let diff = Diff.getDiff ts ts'
+    let _diff = Diff.getDiff ts ts'
     pure @IO ()
   pure ()

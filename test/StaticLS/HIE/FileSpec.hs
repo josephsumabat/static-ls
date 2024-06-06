@@ -7,7 +7,6 @@ import StaticLS.HIE.File
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import System.Directory
-import System.FilePath
 import Test.Hspec
 import TestImport qualified as Test
 import TestImport.Assert qualified as Test

@@ -7,6 +7,7 @@ import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.RWS
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
+import Data.LineColRange
 import Data.Maybe
 import Data.Path qualified as Path
 import Data.Text (Text, intercalate)
@@ -25,6 +26,7 @@ import Language.LSP.Protocol.Types (
   sectionSeparator,
   type (|?) (..),
  )
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
 import StaticLS.HI
 import StaticLS.HI.File
@@ -39,6 +41,7 @@ import StaticLS.StaticLsEnv
 
 -- | Retrieve hover information.
 retrieveHover ::
+  forall m.
   ( HasLogger m
   , HasStaticEnv m
   , MonadIO m
@@ -54,26 +57,45 @@ retrieveHover identifier position = do
   runMaybeT $ do
     hieFile <- getHieFileFromUri uri
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
+    -- Convert the location from the src file to a location in the hie file based on the file diff
     lineCol' <- lineColToHieLineCol uri hieSource lineCol
     lift $ logInfo $ T.pack $ "lineCol: " <> show lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
     docs <- docsAtPoint hieFile (ProtoLSP.lineColToProto lineCol')
-    let info =
+    let mHieInfo =
           listToMaybe $
             pointCommand
               hieFile
               (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
               Nothing
               (hoverInfo (GHC.hie_types hieFile) docs)
-    toAlt $ hoverInfoToHover <$> info
+    -- Convert the location from the hie file back to an original src location
+    srcInfo <-
+      MaybeT $
+        maybe
+          (pure Nothing)
+          ( \(mRange, contents) -> do
+              mSrcRange <- runMaybeT $ hieRangeToSrcRange uri hieSource mRange
+              pure $ Just (mSrcRange, contents)
+          )
+          mHieInfo
+
+    pure $ hoverInfoToHover srcInfo
  where
-  -- TODO: use the original range in the hover
   hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
   hoverInfoToHover (mRange, contents) =
     Hover
       { _range = mRange
       , _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
       }
+
+  hieRangeToSrcRange :: LSP.Uri -> Text -> Maybe Range -> MaybeT m Range
+  hieRangeToSrcRange uri hieSource mHieRange = do
+    hieRange <- toAlt mHieRange
+    let lineColRange = ProtoLSP.lineColRangeFromProto hieRange
+    srcStart <- hieLineColToLineCol uri hieSource lineColRange.start
+    srcEnd <- hieLineColToLineCol uri hieSource lineColRange.end
+    pure $ ProtoLSP.lineColRangeToProto (LineColRange srcStart srcEnd)
 
 docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.HieFile -> Position -> m [NameDocs]
 docsAtPoint hieFile position = do

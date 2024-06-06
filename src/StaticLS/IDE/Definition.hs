@@ -45,7 +45,6 @@ getDefinition tdi position = do
   let lineCol = ProtoLSP.lineColFromProto position
   mLocationLinks <- runMaybeT $ do
     hieFile <- getHieFileFromUri uri
-    liftIO $ putStrLn $ "hieFile: " ++ show hieFile
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
     lineCol' <- lineColToHieLineCol uri hieSource lineCol
     let identifiersAtPoint =

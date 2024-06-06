@@ -15,10 +15,8 @@ spec =
     describe "All available sources" $ do
       it "retrieves the myFun definition from a different module" $ do
         staticEnv <- Test.initStaticLsEnv
-        putStrLn "staticEnv"
         defnLinks <- runStaticLsM staticEnv $ do
           tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
-          liftIO $ putStrLn $ "tdiAndPos: " ++ show tdiAndPos
           _ <- Test.updateTestFileState tdi
           uncurry getDefinition tdiAndPos
         defnLink <- Test.assertHead "no definition link found" defnLinks

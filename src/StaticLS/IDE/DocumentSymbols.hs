@@ -2,6 +2,7 @@ module StaticLS.IDE.DocumentSymbols (getDocumentSymbols) where
 
 import AST qualified
 import AST.Haskell qualified as Haskell
+import Data.Either.Extra (eitherToMaybe)
 import Data.Foldable qualified as Foldable
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
@@ -12,7 +13,6 @@ import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.HIE (astRangeToLspRange)
 import StaticLS.Logger
 import StaticLS.StaticLsEnv
-import Data.Either.Extra (eitherToMaybe)
 
 queryDeclarations :: Haskell.Haskell -> AST.Err [Haskell.Declaration]
 queryDeclarations hs = do
@@ -128,14 +128,14 @@ declToSymbol decl =
 mkDocumentSymbol :: Text -> LSP.SymbolKind -> LSP.Range -> LSP.Range -> LSP.DocumentSymbol
 mkDocumentSymbol name kind range selectionRange =
   LSP.DocumentSymbol
-    { LSP._name = name,
-      LSP._detail = Nothing,
-      LSP._kind = kind,
-      LSP._tags = Nothing,
-      LSP._deprecated = Nothing,
-      LSP._range = range,
-      LSP._selectionRange = selectionRange,
-      LSP._children = Nothing
+    { LSP._name = name
+    , LSP._detail = Nothing
+    , LSP._kind = kind
+    , LSP._tags = Nothing
+    , LSP._deprecated = Nothing
+    , LSP._range = range
+    , LSP._selectionRange = selectionRange
+    , LSP._children = Nothing
     }
 
 nodeToText :: (AST.HasDynNode n) => n -> Text

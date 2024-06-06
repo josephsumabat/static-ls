@@ -37,7 +37,7 @@ instance Arbitrary TextAndLineCol where
     let theLine = NE.toList (splitLinesWithEnd text) !! line
     -- the last line could be empty, ex "a\n"
     col <- choose (0, max 0 (T.length theLine - 1))
-    pure $ TextAndLineCol text LineCol {line, col}
+    pure $ TextAndLineCol text (LineCol line col)
 
 spec :: Spec
 spec = do

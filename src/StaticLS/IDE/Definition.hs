@@ -10,6 +10,7 @@ import Data.Foldable qualified as Foldable
 import Data.List (isSuffixOf)
 import Data.Map qualified as Map
 import Data.Maybe (fromMaybe, maybeToList)
+import Data.Path qualified as Path
 import Data.Set qualified as Set
 import Data.Text.Encoding qualified as T.Encoding
 import Development.IDE.GHC.Error (
@@ -175,10 +176,10 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
 srcSpanToLocation :: (HasCallStack, HasStaticEnv m) => GHC.SrcSpan -> MaybeT m LSP.Location
 srcSpanToLocation src = do
   staticEnv <- lift getStaticEnv
-  fs <- toAlt $ (staticEnv.wsRoot </>) <$> srcSpanToFilename src
+  fs <- toAlt $ ((staticEnv.wsRoot Path.</>) . Path.filePathToRel) <$> ((srcSpanToFilename src))
   rng <- toAlt $ srcSpanToRange src
   -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
-  pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath fs) rng
+  pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath (Path.toFilePath fs)) rng
 
 defRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m LSP.Location
 defRowToLocation (defRow HieDb.:. _) = do

@@ -8,6 +8,7 @@ import Control.Monad.IO.Class
 import Control.Monad.RWS
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.Maybe
+import Data.Path qualified as Path
 import Data.Text (Text, intercalate)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
@@ -79,6 +80,6 @@ docsAtPoint hieFile position = do
   let names = namesAtPoint hieFile (lspPositionToHieDbCoords position)
       modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
   modIfaceFiles <- fromMaybe [] <$> runMaybeT (mapM modToHiFile modNames)
-  modIfaces <- catMaybes <$> mapM (runMaybeT . readHiFile) modIfaceFiles
+  modIfaces <- catMaybes <$> mapM (runMaybeT . readHiFile . Path.toFilePath) modIfaceFiles
   let docs = getDocsBatch names =<< modIfaces
   pure docs

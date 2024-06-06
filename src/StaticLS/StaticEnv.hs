@@ -20,11 +20,12 @@ import Control.Exception (Exception, IOException, SomeException, catch)
 import Control.Monad.Reader
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
+import Data.Path (AbsPath)
+import Data.Path qualified as Path
 import Database.SQLite.Simple (SQLError)
 import HieDb qualified
 import StaticLS.Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
-import System.FilePath ((</>))
 
 type HieDbPath = FilePath
 
@@ -48,13 +49,13 @@ instance Exception HieDbException
 -- exceptions i.e. that the language server does not crash if something goes
 -- wrong with fetching information from a static source
 data StaticEnv = StaticEnv
-  { hieDbPath :: HieDbPath
+  { hieDbPath :: AbsPath
   -- ^ Path to the hiedb file
-  , hieFilesPath :: HieFilePath
-  , hiFilesPath :: HiFilePath
-  , wsRoot :: FilePath
+  , hieFilesPath :: AbsPath
+  , hiFilesPath :: AbsPath
+  , wsRoot :: AbsPath
   -- ^ workspace root
-  , srcDirs :: [FilePath]
+  , srcDirs :: [AbsPath]
   -- ^ directories to search for source code in order of priority
   }
 
@@ -73,13 +74,13 @@ instance (HasStaticEnv m) => HasStaticEnv (ExceptT e m) where
 runStaticEnv :: StaticEnv -> ReaderT StaticEnv IO a -> IO a
 runStaticEnv = flip runReaderT
 
-initStaticEnv :: FilePath -> StaticEnvOptions -> IO StaticEnv
+initStaticEnv :: AbsPath -> StaticEnvOptions -> IO StaticEnv
 initStaticEnv wsRoot staticEnvOptions =
   do
-    let databasePath = wsRoot </> staticEnvOptions.optionHieDbPath
-        hieFilesPath = wsRoot </> staticEnvOptions.optionHieFilesPath
-        srcDirs = fmap (wsRoot </>) staticEnvOptions.optionSrcDirs
-        hiFilesPath = wsRoot </> staticEnvOptions.optionHiFilesPath
+    let databasePath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieDbPath)
+        hieFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieFilesPath)
+        srcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionSrcDirs)
+        hiFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHiFilesPath)
     let serverStaticEnv =
           StaticEnv
             { hieDbPath = databasePath
@@ -98,7 +99,7 @@ runHieDbExceptT hieDbFn =
     >>= \staticEnv ->
       ( \hiedbPath ->
           ExceptT . liftIO $
-            HieDb.withHieDb hiedbPath (fmap Right . hieDbFn)
+            HieDb.withHieDb (Path.toFilePath hiedbPath) (fmap Right . hieDbFn)
               `catch` (pure . Left . HieDbIOException)
               `catch` (pure . Left . HieDbSqlException)
               `catch` (\(e :: SomeException) -> pure . Left $ HieDbOtherException e)

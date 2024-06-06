@@ -5,10 +5,10 @@ import Control.Monad.Trans.Maybe (runMaybeT)
 import StaticLS.HI.File
 import StaticLS.StaticEnv
 import System.Directory
-import System.FilePath
 import Test.Hspec
 import TestImport qualified as Test
 import TestImport.Assert qualified as Test
+import qualified Data.Path as Path
 
 spec :: Spec
 spec = do
@@ -16,26 +16,28 @@ spec = do
     describe "src file to hi file" $ do
       it "returns a valid hi file when called on a src file" $ do
         staticEnv <- Test.initStaticEnv
+        p <- Path.filePathToAbs "test/TestData/Mod1.hs"
         hiFile <-
           runStaticEnv staticEnv $
             runMaybeT $
-              srcFilePathToHiFilePath "test/TestData/Mod1.hs"
-        let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile
-        hiFileExists <- maybe (pure False) doesFileExist relativeHiFile
+              srcFilePathToHiFilePath p 
+        let relativeHiFile = Path.makeRelative staticEnv.wsRoot <$> hiFile
+        hiFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHiFile
 
-        relativeHiFile `shouldBe` Just "test/TestData/.hifiles/TestData/Mod1.hi"
+        relativeHiFile `shouldBe` Just (Path.filePathToRel "test/TestData/.hifiles/TestData/Mod1.hi")
         hiFileExists `shouldBe` True
 
       it "returns a valid hi file when called on a test/ file" $ do
         staticEnv <- Test.initStaticEnv
+        p <- Path.filePathToAbs "test/TestData/Mod1.hs"
         hiFile <-
           runStaticEnv staticEnv $
             runMaybeT $
-              srcFilePathToHiFilePath "test/TestData/Mod1.hs"
-        let relativeHiFile = makeRelative staticEnv.wsRoot <$> hiFile
-        hiFileExists <- maybe (pure False) doesFileExist relativeHiFile
+              srcFilePathToHiFilePath p
+        let relativeHiFile = Path.makeRelative staticEnv.wsRoot <$> hiFile
+        hiFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHiFile
 
-        relativeHiFile `shouldBe` Just "test/TestData/.hifiles/TestData/Mod1.hi"
+        relativeHiFile `shouldBe` Just (Path.filePathToRel "test/TestData/.hifiles/TestData/Mod1.hi")
         hiFileExists `shouldBe` True
 
   describe "readHiFile" $ do

@@ -17,6 +17,7 @@ import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import StaticLS.Utils (isJustOrThrow)
+import Data.Path (AbsPath)
 
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information
@@ -48,7 +49,7 @@ instance HasLogger StaticLsM where
 instance HasStaticEnv StaticLsM where
   getStaticEnv = asks (.staticEnv)
 
-initStaticLsEnv :: FilePath -> StaticEnvOptions -> Logger -> IO StaticLsEnv
+initStaticLsEnv :: AbsPath -> StaticEnvOptions -> Logger -> IO StaticLsEnv
 initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
   staticEnv <- initStaticEnv wsRoot staticEnvOptions
   fileEnv <- IORef.newIORef mempty

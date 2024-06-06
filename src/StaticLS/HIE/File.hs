@@ -22,6 +22,7 @@ import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Data.Bifunctor (first, second)
 import Data.Map qualified as Map
+import Data.Path (AbsPath)
 import GHC qualified
 import GHC.Iface.Ext.Binary qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
@@ -32,20 +33,22 @@ import StaticLS.FilePath
 import StaticLS.HIE.File.Except
 import StaticLS.HieDb qualified as HieDb
 import StaticLS.Maybe (flatMaybeT, toAlt)
+import StaticLS.ProtoLSP qualified as LSPProto
 import StaticLS.SrcFiles
 import StaticLS.StaticEnv
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
+import qualified Data.Path as Path
 
 -- | Retrieve a hie info from a lsp text document identifier
 -- Returns a Maybe instead of throwing because we want to handle
 -- the case when there is no hie file and do something reasonable
 -- Most functions that get the file text will throw if the file text is not found
 getHieFileFromUri :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m GHC.HieFile
-getHieFileFromUri = exceptToMaybeT . getHieFile <=< uriToHieFilePath
+getHieFileFromUri = exceptToMaybeT . getHieFile <=< (fmap Path.toFilePath . uriToHieFilePath)
 
-uriToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m HieFilePath
-uriToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSP.uriToFilePath)
+uriToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m AbsPath
+uriToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSPProto.uriToAbsPath)
 
 -- | Retrieve an hie file from a module name
 modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile
@@ -57,7 +60,7 @@ modToSrcFile = hieFilePathToSrcFilePath <=< modToHieFilePath
 
 -- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
 -- if not indexed
-srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
+srcFilePathToHieFilePath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 srcFilePathToHieFilePath srcPath =
   srcFilePathToHieFilePathFromFile srcPath
     <|> srcFilePathToHieFilePathHieDb srcPath
@@ -92,12 +95,11 @@ getHieFile hieFilePath = do
 -- HieDb Method of file lookups - requires hiedb to be indexed using --src-base-dirs from 0.4.4.0
 -----------------------------------------------------------------------------------
 
-srcFilePathToHieFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
+srcFilePathToHieFilePathHieDb :: (HasCallStack, HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 srcFilePathToHieFilePathHieDb srcPath = do
-  absSrcPath <- liftIO $ Dir.makeAbsolute srcPath
   Just hieModRow <- runHieDbMaybeT $ \hieDb -> do
-    HieDb.lookupHieFileFromSource hieDb absSrcPath
-  pure $ HieDb.hieModuleHieFile hieModRow
+    HieDb.lookupHieFileFromSource hieDb (Path.toFilePath srcPath)
+  pure $ Path.unsafeFilePathToAbs $ HieDb.hieModuleHieFile hieModRow
 
 hieFilePathToSrcFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
 hieFilePathToSrcFilePathHieDb hiePath = do
@@ -131,11 +133,11 @@ hieFilePathToSrcFilePathFromFile hiePath = do
 --
 -- Presently necessary because hiedb does not currently index the hs_src file location
 -- in the `mods` table
-srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
+srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 srcFilePathToHieFilePathFromFile srcPath = do
   staticEnv <- getStaticEnv
-  let hieDir = staticEnv.wsRoot </> staticEnv.hieFilesPath
-  subRootExtensionFilepath staticEnv.wsRoot hieDir ".hie" srcPath
+  -- let hieDir = staticEnv.wsRoot </> staticEnv.hieFilesPath
+  subRootExtensionFilepath staticEnv.wsRoot staticEnv.hieFilesPath (Path.stringToOs ".hie") srcPath
 
 -----------------------------------------------------------------------------------
 -- Map index method for getting hie files - too slow in practice on startup but makes

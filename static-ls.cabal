@@ -103,7 +103,7 @@ library
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
-    , filepath >=1.4.1 && <1.5
+    , filepath >=1.4.100
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
@@ -166,7 +166,7 @@ executable static-ls
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
-    , filepath >=1.4.1 && <1.5
+    , filepath >=1.4.100
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
@@ -248,7 +248,7 @@ test-suite static-ls-test
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
-    , filepath >=1.4.1 && <1.5
+    , filepath >=1.4.100
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0

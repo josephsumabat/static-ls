@@ -11,8 +11,8 @@ import Data.Text (Text)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
 import StaticLS.Logger
-import StaticLS.Position (LineCol, Pos)
-import StaticLS.Position qualified as Position
+import Data.Pos (LineCol, Pos)
+import Data.Pos qualified as Position
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options

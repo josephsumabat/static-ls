@@ -26,5 +26,10 @@ data GlobalCodeAction = GlobalCodeAction
   , run :: Context -> StaticLsM (Maybe ())
   }
 
+data CodeAction = CodeAction {
+  
+  }
+
 $(deriveJSON defaultOptions ''CodeActionMessageKind)
 $(deriveJSON defaultOptions ''CodeActionMessage)
+

@@ -6,7 +6,7 @@ module StaticLS.PositionSpec where
 import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.Position
+import Data.Pos
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck

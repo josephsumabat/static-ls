@@ -6,7 +6,7 @@ import Data.Algorithm.Diff qualified as Diff
 import Data.Text (Text)
 import Data.Text qualified as T
 import Language.Haskell.Lexer qualified as Lexer
-import StaticLS.Position
+import Data.Pos
 import Prelude hiding (lex)
 
 pattern Insert :: b -> Diff.PolyDiff a b

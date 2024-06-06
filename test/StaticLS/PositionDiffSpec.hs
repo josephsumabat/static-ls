@@ -3,7 +3,7 @@
 module StaticLS.PositionDiffSpec where
 
 import Data.Algorithm.Diff qualified as Diff
-import StaticLS.Position
+import Data.Pos
 import StaticLS.PositionDiff
 import Test.Hspec
 

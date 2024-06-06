@@ -54,6 +54,7 @@ dependencies:
   - pretty-simple
   - Diff
   - exceptions
+  - lens
 language: GHC2021
 
 default-extensions:
@@ -65,6 +66,10 @@ default-extensions:
 - LambdaCase
 - RecordWildCards
 - TypeApplications
+- DuplicateRecordFields
+- DataKinds
+- PatternSynonyms
+- BlockArguments
 
 ghc-options:
   - -Wall

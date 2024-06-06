@@ -107,6 +107,7 @@ library
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
@@ -170,6 +171,7 @@ executable static-ls
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
@@ -252,6 +254,7 @@ test-suite static-ls-test
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*

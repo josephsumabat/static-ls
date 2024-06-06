@@ -64,29 +64,28 @@ initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
 runStaticLsM :: StaticLsEnv -> StaticLsM a -> IO a
 runStaticLsM = flip runReaderT
 
-getHaskell :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m Haskell.Haskell
+getHaskell :: (HasFileEnv m, MonadThrow m) => AbsPath -> m Haskell.Haskell
 getHaskell uri = do
   fileState <- getFileStateThrow uri
   pure fileState.tree
 
-getSource :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m Text
+getSource :: (HasFileEnv m, MonadThrow m) => AbsPath -> m Text
 getSource uri = do
   fileState <- getFileStateThrow uri
   pure fileState.contentsText
 
-getFileState :: (HasFileEnv m) => LSP.Uri -> m (Maybe FileState)
-getFileState uri = do
-  uri <- pure $ LSP.toNormalizedUri uri
+getFileState :: (HasFileEnv m) => AbsPath -> m (Maybe FileState)
+getFileState path = do
   fileStates <- getFileEnv
-  let fileState = HashMap.lookup uri fileStates
+  let fileState = HashMap.lookup path fileStates
   pure fileState
 
-getFileStateThrow :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m FileState
+getFileStateThrow :: (HasFileEnv m, MonadThrow m) => AbsPath -> m FileState
 getFileStateThrow uri = do
   fileState <- getFileState uri
   isJustOrThrow ("File not found: " ++ show uri) fileState
 
-posToHiePos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> Pos -> MaybeT m Pos
+posToHiePos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> Pos -> MaybeT m Pos
 posToHiePos uri hieSource pos = do
   source <- lift $ getSource uri
   let diff = PositionDiff.diffText source hieSource
@@ -108,7 +107,7 @@ hieLineColToLineCol uri hieSource lineCol = do
   let lineCol' = Position.posToLineCol source pos'
   pure lineCol'
 
-lineColToHieLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> LineCol -> MaybeT m LineCol
+lineColToHieLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> LineCol -> MaybeT m LineCol
 lineColToHieLineCol uri hieSource lineCol = do
   source <- lift $ getSource uri
   let pos = Position.lineColToPos source lineCol

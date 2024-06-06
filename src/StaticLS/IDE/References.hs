@@ -6,8 +6,10 @@ import Control.Monad (join)
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Data.Maybe (catMaybes, fromMaybe)
+import Data.Path (AbsPath)
+import Data.Path qualified as Path
 import Data.Text.Encoding qualified as T.Encoding
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins qualified as GHC
@@ -21,14 +23,13 @@ import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 
-findRefs :: (HasStaticEnv m, MonadThrow m, HasFileEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> LSP.Position -> m [LSP.Location]
-findRefs tdi position = do
-  let uri = tdi._uri
+findRefs :: (HasStaticEnv m, MonadThrow m, HasFileEnv m, MonadIO m) => AbsPath -> LSP.Position -> m [LSP.Location]
+findRefs path position = do
   let lineCol = ProtoLSP.lineColFromProto position
   mLocList <- runMaybeT $ do
-    hieFile <- getHieFileFromUri uri
+    hieFile <- exceptToMaybeT $ getHieFile path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-    lineCol' <- lineColToHieLineCol uri hieSource lineCol
+    lineCol' <- lineColToHieLineCol path hieSource lineCol
     let hiedbPosition = lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol')
         names = namesAtPoint hieFile hiedbPosition
         occNamesAndModNamesAtPoint =
@@ -53,6 +54,7 @@ refRowToLocation (refRow HieDb.:. _) = do
       end = exceptToMaybe $ hiedbCoordsToLspPosition (refRow.refELine, refRow.refECol)
       range = LSP.Range <$> start <*> end
       hieFilePath = refRow.refSrc
+  hieFilePath <- Path.filePathToAbs hieFilePath
   file <- hieFilePathToSrcFilePath hieFilePath
-  let lspUri = LSP.fromNormalizedUri . LSP.normalizedFilePathToUri . LSP.toNormalizedFilePath $ file
+  let lspUri = LSP.fromNormalizedUri . LSP.normalizedFilePathToUri . LSP.toNormalizedFilePath . Path.toFilePath $ file
   toAlt $ LSP.Location lspUri <$> range

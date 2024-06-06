@@ -6,6 +6,7 @@ module StaticLS.IDE.Workspace.Symbol where
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Maybe (catMaybes, fromMaybe)
+import Data.Path qualified as Path
 import Data.Text qualified as T
 import Development.IDE.GHC.Util (printOutputable)
 import Development.IDE.Types.Location
@@ -15,6 +16,7 @@ import Language.LSP.Protocol.Types
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
 import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
+import qualified StaticLS.ProtoLSP as ProtoLSP
 
 symbolInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => T.Text -> m [SymbolInformation]
 symbolInfo query = do
@@ -30,8 +32,9 @@ symbolInfo query = do
 defRowToSymbolInfo :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> m (Maybe SymbolInformation)
 defRowToSymbolInfo (HieDb.DefRow {..} HieDb.:. _) = runMaybeT $ do
   do
+    defSrc <- Path.filePathToAbs defSrc
     srcFile <- hieFilePathToSrcFilePath defSrc
-    let file = toUri srcFile
+    let file = ProtoLSP.absPathToUri srcFile
         loc = Location file range
     kind <- toAlt mKind
     pure $

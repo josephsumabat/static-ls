@@ -21,6 +21,7 @@ import Language.LSP.VFS qualified as LSP
 import StaticLS.IDE.CodeActions.AutoImport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.Logger (logInfo)
+import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticLsEnv
 import StaticLS.Utils
 import System.IO
@@ -57,8 +58,9 @@ handleCodeAction req resp = do
   _ <- lift $ logInfo "handleCodeAction"
   let params = req._params
   let tdi = params._textDocument
+  path <- ProtoLSP.uriToAbsPath tdi._uri
   let range = params._range
-  modulesToImport <- lift $ getModulesToImport tdi range._start
+  modulesToImport <- lift $ getModulesToImport path range._start
   codeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions tdi) modulesToImport
   resp (Right (LSP.InL (fmap LSP.InR codeActions)))
   pure ()

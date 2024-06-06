@@ -17,6 +17,7 @@ import Control.Monad.Trans.Except
 import Data.HashMap.Strict qualified as HashMap
 import Data.List as X
 import Data.Maybe as X (fromMaybe)
+import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text qualified as T
 import Data.Text.Utf16.Rope.Mixed qualified as Rope
@@ -51,6 +52,7 @@ import StaticLS.IDE.References
 import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
+import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv.Options
 import StaticLS.StaticLsEnv
 import StaticLS.Utils
@@ -70,26 +72,30 @@ handleInitialized = LSP.notificationHandler SMethod_Initialized $ pure $ pure ()
 handleTextDocumentHoverRequest :: Handlers (LspT c StaticLsM)
 handleTextDocumentHoverRequest = LSP.requestHandler SMethod_TextDocumentHover $ \req resp -> do
   let hoverParams = req._params
-  hover <- lift $ retrieveHover hoverParams._textDocument hoverParams._position
+  path <- ProtoLSP.tdiToAbsPath hoverParams._textDocument
+  hover <- lift $ retrieveHover path hoverParams._position
   resp $ Right $ maybeToNull hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLsM)
 handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \req resp -> do
   lift $ logInfo "Received definition request."
-  let defParams = req._params
-  defs <- lift $ getDefinition defParams._textDocument defParams._position
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  defs <- lift $ getDefinition path params._position
   resp $ Right . InR . InL $ defs
 
 handleTypeDefinitionRequest :: Handlers (LspT c StaticLsM)
 handleTypeDefinitionRequest = LSP.requestHandler SMethod_TextDocumentTypeDefinition $ \req resp -> do
-  let typeDefParams = req._params
-  defs <- lift $ getTypeDefinition typeDefParams._textDocument typeDefParams._position
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  defs <- lift $ getTypeDefinition path params._position
   resp $ Right . InR . InL $ defs
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \req res -> do
-  let refParams = req._params
-  refs <- lift $ findRefs refParams._textDocument refParams._position
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  refs <- lift $ findRefs path params._position
   res $ Right . InL $ refs
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)
@@ -101,23 +107,24 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   let params = message._params
   updateFileStateForUri params._textDocument._uri
 
-updateFileState :: NormalizedUri -> Rope.Rope -> StaticLsM ()
-updateFileState uri virtualFileContents = do
+updateFileState :: AbsPath -> Rope.Rope -> StaticLsM ()
+updateFileState path virtualFileContents = do
   let contents = virtualFileContents
   let contentsText = Rope.toText contents
   let tree = Haskell.parse contentsText
   let tokens = PositionDiff.lex $ T.unpack contentsText
   fileStates <- asks (.fileEnv)
   IORef.modifyIORef' fileStates $ \fileStates ->
-    HashMap.insert uri FileState {contents, contentsText, tree, tokens} fileStates
+    HashMap.insert path FileState {contents, contentsText, tree, tokens} fileStates
   pure ()
 
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
-  uri <- pure $ toNormalizedUri uri
-  virtualFile <- LSP.getVirtualFile uri
+  normalizedUri <- pure $ toNormalizedUri uri
+  virtualFile <- LSP.getVirtualFile normalizedUri
   virtualFile <- isJustOrThrow "no virtual file" virtualFile
-  lift $ updateFileState uri virtualFile._file_text
+  path <- ProtoLSP.uriToAbsPath uri
+  lift $ updateFileState path virtualFile._file_text
   pure ()
 
 handleDidChange :: Handlers (LspT c StaticLsM)
@@ -182,7 +189,8 @@ handleCompletion :: Handlers (LspT c StaticLsM)
 handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res -> do
   let params = req._params
   let tdi = params._textDocument
-  completions <- lift $ getCompletion tdi._uri
+  path <- ProtoLSP.tdiToAbsPath tdi
+  completions <- lift $ getCompletion path
   let lspCompletions = fmap toLspCompletion completions
   let lspList =
         LSP.CompletionList
@@ -197,7 +205,8 @@ handleDocumentSymbols :: Handlers (LspT c StaticLsM)
 handleDocumentSymbols = LSP.requestHandler SMethod_TextDocumentDocumentSymbol $ \req res -> do
   let params = req._params
   let uri = params._textDocument._uri
-  symbols <- lift $ getDocumentSymbols uri
+  path <- ProtoLSP.uriToAbsPath uri
+  symbols <- lift $ getDocumentSymbols path
   lift $ logInfo $ T.pack $ "Document symbols: " <> show symbols
   res $ Right $ InR $ InL symbols
   pure ()

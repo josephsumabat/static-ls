@@ -34,19 +34,19 @@ import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 import System.Directory (doesFileExist)
+import Data.Path (AbsPath)
 
 getDefinition ::
   (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
-  LSP.TextDocumentIdentifier ->
+  AbsPath ->
   LSP.Position ->
   m [LSP.DefinitionLink]
-getDefinition tdi position = do
-  let uri = tdi._uri
+getDefinition path position = do
   let lineCol = ProtoLSP.lineColFromProto position
   mLocationLinks <- runMaybeT $ do
-    hieFile <- getHieFileFromUri uri
+    hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-    lineCol' <- lineColToHieLineCol uri hieSource lineCol
+    lineCol' <- lineColToHieLineCol path hieSource lineCol
     let identifiersAtPoint =
           join $
             HieDb.pointCommand
@@ -66,20 +66,19 @@ getDefinition tdi position = do
   modToLocation :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe LSP.LocationLink)
   modToLocation modName = runMaybeT $ do
     srcFile <- modToSrcFile modName
-    pure $ locationToLocationLink $ LSP.Location (LSP.filePathToUri srcFile) zeroRange
+    pure $ locationToLocationLink $ LSP.Location (ProtoLSP.absPathToUri srcFile) zeroRange
 
 getTypeDefinition ::
   (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
-  LSP.TextDocumentIdentifier ->
+  AbsPath ->
   LSP.Position ->
   m [LSP.DefinitionLink]
-getTypeDefinition tdi position = do
-  let uri = tdi._uri
+getTypeDefinition path position = do
   let lineCol = ProtoLSP.lineColFromProto position
   mLocationLinks <- runMaybeT $ do
-    hieFile <- getHieFileFromUri uri
+    hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-    lineCol' <- lineColToHieLineCol uri hieSource lineCol
+    lineCol' <- lineColToHieLineCol path hieSource lineCol
     let types' =
           join $
             HieDb.pointCommand
@@ -178,8 +177,9 @@ defRowToLocation (defRow HieDb.:. _) = do
       end = exceptToMaybe $ hiedbCoordsToLspPosition (defRow.defELine, defRow.defECol)
       range = LSP.Range <$> start <*> end
       hieFilePath = defRow.defSrc
+  hieFilePath <- Path.filePathToAbs hieFilePath
   file <- hieFilePathToSrcFilePath hieFilePath
-  let lspUri = LSP.filePathToUri file
+  let lspUri = LSP.filePathToUri (Path.toFilePath file)
   MaybeT . pure $ LSP.Location lspUri <$> range
 
 -- TODO: Instead of calling this function the callers should directly construct a `LocationLink` with more information at hand.

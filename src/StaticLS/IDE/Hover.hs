@@ -22,7 +22,6 @@ import Language.LSP.Protocol.Types (
   MarkupKind (..),
   Position,
   Range (..),
-  TextDocumentIdentifier (..),
   sectionSeparator,
   type (|?) (..),
  )
@@ -38,6 +37,7 @@ import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
+import Data.Path (AbsPath)
 
 -- | Retrieve hover information.
 retrieveHover ::
@@ -48,17 +48,15 @@ retrieveHover ::
   , HasFileEnv m
   , MonadThrow m
   ) =>
-  TextDocumentIdentifier ->
+  AbsPath ->
   Position ->
   m (Maybe Hover)
-retrieveHover identifier position = do
-  let uri = identifier._uri
+retrieveHover path position = do
   let lineCol = ProtoLSP.lineColFromProto position
   runMaybeT $ do
-    hieFile <- getHieFileFromUri uri
+    hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-    -- Convert the location from the src file to a location in the hie file based on the file diff
-    lineCol' <- lineColToHieLineCol uri hieSource lineCol
+    lineCol' <- lineColToHieLineCol path hieSource lineCol
     lift $ logInfo $ T.pack $ "lineCol: " <> show lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
     docs <- docsAtPoint hieFile (ProtoLSP.lineColToProto lineCol')

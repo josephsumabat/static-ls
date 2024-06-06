@@ -55,6 +55,7 @@ dependencies:
   - Diff
   - exceptions
   - lens
+  - hashable
 language: GHC2021
 
 default-extensions:

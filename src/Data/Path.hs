@@ -17,6 +17,7 @@ module Data.Path (
 
 import Control.Monad.Catch
 import Control.Monad.IO.Class
+import Data.Hashable (Hashable)
 import GHC.Stack (HasCallStack)
 import System.Directory qualified as Dir
 import System.FilePath qualified as FilePath
@@ -37,7 +38,7 @@ instance KnownPathKind Rel where
   sPathKind = SRel
 
 newtype Path p = UncheckedPath {path :: FilePath}
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Hashable)
 
 pattern Path :: FilePath -> Path p
 pattern Path p <- UncheckedPath p
@@ -52,7 +53,7 @@ toFilePath = (.path)
 filePathToRel :: (HasCallStack) => FilePath -> RelPath
 filePathToRel = UncheckedPath
 
-filePathToAbs :: (HasCallStack, MonadIO m, MonadThrow m) => FilePath -> m AbsPath
+filePathToAbs :: (HasCallStack, MonadIO m) => FilePath -> m AbsPath
 filePathToAbs p = do
   absPath <- liftIO $ Dir.makeAbsolute p
   pure $ UncheckedPath absPath

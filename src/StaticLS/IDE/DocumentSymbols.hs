@@ -6,6 +6,7 @@ import Data.Either.Extra (eitherToMaybe)
 import Data.Foldable qualified as Foldable
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
+import Data.Path (AbsPath)
 import Data.Sum
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -141,11 +142,11 @@ mkDocumentSymbol name kind range selectionRange =
 nodeToText :: (AST.HasDynNode n) => n -> Text
 nodeToText = AST.nodeText . AST.getDynNode
 
-getDocumentSymbols :: LSP.Uri -> StaticLsM [LSP.DocumentSymbol]
-getDocumentSymbols uri = do
+getDocumentSymbols :: AbsPath -> StaticLsM [LSP.DocumentSymbol]
+getDocumentSymbols path = do
   logInfo "get document symbols"
-  logInfo $ T.pack $ "uri: " ++ show uri
-  haskell <- getHaskell uri
+  logInfo $ T.pack $ "uri: " ++ show path
+  haskell <- getHaskell path
   let documentSymbolsRes = do
         decls <- queryDeclarations haskell
         let symbols = Maybe.mapMaybe (eitherToMaybe . declarationToSymbol) decls

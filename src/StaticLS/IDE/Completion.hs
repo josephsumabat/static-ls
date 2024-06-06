@@ -20,6 +20,7 @@ import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath
+import Data.Path (AbsPath)
 
 makeRelativeMaybe :: FilePath -> FilePath -> Maybe FilePath
 makeRelativeMaybe base path = do
@@ -27,9 +28,9 @@ makeRelativeMaybe base path = do
   guard $ path /= rel
   pure rel
 
-uriToModule :: LSP.Uri -> StaticLsM (Maybe Text)
-uriToModule uri = do
-  let fp = LSP.uriToFilePath uri
+uriToModule :: AbsPath -> StaticLsM (Maybe Text)
+uriToModule absPath = do
+  let fp = Path.toFilePath absPath
   staticEnv <- getStaticEnv
   let srcDirs = staticEnv.srcDirs
   let wsRoot = staticEnv.wsRoot
@@ -37,7 +38,6 @@ uriToModule uri = do
   logInfo $ T.pack $ "srcDirs: " <> show srcDirs
   logInfo $ T.pack $ "wsRoot: " <> show wsRoot
   pure $ do
-    fp <- fp
     modPath <- asum ((\srcDir -> makeRelativeMaybe (Path.toFilePath srcDir) fp) <$> srcDirs)
     let (modPathWithoutExt, ext) = splitExtension modPath
     guard $ ext == ".hs"
@@ -49,7 +49,7 @@ getHeader haskell = do
   header <- AST.collapseErr haskell.children
   pure header
 
-getCompletion :: LSP.Uri -> StaticLsM [Completion]
+getCompletion :: AbsPath -> StaticLsM [Completion]
 getCompletion uri = do
   haskell <- getHaskell uri
   header <- getHeader haskell & isRightOrThrowT

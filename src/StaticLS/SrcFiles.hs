@@ -3,8 +3,11 @@ module StaticLS.SrcFiles (
   srcDirs,
 ) where
 
+import Data.Path (RelPath)
+import Data.Path qualified as Path
+
 type SrcFilePath = FilePath
 
 -- TODO: make this configurable (use cabal?)
-srcDirs :: [FilePath]
-srcDirs = ["src/", "lib/", "app/", "test/"]
+srcDirs :: [RelPath]
+srcDirs = Path.filePathToRel <$> ["src/", "lib/", "app/", "test/"]

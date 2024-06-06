@@ -34,6 +34,12 @@ flag dev
 
 library
   exposed-modules:
+      Data.Change
+      Data.Edit
+      Data.LineColRange
+      Data.Path
+      Data.Pos
+      Data.Range
       StaticLS.Except
       StaticLS.FileEnv
       StaticLS.FilePath
@@ -52,10 +58,10 @@ library
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.References
+      StaticLS.IDE.SourceEdit
       StaticLS.IDE.Workspace.Symbol
       StaticLS.Logger
       StaticLS.Maybe
-      StaticLS.Position
       StaticLS.PositionDiff
       StaticLS.ProtoLSP
       StaticLS.SDoc
@@ -80,6 +86,10 @@ library
       LambdaCase
       RecordWildCards
       TypeApplications
+      DuplicateRecordFields
+      DataKinds
+      PatternSynonyms
+      BlockArguments
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
       Diff
@@ -93,13 +103,14 @@ library
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
-    , filepath >=1.4.1 && <1.5
+    , filepath
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
+    , lens
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
@@ -138,6 +149,10 @@ executable static-ls
       LambdaCase
       RecordWildCards
       TypeApplications
+      DuplicateRecordFields
+      DataKinds
+      PatternSynonyms
+      BlockArguments
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates
   build-depends:
       Diff
@@ -151,13 +166,14 @@ executable static-ls
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
-    , filepath >=1.4.1 && <1.5
+    , filepath
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
+    , lens
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
@@ -213,6 +229,10 @@ test-suite static-ls-test
       LambdaCase
       RecordWildCards
       TypeApplications
+      DuplicateRecordFields
+      DataKinds
+      PatternSynonyms
+      BlockArguments
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
@@ -228,7 +248,7 @@ test-suite static-ls-test
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
-    , filepath >=1.4.1 && <1.5
+    , filepath
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
@@ -236,6 +256,7 @@ test-suite static-ls-test
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
     , hspec ==2.*
+    , lens
     , lsp >=2.3 && <2.6
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4

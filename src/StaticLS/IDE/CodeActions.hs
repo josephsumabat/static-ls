@@ -5,18 +5,19 @@
 
 module StaticLS.IDE.CodeActions where
 
+import Control.Lens.Operators
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import Data.Aeson hiding (Null)
-import Data.Function ((&))
 import Data.List qualified as List
 import Data.Text
 import Data.Text qualified as T
 import Data.Text.Utf16.Rope.Mixed qualified as Rope
-import Language.LSP.Protocol.Message (Method (..), TRequestMessage (..))
-import Language.LSP.Protocol.Types hiding (ApplyWorkspaceEditParams (..))
-import Language.LSP.Server
-import Language.LSP.VFS
+import Language.LSP.Protocol.Lens qualified as LSP
+import Language.LSP.Protocol.Message qualified as LSP
+import Language.LSP.Protocol.Types qualified as LSP
+import Language.LSP.Server qualified as LSP
+import Language.LSP.VFS qualified as LSP
 import StaticLS.IDE.CodeActions.AutoImport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.Logger (logInfo)
@@ -33,12 +34,12 @@ globalCodeActions =
 
 -- GlobalCodeAction { run = runCodeAction }
 
-createAutoImportCodeActions :: TextDocumentIdentifier -> Text -> StaticLsM [CodeAction]
+createAutoImportCodeActions :: LSP.TextDocumentIdentifier -> Text -> StaticLsM [LSP.CodeAction]
 createAutoImportCodeActions tdi toImport =
   pure
-    [ CodeAction
+    [ LSP.CodeAction
         { _title = "import " <> toImport
-        , _kind = Just CodeActionKind_QuickFix
+        , _kind = Just LSP.CodeActionKind_QuickFix
         , _diagnostics = Nothing
         , _edit = Nothing
         , _command = Nothing
@@ -48,7 +49,10 @@ createAutoImportCodeActions tdi toImport =
         }
     ]
 
-handleCodeAction :: Handler (LspT c StaticLsM) Method_TextDocumentCodeAction
+getCodeActions :: StaticLsM [CodeAction]
+getCodeActions = undefined
+
+handleCodeAction :: LSP.Handler (LSP.LspT c StaticLsM) LSP.Method_TextDocumentCodeAction
 handleCodeAction req resp = do
   _ <- lift $ logInfo "handleCodeAction"
   let params = req._params
@@ -56,10 +60,10 @@ handleCodeAction req resp = do
   let range = params._range
   modulesToImport <- lift $ getModulesToImport tdi range._start
   codeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions tdi) modulesToImport
-  resp (Right (InL (fmap InR codeActions)))
+  resp (Right (LSP.InL (fmap LSP.InR codeActions)))
   pure ()
 
-handleResolveCodeAction :: Handler (LspT c StaticLsM) Method_CodeActionResolve
+handleResolveCodeAction :: LSP.Handler (LSP.LspT c StaticLsM) LSP.Method_CodeActionResolve
 handleResolveCodeAction req resp = do
   let action = req._params
   liftIO $ do
@@ -71,7 +75,7 @@ handleResolveCodeAction req resp = do
   message <- isJustOrThrow "expected data in code action" action._data_
   message <- pure $ fromJSON @CodeActionMessage message
   message <- resultSuccessOrThrow message
-  virtualFile <- getVirtualFile (toNormalizedUri message.tdi._uri)
+  virtualFile <- LSP.getVirtualFile (LSP.toNormalizedUri message.tdi._uri)
   virtualFile <- isJustOrThrow "no virtual file" virtualFile
   let contents = Rope.toText virtualFile._file_text
   (lineNum, lineLength) <-
@@ -84,31 +88,31 @@ handleResolveCodeAction req resp = do
     AutoImportActionMessage toImport -> do
       liftIO $ hPutStrLn stderr "Resolving auto import action"
       let textDocumentEdit =
-            TextDocumentEdit
+            LSP.TextDocumentEdit
               { _textDocument =
-                  OptionalVersionedTextDocumentIdentifier
+                  LSP.OptionalVersionedTextDocumentIdentifier
                     { _uri = message.tdi._uri
-                    , _version = InR Null
+                    , _version = LSP.InR LSP.Null
                     }
               , _edits =
                   fmap
-                    InL
-                    [ textEditInsert (Position (fromIntegral lineNum) (fromIntegral lineLength)) (T.pack "\n\nimport " <> toImport)
+                    LSP.InL
+                    [ textEditInsert (LSP.Position (fromIntegral lineNum) (fromIntegral lineLength)) (T.pack "\n\nimport " <> toImport)
                     ]
               }
       let workspaceEdit =
-            WorkspaceEdit
+            LSP.WorkspaceEdit
               { _changes = Nothing
-              , _documentChanges = Just [InL textDocumentEdit]
+              , _documentChanges = Just [LSP.InL textDocumentEdit]
               , _changeAnnotations = Nothing
               }
       liftIO $ hPutStrLn stderr ("workspace edit: " ++ show workspaceEdit)
-      resp (Right (action {_edit = Just workspaceEdit}))
+      resp (Right (action & LSP.edit ?~ workspaceEdit))
       pure ()
     _ -> Exception.throwString "don't know how to resolve this code action"
 
-textEditInsert :: Position -> Text -> TextEdit
-textEditInsert pos text = TextEdit (Range pos pos) text
+textEditInsert :: LSP.Position -> Text -> LSP.TextEdit
+textEditInsert pos text = LSP.TextEdit (LSP.Range pos pos) text
 
-positionToRange :: Position -> Range
-positionToRange pos = Range pos pos
+positionToRange :: LSP.Position -> LSP.Range
+positionToRange pos = LSP.Range pos pos

@@ -79,3 +79,5 @@
 - ignore: {name: Redundant pure}
 - ignore: {name: Use zipWith}
 - ignore: {name: Avoid lambda using `infix`}
+- ignore: {name: Avoid lambda}
+- ignore: {name: Redundant bracket}

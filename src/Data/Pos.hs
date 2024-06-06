@@ -1,14 +1,15 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
-module StaticLS.Position (
+module Data.Pos (
   LineCol (..),
-  Pos (..),
-  LineColRange (..),
-  PosRange (..),
+  Pos (.., Pos),
   lineColToPos,
   posToLineCol,
   splitLinesWithEnd,
   splitLines,
+  pos,
+  lineCol,
+  pattern LineCol,
 )
 where
 
@@ -17,33 +18,47 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
 import Data.Text qualified as T
+import GHC.Stack (HasCallStack)
 
 -- 0 based
-data LineCol = LineCol
+data LineCol = UnsafeLineCol
   { line :: !Int
   , col :: !Int
   }
   deriving (Eq, Show)
 
+pattern LineCol :: Int -> Int -> LineCol
+pattern LineCol l c <- UnsafeLineCol l c
+  where
+    LineCol = lineCol
+
+{-# COMPLETE LineCol #-}
+
 -- 0 based char position
-newtype Pos = Pos {pos :: Int}
+newtype Pos = UnsafePos {pos :: Int}
   deriving (Show, Eq, Ord)
 
-data LineColRange = LineColRange
-  { start :: !LineCol
-  , end :: !LineCol
-  }
-  deriving (Eq, Show)
+pattern Pos :: Int -> Pos
+pattern Pos p <- UnsafePos p
+  where
+    Pos = pos
 
-data PosRange = PosRange
-  { start :: !Pos
-  , end :: !Pos
-  }
-  deriving (Eq, Show)
+{-# COMPLETE Pos #-}
+
+lineCol :: (HasCallStack) => Int -> Int -> LineCol
+lineCol line col
+  | line < 0 = error "line must be >= 0"
+  | col < 0 = error "col must be >= 0"
+  | otherwise = UnsafeLineCol line col
+
+pos :: (HasCallStack) => Int -> Pos
+pos p
+  | p < 0 = error "pos must be >= 0"
+  | otherwise = UnsafePos p
 
 lineColToPos :: Text -> LineCol -> Pos
-lineColToPos source LineCol {line, col} =
-  Pos pos
+lineColToPos source UnsafeLineCol {line, col} =
+  UnsafePos pos
  where
   (before, after) = splitAt line lines
   (beforeCol, _afterCol) = T.splitAt col (T.concat after)
@@ -51,8 +66,8 @@ lineColToPos source LineCol {line, col} =
   lines = splitLinesWithEnd source & NE.toList
 
 posToLineCol :: Text -> Pos -> LineCol
-posToLineCol source Pos {pos} =
-  LineCol {line, col}
+posToLineCol source UnsafePos {pos} =
+  UnsafeLineCol {line, col}
  where
   (beforePos, _afterPos) = T.splitAt pos source
   linesBeforePos = splitLinesWithEnd beforePos

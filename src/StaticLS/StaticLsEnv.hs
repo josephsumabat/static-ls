@@ -7,12 +7,13 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
 import Data.IORef qualified as IORef
+import Data.Path (AbsPath)
+import Data.Pos (LineCol, Pos)
+import Data.Pos qualified as Position
 import Data.Text (Text)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
 import StaticLS.Logger
-import StaticLS.Position (LineCol, Pos)
-import StaticLS.Position qualified as Position
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
@@ -48,7 +49,7 @@ instance HasLogger StaticLsM where
 instance HasStaticEnv StaticLsM where
   getStaticEnv = asks (.staticEnv)
 
-initStaticLsEnv :: FilePath -> StaticEnvOptions -> Logger -> IO StaticLsEnv
+initStaticLsEnv :: AbsPath -> StaticEnvOptions -> Logger -> IO StaticLsEnv
 initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
   staticEnv <- initStaticEnv wsRoot staticEnvOptions
   fileEnv <- IORef.newIORef mempty

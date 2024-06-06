@@ -3,27 +3,26 @@ module StaticLS.FilePath (modToFilePath, subRootExtensionFilepath) where
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
 import Data.List qualified as List
-import Data.List.Extra qualified as List
+import Data.Path (AbsPath, Path (..), RelPath)
+import Data.Path qualified as Path
 import GHC.Plugins qualified as GHC
 import StaticLS.SrcFiles
 import System.Directory qualified as Dir
-import System.FilePath ((-<.>), (</>))
+import System.FilePath ((-<.>))
 
-modToFilePath :: GHC.ModuleName -> String -> FilePath
+modToFilePath :: GHC.ModuleName -> String -> RelPath
 modToFilePath modName ext =
-  GHC.moduleNameSlashes modName -<.> ext
+  Path.filePathToRel (GHC.moduleNameSlashes modName -<.> ext)
 
 -- | Substitute a filepath extension and parent directory starting from some root
-subRootExtensionFilepath :: (MonadIO m) => FilePath -> FilePath -> String -> FilePath -> MaybeT m FilePath
+subRootExtensionFilepath :: (MonadIO m) => AbsPath -> AbsPath -> String -> AbsPath -> MaybeT m AbsPath
 subRootExtensionFilepath wsRoot parent extension srcPath =
   do
-    absoluteRoot <- liftIO $ Dir.makeAbsolute wsRoot
-    let absoluteSrcDirs = (absoluteRoot </>) <$> srcDirs
-    absoluteSrcPath <- liftIO $ Dir.makeAbsolute srcPath
+    let absoluteSrcDirs = (wsRoot Path.</>) <$> srcDirs
     -- Normalize to absolute paths to drop the prefix
     let noPrefixSrcPath =
-          List.foldl' (flip List.dropPrefix) absoluteSrcPath absoluteSrcDirs
+          List.foldl' (\path absSrcDir -> Path.makeRelative absSrcDir path) (Path.absToRel srcPath) absoluteSrcDirs
         -- Set the directory path and substitute the file extension
-        newPath = absoluteRoot </> parent </> noPrefixSrcPath -<.> extension
-    True <- liftIO $ Dir.doesFileExist newPath
+        newPath = parent Path.</> noPrefixSrcPath Path.-<.> extension
+    True <- liftIO $ Dir.doesFileExist newPath.path
     pure newPath

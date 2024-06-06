@@ -2,6 +2,7 @@ module StaticLS.HIE.FileSpec (spec) where
 
 import Control.Monad.Trans.Except (runExceptT)
 import Control.Monad.Trans.Maybe (runMaybeT)
+import Data.Path qualified as Path
 import StaticLS.HIE.File
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
@@ -17,26 +18,28 @@ spec = do
     describe "src file to hie file" $ do
       it "returns a valid hie file when called on a src file" $ do
         staticEnv <- Test.initStaticEnv
+        p <- Path.filePathToAbs "src/StaticLS/HIE/File.hs"
         hieFile <-
           runStaticEnv staticEnv $
             runMaybeT $
-              srcFilePathToHieFilePath "src/StaticLS/HIE/File.hs"
-        let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
-        hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
+              srcFilePathToHieFilePath p
+        let relativeHieFile = Path.makeRelative staticEnv.wsRoot <$> hieFile
+        hieFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHieFile
 
-        relativeHieFile `shouldBe` Just "test/TestData/.hiefiles/StaticLS/HIE/File.hie"
+        relativeHieFile `shouldBe` Just (Path.filePathToRel "test/TestData/.hiefiles/StaticLS/HIE/File.hie")
         hieFileExists `shouldBe` True
 
       it "returns a valid hie file when called on a test/ file" $ do
         staticEnv <- Test.initStaticEnv
+        p <- Path.filePathToAbs "test/TestData/Mod1.hs"
         hieFile <-
           runStaticEnv staticEnv $
             runMaybeT $
-              srcFilePathToHieFilePath "test/TestData/Mod1.hs"
-        let relativeHieFile = makeRelative staticEnv.wsRoot <$> hieFile
-        hieFileExists <- maybe (pure False) doesFileExist relativeHieFile
+              srcFilePathToHieFilePath p
+        let relativeHieFile = Path.makeRelative staticEnv.wsRoot <$> hieFile
+        hieFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHieFile
 
-        relativeHieFile `shouldBe` Just "test/TestData/.hiefiles/TestData/Mod1.hie"
+        relativeHieFile `shouldBe` Just (Path.filePathToRel "test/TestData/.hiefiles/TestData/Mod1.hie")
         hieFileExists `shouldBe` True
 
   describe "getHieFile" $ do

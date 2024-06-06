@@ -31,3 +31,4 @@ ghcid.txt
 errors.txt
 *.swp
 .direnv/
+.hiedb*

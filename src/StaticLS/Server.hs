@@ -17,6 +17,7 @@ import Control.Monad.Trans.Except
 import Data.HashMap.Strict qualified as HashMap
 import Data.List as X
 import Data.Maybe as X (fromMaybe)
+import Data.Path qualified as Path
 import Data.Text qualified as T
 import Data.Text.Utf16.Rope.Mixed qualified as Rope
 import Language.LSP.Logging qualified as LSP.Logging
@@ -214,6 +215,7 @@ initServer :: StaticEnvOptions -> LoggerM IO -> LanguageContextEnv config -> TMe
 initServer staticEnvOptions logger serverConfig _ = do
   runExceptT $ do
     wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
+    wsRoot <- Path.filePathToAbs wsRoot
     serverStaticEnv <- ExceptT $ Right <$> initStaticLsEnv wsRoot staticEnvOptions logger
     pure $
       LspEnv

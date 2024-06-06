@@ -48,16 +48,17 @@ myFunDefLocation = do
             }
       }
 
-myFunRef1TdiAndPosition :: (LSP.TextDocumentIdentifier, LSP.Position)
-myFunRef1TdiAndPosition =
+myFunRef1TdiAndPosition :: IO (LSP.TextDocumentIdentifier, LSP.Position)
+myFunRef1TdiAndPosition = do
+  path <- Dir.makeAbsolute "test/TestData/Mod1.hs"
   let pos =
         LSP.Position
           { LSP._line = unsafeIntToUInt 10
           , LSP._character = unsafeIntToUInt 18
           }
       tdi =
-        LSP.TextDocumentIdentifier $ LSP.filePathToUri "test/TestData/Mod1.hs"
-   in (tdi, pos)
+        LSP.TextDocumentIdentifier $ LSP.filePathToUri path
+  pure (tdi, pos)
 
 unsafeIntToUInt :: Int -> LSP.UInt
 unsafeIntToUInt = fromIntegral

@@ -9,12 +9,15 @@ import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
 import StaticLS.StaticLsEnv as StaticLsEnv
-import System.Directory (makeAbsolute)
+
+-- import System.Directory (Path.filePathToAbs)
+
+import Data.Path qualified as Path
 import TestImport.Assert
 
 initStaticLsEnv :: IO StaticLsEnv
 initStaticLsEnv = do
-  wsRoot <- makeAbsolute "."
+  wsRoot <- Path.filePathToAbs "."
   StaticLsEnv.initStaticLsEnv wsRoot defaultTestStaticEnvOptions noOpLogger
 
 updateTestFileState :: LSP.TextDocumentIdentifier -> StaticLsM ()
@@ -28,7 +31,7 @@ updateTestFileState (LSP.TextDocumentIdentifier uri) = do
 
 initStaticEnv :: IO StaticEnv
 initStaticEnv = do
-  wsRoot <- makeAbsolute "."
+  wsRoot <- Path.filePathToAbs "."
   StaticEnv.initStaticEnv wsRoot defaultTestStaticEnvOptions
 
 testHieDir :: FilePath
@@ -54,10 +57,10 @@ defaultTestStaticEnvOptions =
 
 initStaticEnvOpts :: StaticEnvOptions -> IO StaticEnv
 initStaticEnvOpts options = do
-  wsRoot <- makeAbsolute "."
+  wsRoot <- Path.filePathToAbs "."
   StaticEnv.initStaticEnv wsRoot options
 
 initStaticLsEnvOpts :: StaticEnvOptions -> IO StaticLsEnv
 initStaticLsEnvOpts options = do
-  wsRoot <- makeAbsolute "."
+  wsRoot <- Path.filePathToAbs "."
   StaticLsEnv.initStaticLsEnv wsRoot options noOpLogger

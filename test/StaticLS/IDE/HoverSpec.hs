@@ -13,7 +13,7 @@ spec =
     describe "All available sources" $ do
       it "retrieves the myFun definition from a different module" $ do
         staticLsEnv <- Test.initStaticLsEnv
-        let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+        tdiAndPos@(tdi, _) <- Test.myFunRef1TdiAndPosition
         mHoverInfo <- runStaticLsM staticLsEnv $ do
           _ <- Test.updateTestFileState tdi
           uncurry retrieveHover tdiAndPos

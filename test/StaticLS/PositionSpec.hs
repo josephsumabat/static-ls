@@ -4,9 +4,9 @@
 module StaticLS.PositionSpec where
 
 import Data.List.NonEmpty qualified as NE
+import Data.Pos
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.Position
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck
@@ -37,7 +37,7 @@ instance Arbitrary TextAndLineCol where
     let theLine = NE.toList (splitLinesWithEnd text) !! line
     -- the last line could be empty, ex "a\n"
     col <- choose (0, max 0 (T.length theLine - 1))
-    pure $ TextAndLineCol text LineCol {line, col}
+    pure $ TextAndLineCol text (LineCol line col)
 
 spec :: Spec
 spec = do

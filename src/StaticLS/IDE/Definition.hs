@@ -34,7 +34,6 @@ import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 import System.Directory (doesFileExist)
-import System.FilePath ((</>))
 
 getDefinition ::
   (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
@@ -46,6 +45,7 @@ getDefinition tdi position = do
   let lineCol = ProtoLSP.lineColFromProto position
   mLocationLinks <- runMaybeT $ do
     hieFile <- getHieFileFromUri uri
+    liftIO $ putStrLn $ "hieFile: " ++ show hieFile
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
     lineCol' <- lineColToHieLineCol uri hieSource lineCol
     let identifiersAtPoint =
@@ -101,14 +101,6 @@ getTypeDefinition tdi position = do
     name = case tyFix of
       (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
       _ -> []
-  -- GHC.Roll (GHC.HTyVarTy name) -> name : acc
-  -- GHC.Roll (GHC.HAppTy ty (GHC.HieArgs _args)) -> foldl' (\z arg -> goToTypeName z arg) (goTypeToName acc ty) (filter fst args)
-  -- GHC.Roll (GHC.HForAllTy ((name, _ty1), _forallFlag) _ty2) -> name : acc
-  -- GHC.Roll (GHC.HFunTy ty1 _ty2 _ty3) -> goTypeToName acc ty1
-  -- GHC.Roll (GHC.HQualTy _constraint ty) -> goTypeToName  ty
-  -- GHC.Roll (GHC.HLitTy _ifaceTyLit) -> Nothing
-  -- GHC.Roll (GHC.HCastTy ty) -> typeToName ty
-  -- GHC.Roll GHC.HCoercionTy -> Nothing
 
   -- pulled from https://github.com/wz1000/HieDb/blob/6905767fede641747f5c24ce02f1ea73fc8c26e5/src/HieDb/Compat.hs#L147
   nodeInfo' :: GHC.HieAST GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
@@ -176,7 +168,7 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
 srcSpanToLocation :: (HasCallStack, HasStaticEnv m) => GHC.SrcSpan -> MaybeT m LSP.Location
 srcSpanToLocation src = do
   staticEnv <- lift getStaticEnv
-  fs <- toAlt $ ((staticEnv.wsRoot Path.</>) . Path.filePathToRel) <$> ((srcSpanToFilename src))
+  fs <- toAlt $ (staticEnv.wsRoot Path.</>) . Path.filePathToRel <$> srcSpanToFilename src
   rng <- toAlt $ srcSpanToRange src
   -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
   pure $ LSP.Location (LSP.fromNormalizedUri $ LSP.normalizedFilePathToUri $ LSP.toNormalizedFilePath (Path.toFilePath fs)) rng

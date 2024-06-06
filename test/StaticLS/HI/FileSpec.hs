@@ -2,13 +2,13 @@ module StaticLS.HI.FileSpec (spec)
 where
 
 import Control.Monad.Trans.Maybe (runMaybeT)
+import Data.Path qualified as Path
 import StaticLS.HI.File
 import StaticLS.StaticEnv
 import System.Directory
 import Test.Hspec
 import TestImport qualified as Test
 import TestImport.Assert qualified as Test
-import qualified Data.Path as Path
 
 spec :: Spec
 spec = do
@@ -20,7 +20,7 @@ spec = do
         hiFile <-
           runStaticEnv staticEnv $
             runMaybeT $
-              srcFilePathToHiFilePath p 
+              srcFilePathToHiFilePath p
         let relativeHiFile = Path.makeRelative staticEnv.wsRoot <$> hiFile
         hiFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHiFile
 

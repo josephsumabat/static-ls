@@ -107,7 +107,7 @@ handleResolveCodeAction req resp = do
               , _changeAnnotations = Nothing
               }
       liftIO $ hPutStrLn stderr ("workspace edit: " ++ show workspaceEdit)
-      resp (Right (action & LSP.edit .~ Just workspaceEdit))
+      resp (Right (action & LSP.edit ?~ workspaceEdit))
       pure ()
     _ -> Exception.throwString "don't know how to resolve this code action"
 

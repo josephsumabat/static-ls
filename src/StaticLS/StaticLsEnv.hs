@@ -7,17 +7,17 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
 import Data.IORef qualified as IORef
+import Data.Path (AbsPath)
+import Data.Pos (LineCol, Pos)
+import Data.Pos qualified as Position
 import Data.Text (Text)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
 import StaticLS.Logger
-import Data.Pos (LineCol, Pos)
-import Data.Pos qualified as Position
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import StaticLS.Utils (isJustOrThrow)
-import Data.Path (AbsPath)
 
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information

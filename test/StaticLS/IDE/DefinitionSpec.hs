@@ -1,5 +1,6 @@
 module StaticLS.IDE.DefinitionSpec (spec) where
 
+import Control.Monad.IO.Class (liftIO)
 import StaticLS.IDE.Definition
 import StaticLS.StaticEnv.Options
 import StaticLS.StaticLsEnv
@@ -14,8 +15,10 @@ spec =
     describe "All available sources" $ do
       it "retrieves the myFun definition from a different module" $ do
         staticEnv <- Test.initStaticLsEnv
+        putStrLn "staticEnv"
         defnLinks <- runStaticLsM staticEnv $ do
-          let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+          tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
+          liftIO $ putStrLn $ "tdiAndPos: " ++ show tdiAndPos
           _ <- Test.updateTestFileState tdi
           uncurry getDefinition tdiAndPos
         defnLink <- Test.assertHead "no definition link found" defnLinks
@@ -34,7 +37,7 @@ spec =
                   }
           staticEnv <- Test.initStaticLsEnvOpts emptyOpts
           defnLinks <- runStaticLsM staticEnv $ do
-            let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+            tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
             _ <- Test.updateTestFileState tdi
             uncurry getDefinition tdiAndPos
           defnLink <- Test.assertHead "no definition link found" defnLinks
@@ -51,7 +54,7 @@ spec =
                   }
           staticEnv <- Test.initStaticLsEnvOpts emptyOpts
           defnLinks <- runStaticLsM staticEnv $ do
-            let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+            tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
             _ <- Test.updateTestFileState tdi
             uncurry getDefinition tdiAndPos
           defnLink <- Test.assertHead "no definition link found" defnLinks
@@ -68,7 +71,7 @@ spec =
                 }
         staticEnv <- Test.initStaticLsEnvOpts emptyOpts
         locs <- runStaticLsM staticEnv $ do
-          let tdiAndPos@(tdi, _) = Test.myFunRef1TdiAndPosition
+          tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
           _ <- Test.updateTestFileState tdi
           uncurry getDefinition tdiAndPos
         locs `shouldBe` []

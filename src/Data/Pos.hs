@@ -46,17 +46,15 @@ pattern Pos p <- UnsafePos p
 {-# COMPLETE Pos #-}
 
 lineCol :: (HasCallStack) => Int -> Int -> LineCol
-lineCol line col =
-  if line < 0
-    then error "line must be >= 0"
-    else
-      if col < 0
-        then error "col must be >= 0"
-        else
-          UnsafeLineCol line col
+lineCol line col
+  | line < 0 = error "line must be >= 0"
+  | col < 0 = error "col must be >= 0"
+  | otherwise = UnsafeLineCol line col
 
 pos :: (HasCallStack) => Int -> Pos
-pos p = if p < 0 then error "pos must be >= 0" else UnsafePos p
+pos p
+  | p < 0 = error "pos must be >= 0"
+  | otherwise = UnsafePos p
 
 lineColToPos :: Text -> LineCol -> Pos
 lineColToPos source UnsafeLineCol {line, col} =

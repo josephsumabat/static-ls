@@ -23,6 +23,7 @@ import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Data.Bifunctor (first, second)
 import Data.Map qualified as Map
 import Data.Path (AbsPath)
+import Data.Path qualified as Path
 import GHC qualified
 import GHC.Iface.Ext.Binary qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
@@ -38,7 +39,6 @@ import StaticLS.SrcFiles
 import StaticLS.StaticEnv
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
-import qualified Data.Path as Path
 
 -- | Retrieve a hie info from a lsp text document identifier
 -- Returns a Maybe instead of throwing because we want to handle

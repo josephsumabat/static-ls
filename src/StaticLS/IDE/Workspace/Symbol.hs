@@ -1,24 +1,37 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-module StaticLS.IDE.Workspace.Symbol where
+module StaticLS.IDE.Workspace.Symbol (
+  Symbol (..),
+  symbolInfo,
+) where
 
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Path qualified as Path
+import Data.Text (Text)
 import Data.Text qualified as T
 import Development.IDE.GHC.Util (printOutputable)
-import Development.IDE.Types.Location
 import GHC.Plugins hiding ((<>))
 import HieDb qualified
-import Language.LSP.Protocol.Types
+import StaticLS.HIE (hiedbCoordsToLineCol)
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
+import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.SymbolKind (SymbolKind (..))
+import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
-import qualified StaticLS.ProtoLSP as ProtoLSP
 
-symbolInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => T.Text -> m [SymbolInformation]
+data Symbol = Symbol
+  { name :: !Text
+  , kind :: !SymbolKind
+  , loc :: !FileLcRange
+  }
+  deriving (Show, Eq)
+
+symbolInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => T.Text -> m [Symbol]
 symbolInfo query = do
   mHiedbDefs <- runMaybeT . runHieDbMaybeT $ \hieDb -> HieDb.searchDef hieDb (T.unpack query)
   let hiedbDefs = fromMaybe [] mHiedbDefs
@@ -29,32 +42,26 @@ symbolInfo query = do
 -- With following modification
 -- a. instead of replying on `modInfoSrcFile` (which is only present when hiedb index with `--src-base-dir`)
 --    we could find src file path from `hieFilePathToSrcFilePath`
-defRowToSymbolInfo :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> m (Maybe SymbolInformation)
+defRowToSymbolInfo :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> m (Maybe Symbol)
 defRowToSymbolInfo (HieDb.DefRow {..} HieDb.:. _) = runMaybeT $ do
   do
     defSrc <- Path.filePathToAbs defSrc
     srcFile <- hieFilePathToSrcFilePath defSrc
-    let file = ProtoLSP.absPathToUri srcFile
-        loc = Location file range
+    let file = srcFile
+        loc = FileWith file range
     kind <- toAlt mKind
     pure $
-      SymbolInformation
-        { _name = printOutputable defNameOcc
-        , _kind = kind
-        , _tags = Nothing
-        , _containerName = Nothing
-        , _deprecated = Nothing
-        , _location = loc
+      Symbol
+        { name = printOutputable defNameOcc
+        , kind = kind
+        , loc = loc
         }
  where
   mKind
-    | isVarOcc defNameOcc = Just SymbolKind_Variable
-    | isDataOcc defNameOcc = Just SymbolKind_Constructor
-    | isTcOcc defNameOcc = Just SymbolKind_Struct
+    | isVarOcc defNameOcc = Just SymbolKind.Variable
+    | isDataOcc defNameOcc = Just SymbolKind.Constructor
+    | isTcOcc defNameOcc = Just SymbolKind.Type
     | otherwise = Nothing
-  range = Range start end
-  start = Position (fromIntegral $ defSLine - 1) (fromIntegral $ defSCol - 1)
-  end = Position (fromIntegral $ defELine - 1) (fromIntegral $ defECol - 1)
-
-toUri :: FilePath -> Uri
-toUri = fromNormalizedUri . filePathToUri' . toNormalizedFilePath'
+  range = LineColRange start end
+  start = hiedbCoordsToLineCol (defSLine, defSCol)
+  end = hiedbCoordsToLineCol (defELine, defECol)

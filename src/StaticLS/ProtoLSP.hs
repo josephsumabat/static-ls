@@ -10,6 +10,7 @@ module StaticLS.ProtoLSP (
   locationToLocationLink,
   lineColRangeToProto,
   fileLcRangeToLocation,
+  symbolToProto,
 )
 where
 
@@ -22,6 +23,9 @@ import Data.Path qualified as Path
 import Data.Pos
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.SymbolKind (SymbolKind)
+import StaticLS.IDE.SymbolKind qualified as SymbolKind
+import StaticLS.IDE.Workspace.Symbol (Symbol (..))
 import StaticLS.Utils
 
 lineColToProto :: LineCol -> LSP.Position
@@ -62,3 +66,21 @@ locationToLocationLink LSP.Location {..} =
 fileLcRangeToLocation :: FileLcRange -> LSP.Location
 fileLcRangeToLocation (FileWith path range) =
   LSP.Location (absPathToUri path) (lineColRangeToProto range)
+
+symbolKindToProto :: SymbolKind -> LSP.SymbolKind
+symbolKindToProto = \case
+  SymbolKind.Variable -> LSP.SymbolKind_Variable
+  SymbolKind.Type -> LSP.SymbolKind_Struct
+  SymbolKind.Class -> LSP.SymbolKind_Interface
+  SymbolKind.Constructor -> LSP.SymbolKind_Constructor
+
+symbolToProto :: Symbol -> LSP.SymbolInformation
+symbolToProto Symbol {name, kind, loc} =
+  LSP.SymbolInformation
+    { _name = name
+    , _kind = symbolKindToProto kind
+    , _deprecated = Nothing
+    , _location = fileLcRangeToLocation loc
+    , _containerName = Nothing
+    , _tags = Nothing
+    }

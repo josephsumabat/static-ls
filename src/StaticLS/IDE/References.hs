@@ -26,7 +26,7 @@ import StaticLS.StaticEnv
 findRefs :: (HasStaticEnv m, MonadThrow m, HasFileEnv m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
 findRefs path lineCol = do
   mLocList <- runMaybeT $ do
-    hieFile <- exceptToMaybeT $ getHieFile path
+    hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
     lineCol' <- lineColToHieLineCol path hieSource lineCol
     let hiedbPosition = lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol')

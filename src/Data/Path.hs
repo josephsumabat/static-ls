@@ -1,22 +1,24 @@
-module Data.Path (
-  Path (path, Path),
-  KnownPathKind (sPathKind),
-  AbsPath,
-  RelPath,
-  filePathToAbs,
-  unsafeFilePathToAbs,
-  filePathToRel,
-  toFilePath,
-  (</>),
-  makeRelative,
-  absToRel,
-  (<.>),
-  (-<.>),
-  filePathToAbsThrow,
-) where
+module Data.Path
+  ( Path (path, Path),
+    KnownPathKind (sPathKind),
+    AbsPath,
+    RelPath,
+    filePathToAbs,
+    unsafeFilePathToAbs,
+    filePathToRel,
+    toFilePath,
+    (</>),
+    makeRelative,
+    absToRel,
+    (<.>),
+    (-<.>),
+    filePathToAbsThrow,
+  )
+where
 
 import Control.Monad.Catch
 import Control.Monad.IO.Class
+import Data.Aeson qualified as Aeson
 import Data.Hashable (Hashable)
 import GHC.Stack (HasCallStack)
 import System.Directory qualified as Dir
@@ -38,7 +40,7 @@ instance KnownPathKind Rel where
   sPathKind = SRel
 
 newtype Path p = UncheckedPath {path :: FilePath}
-  deriving (Show, Eq, Ord, Hashable)
+  deriving (Show, Eq, Ord, Hashable, Aeson.FromJSON, Aeson.ToJSON)
 
 pattern Path :: FilePath -> Path p
 pattern Path p <- UncheckedPath p

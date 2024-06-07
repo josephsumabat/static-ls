@@ -6,6 +6,7 @@ import Data.Aeson.TH
 import Data.Text
 import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
 import StaticLS.StaticLsEnv
+import Data.Path (AbsPath)
 
 data Context = Context
   { textDocument :: !TextDocumentIdentifier
@@ -18,7 +19,7 @@ data CodeActionMessageKind
 
 data CodeActionMessage = CodeActionMessage
   { kind :: !CodeActionMessageKind
-  , tdi :: !TextDocumentIdentifier
+  , path :: !AbsPath
   }
 
 data GlobalCodeAction = GlobalCodeAction

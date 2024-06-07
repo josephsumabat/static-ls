@@ -8,7 +8,7 @@ packages:
 source-repository-package
     type: git
     location: https://github.com/oberblastmeister/tree-sitter-simple.git
-    tag: 0921bf8559487f8a12982d4dda0ce7714d63a530
+    tag: 02e42e4aa0ea0c5983057d454cf420e155902213
     subdir: tree-sitter-simple
 
 source-repository-package
@@ -19,17 +19,17 @@ source-repository-package
 source-repository-package
     type: git
     location: https://github.com/oberblastmeister/tree-sitter-simple.git
-    tag: 0921bf8559487f8a12982d4dda0ce7714d63a530
+    tag: 02e42e4aa0ea0c5983057d454cf420e155902213
     subdir: tree-sitter-haskell
 
 source-repository-package
     type: git
     location: https://github.com/oberblastmeister/tree-sitter-simple.git
-    tag: 0921bf8559487f8a12982d4dda0ce7714d63a530
+    tag: 02e42e4aa0ea0c5983057d454cf420e155902213
     subdir: tree-sitter-ast
 
 source-repository-package
     type: git
     location: https://github.com/oberblastmeister/tree-sitter-simple.git
-    tag: 0921bf8559487f8a12982d4dda0ce7714d63a530
+    tag: 02e42e4aa0ea0c5983057d454cf420e155902213
     subdir: haskell-ast

@@ -55,6 +55,7 @@ library
       StaticLS.IDE.Completion
       StaticLS.IDE.Definition
       StaticLS.IDE.DocumentSymbols
+      StaticLS.IDE.FileWith
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.References

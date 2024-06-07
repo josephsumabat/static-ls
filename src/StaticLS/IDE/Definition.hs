@@ -183,11 +183,3 @@ defRowToLocation (defRow HieDb.:. _) = do
   hieFilePath <- Path.filePathToAbs hieFilePath
   file <- hieFilePathToSrcFilePath hieFilePath
   pure $ FileWith file range
-
--- -- TODO: Instead of calling this function the callers should directly construct a `LocationLink` with more information at hand.
-
--- zeroPos :: LSP.Position
--- zeroPos = LSP.Position 0 0
-
--- zeroRange :: LSP.Range
--- zeroRange = LSP.Range zeroPos zeroPos

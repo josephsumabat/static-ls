@@ -26,7 +26,7 @@ data LineCol = UnsafeLineCol
   }
   deriving (Eq, Show)
 
-pattern LineCol :: Int -> Int -> LineCol
+pattern LineCol :: (HasCallStack) => Int -> Int -> LineCol
 pattern LineCol l c <- UnsafeLineCol l c
   where
     LineCol = lineCol
@@ -37,7 +37,7 @@ pattern LineCol l c <- UnsafeLineCol l c
 newtype Pos = UnsafePos {pos :: Int}
   deriving (Show, Eq, Ord)
 
-pattern Pos :: Int -> Pos
+pattern Pos :: (HasCallStack) => Int -> Pos
 pattern Pos p <- UnsafePos p
   where
     Pos = pos

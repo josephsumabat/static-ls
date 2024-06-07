@@ -98,7 +98,8 @@ handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \r
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   refs <- lift $ findRefs path (ProtoLSP.lineColFromProto params._position)
-  res $ Right . InL $ refs
+  let locations = fmap ProtoLSP.fileLcRangeToLocation refs
+  res $ Right . InL $ locations
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)
 handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()

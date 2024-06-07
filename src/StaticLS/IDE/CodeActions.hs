@@ -10,7 +10,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 import Data.Aeson hiding (Null)
 import Data.List qualified as List
-import Data.Path (AbsPath, Path)
+import Data.Path (AbsPath)
 import Data.Text
 import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
@@ -38,14 +38,14 @@ createAutoImportCodeActions :: AbsPath -> Text -> StaticLsM [LSP.CodeAction]
 createAutoImportCodeActions path toImport =
   pure
     [ LSP.CodeAction
-        { _title = "import " <> toImport,
-          _kind = Just LSP.CodeActionKind_QuickFix,
-          _diagnostics = Nothing,
-          _edit = Nothing,
-          _command = Nothing,
-          _isPreferred = Nothing,
-          _disabled = Nothing,
-          _data_ = Just $ toJSON CodeActionMessage {kind = AutoImportActionMessage toImport, path}
+        { _title = "import " <> toImport
+        , _kind = Just LSP.CodeActionKind_QuickFix
+        , _diagnostics = Nothing
+        , _edit = Nothing
+        , _command = Nothing
+        , _isPreferred = Nothing
+        , _disabled = Nothing
+        , _data_ = Just $ toJSON CodeActionMessage {kind = AutoImportActionMessage toImport, path}
         }
     ]
 
@@ -91,10 +91,10 @@ handleResolveCodeAction req resp = do
             LSP.TextDocumentEdit
               { _textDocument =
                   LSP.OptionalVersionedTextDocumentIdentifier
-                    { _uri = uri,
-                      _version = LSP.InR LSP.Null
-                    },
-                _edits =
+                    { _uri = uri
+                    , _version = LSP.InR LSP.Null
+                    }
+              , _edits =
                   fmap
                     LSP.InL
                     [ textEditInsert (LSP.Position (fromIntegral lineNum) (fromIntegral lineLength)) (T.pack "\n\nimport " <> toImport)
@@ -102,9 +102,9 @@ handleResolveCodeAction req resp = do
               }
       let workspaceEdit =
             LSP.WorkspaceEdit
-              { _changes = Nothing,
-                _documentChanges = Just [LSP.InL textDocumentEdit],
-                _changeAnnotations = Nothing
+              { _changes = Nothing
+              , _documentChanges = Just [LSP.InL textDocumentEdit]
+              , _changeAnnotations = Nothing
               }
       liftIO $ hPutStrLn stderr ("workspace edit: " ++ show workspaceEdit)
       resp (Right (action & LSP.edit ?~ workspaceEdit))

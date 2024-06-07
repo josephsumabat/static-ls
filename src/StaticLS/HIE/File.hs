@@ -49,7 +49,7 @@ getHieFileFromUri :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m GHC.HieF
 getHieFileFromUri = exceptToMaybeT . getHieFile <=< uriToHieFilePath
 
 getHieFileFromPath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m GHC.HieFile
-getHieFileFromPath = exceptToMaybeT . getHieFile
+getHieFileFromPath = (exceptToMaybeT . getHieFile) <=< srcFilePathToHieFilePath
 
 uriToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m AbsPath
 uriToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSPProto.uriToAbsPath)

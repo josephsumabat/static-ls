@@ -36,18 +36,24 @@ import StaticLS.StaticLsEnv
 import System.Directory (doesFileExist)
 import Data.Path (AbsPath)
 import Data.Pos (LineCol)
+import qualified Data.Text as T
+import StaticLS.Logger
 
 getDefinition ::
-  (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
+  (HasCallStack, HasLogger m, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
   AbsPath ->
   LineCol ->
   m [LSP.DefinitionLink]
 getDefinition path lineCol = do
   -- let lineCol = ProtoLSP.lineColFromProto position
+  logInfo $ T.pack $ "getDefinition"
   mLocationLinks <- runMaybeT $ do
+    lift $ logInfo $ T.pack $ "path: " <> show path
     hieFile <- getHieFileFromPath path
+    lift $ logInfo $ T.pack $ "hieFile: " <> show hieFile
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
     lineCol' <- lineColToHieLineCol path hieSource lineCol
+    lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
     let identifiersAtPoint =
           join $
             HieDb.pointCommand

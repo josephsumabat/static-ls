@@ -11,6 +11,7 @@ module StaticLS.ProtoLSP (
   lineColRangeToProto,
   fileLcRangeToLocation,
   symbolToProto,
+  symbolTreeToProto,
 )
 where
 
@@ -22,6 +23,7 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos
 import Language.LSP.Protocol.Types qualified as LSP
+import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.IDE.SymbolKind (SymbolKind)
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
@@ -70,9 +72,11 @@ fileLcRangeToLocation (FileWith path range) =
 symbolKindToProto :: SymbolKind -> LSP.SymbolKind
 symbolKindToProto = \case
   SymbolKind.Variable -> LSP.SymbolKind_Variable
+  SymbolKind.Function -> LSP.SymbolKind_Function
   SymbolKind.Type -> LSP.SymbolKind_Struct
   SymbolKind.Class -> LSP.SymbolKind_Interface
   SymbolKind.Constructor -> LSP.SymbolKind_Constructor
+  SymbolKind.Field -> LSP.SymbolKind_Property
 
 symbolToProto :: Symbol -> LSP.SymbolInformation
 symbolToProto Symbol {name, kind, loc} =
@@ -83,4 +87,17 @@ symbolToProto Symbol {name, kind, loc} =
     , _location = fileLcRangeToLocation loc
     , _containerName = Nothing
     , _tags = Nothing
+    }
+
+symbolTreeToProto :: SymbolTree -> LSP.DocumentSymbol
+symbolTreeToProto SymbolTree {name, kind, range, selectionRange, children} =
+  LSP.DocumentSymbol
+    { _name = name
+    , _tags = Nothing
+    , _detail = Nothing
+    , _kind = symbolKindToProto kind
+    , _deprecated = Nothing
+    , _range = lineColRangeToProto range
+    , _selectionRange = lineColRangeToProto selectionRange
+    , _children = Just $ symbolTreeToProto <$> children
     }

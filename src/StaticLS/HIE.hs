@@ -1,18 +1,19 @@
 {-# LANGUAGE TypeApplications #-}
 
-module StaticLS.HIE
-  ( hieAstNodeToIdentifiers,
-    identifiersToNames,
-    hieAstToNames,
-    hieAstsAtPoint,
-    hiedbCoordsToLspPosition,
-    lspPositionToHieDbCoords,
-    namesAtPoint,
-    lspPositionToASTPoint,
-    astRangeToLspRange,
-    lineColToAstPoint,
-    hiedbCoordsToLineCol,
-  )
+module StaticLS.HIE (
+  hieAstNodeToIdentifiers,
+  identifiersToNames,
+  hieAstToNames,
+  hieAstsAtPoint,
+  hiedbCoordsToLspPosition,
+  lspPositionToHieDbCoords,
+  namesAtPoint,
+  lspPositionToASTPoint,
+  astRangeToLspRange,
+  lineColToAstPoint,
+  hiedbCoordsToLineCol,
+  astRangeToLineColRange,
+)
 where
 
 import AST qualified
@@ -20,6 +21,7 @@ import Control.Error.Util (hush)
 import Control.Exception (Exception)
 import Control.Monad (join, (<=<))
 import Control.Monad.Trans.Except (ExceptT, throwE)
+import Data.LineColRange (LineColRange (..))
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
 import Data.Pos (LineCol (..))
@@ -69,16 +71,31 @@ lspPositionToHieDbCoords position = (fromIntegral position._line + 1, fromIntegr
 lspPositionToASTPoint :: LSP.Position -> AST.Point
 lspPositionToASTPoint position =
   AST.Point
-    { row = fromIntegral position._line,
-      col = fromIntegral position._character
+    { row = fromIntegral position._line
+    , col = fromIntegral position._character
     }
 
 lineColToAstPoint :: LineCol -> AST.Point
 lineColToAstPoint (LineCol line col) =
   AST.Point
-    { row = fromIntegral line,
-      col = fromIntegral col
+    { row = fromIntegral line
+    , col = fromIntegral col
     }
+
+astRangeToLineColRange :: AST.Range -> LineColRange
+astRangeToLineColRange range =
+  LineColRange
+    ( LineCol
+        ( fromIntegral $
+            AST.row $
+              AST.startPoint range
+        )
+        (fromIntegral $ AST.col $ AST.startPoint range)
+    )
+    ( LineCol
+        (fromIntegral $ AST.row $ AST.endPoint range)
+        (fromIntegral (AST.col (AST.endPoint range)))
+    )
 
 -- TODO: this is wrong, ast positions can hit the end of the line exclusive
 -- but if lsp positions want to hit include the newline, it must start at the next line
@@ -90,14 +107,14 @@ astRangeToLspRange range =
           { _line =
               fromIntegral $
                 AST.row $
-                  AST.startPoint range,
-            _character = fromIntegral $ AST.col $ AST.startPoint range
-          },
-      _end =
+                  AST.startPoint range
+          , _character = fromIntegral $ AST.col $ AST.startPoint range
+          }
+    , _end =
         LSP.Position
           { _line =
-              fromIntegral $ AST.row $ AST.endPoint range,
-            _character =
+              fromIntegral $ AST.row $ AST.endPoint range
+          , _character =
               fromIntegral (AST.col (AST.endPoint range))
           }
     }
@@ -108,6 +125,6 @@ intToUInt x =
   if minBoundAsInt <= x && x <= maxBoundAsInt
     then pure $ fromIntegral x
     else throwE UIntConversionException
-  where
-    minBoundAsInt = fromIntegral $ minBound @LSP.UInt
-    maxBoundAsInt = fromIntegral $ maxBound @LSP.UInt
+ where
+  minBoundAsInt = fromIntegral $ minBound @LSP.UInt
+  maxBoundAsInt = fromIntegral $ maxBound @LSP.UInt

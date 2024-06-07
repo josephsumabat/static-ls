@@ -1,19 +1,30 @@
-module StaticLS.IDE.DocumentSymbols (getDocumentSymbols) where
+module StaticLS.IDE.DocumentSymbols (SymbolTree (..), getDocumentSymbols) where
 
 import AST qualified
 import AST.Haskell qualified as Haskell
 import Data.Either.Extra (eitherToMaybe)
 import Data.Foldable qualified as Foldable
+import Data.LineColRange (LineColRange)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Sum
 import Data.Text (Text)
 import Data.Text qualified as T
-import Language.LSP.Protocol.Types qualified as LSP
-import StaticLS.HIE (astRangeToLspRange)
+import StaticLS.HIE (astRangeToLineColRange)
+import StaticLS.IDE.SymbolKind (SymbolKind)
+import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.Logger
 import StaticLS.StaticLsEnv
+
+data SymbolTree = SymbolTree
+  { name :: !Text
+  , kind :: !SymbolKind
+  , range :: !LineColRange
+  , selectionRange :: !LineColRange
+  , children :: [SymbolTree]
+  }
+  deriving (Show)
 
 queryDeclarations :: Haskell.Haskell -> AST.Err [Haskell.Declaration]
 queryDeclarations hs = do
@@ -29,7 +40,7 @@ queryDeclarations hs = do
           (NE.toList decls)
   pure declarations
 
-declarationToSymbol :: Haskell.Declaration -> AST.Err [LSP.DocumentSymbol]
+declarationToSymbol :: Haskell.Declaration -> AST.Err [SymbolTree]
 declarationToSymbol decl =
   case decl.getDeclaration of
     Inj @Haskell.Decl decl -> declToSymbol decl
@@ -40,67 +51,67 @@ declarationToSymbol decl =
     Inj @Haskell.TypeFamily typeFamily -> typeFamilyToSymbol typeFamily
     _ -> pure []
 
-typeFamilyToSymbol :: Haskell.TypeFamily -> AST.Err [LSP.DocumentSymbol]
+typeFamilyToSymbol :: Haskell.TypeFamily -> AST.Err [SymbolTree]
 typeFamilyToSymbol typeFamily = do
   name <- AST.collapseErr typeFamily.name
   pure $ Foldable.toList $ do
     name <- name
     Just $
-      mkDocumentSymbol
+      mkSymbolTree
         (nodeToText name)
-        LSP.SymbolKind_Struct
-        (astRangeToLspRange $ AST.nodeToRange typeFamily)
-        (astRangeToLspRange $ AST.nodeToRange name)
+        SymbolKind.Type
+        (astRangeToLineColRange $ AST.nodeToRange typeFamily)
+        (astRangeToLineColRange $ AST.nodeToRange name)
 
-typeSynonymToSymbol :: Haskell.TypeSynomym -> AST.Err [LSP.DocumentSymbol]
+typeSynonymToSymbol :: Haskell.TypeSynomym -> AST.Err [SymbolTree]
 typeSynonymToSymbol typeSynonym = do
   name <- AST.collapseErr typeSynonym.name
   pure $ Foldable.toList $ do
     name <- name
     Just $
-      mkDocumentSymbol
+      mkSymbolTree
         (nodeToText name)
-        LSP.SymbolKind_Struct
-        (astRangeToLspRange $ AST.nodeToRange typeSynonym)
-        (astRangeToLspRange $ AST.nodeToRange name)
+        SymbolKind.Type
+        (astRangeToLineColRange $ AST.nodeToRange typeSynonym)
+        (astRangeToLineColRange $ AST.nodeToRange name)
 
-newtypeToSymbol :: Haskell.Newtype -> AST.Err [LSP.DocumentSymbol]
+newtypeToSymbol :: Haskell.Newtype -> AST.Err [SymbolTree]
 newtypeToSymbol newtype_ = do
   name <- AST.collapseErr newtype_.name
   pure $ Foldable.toList $ do
     name <- name
     Just $
-      mkDocumentSymbol
+      mkSymbolTree
         (nodeToText name)
-        LSP.SymbolKind_Struct
-        (astRangeToLspRange $ AST.nodeToRange newtype_)
-        (astRangeToLspRange $ AST.nodeToRange name)
+        SymbolKind.Type
+        (astRangeToLineColRange $ AST.nodeToRange newtype_)
+        (astRangeToLineColRange $ AST.nodeToRange name)
 
-classToSymbol :: Haskell.Class -> AST.Err [LSP.DocumentSymbol]
+classToSymbol :: Haskell.Class -> AST.Err [SymbolTree]
 classToSymbol class_ = do
   name <- AST.collapseErr class_.name
   pure $ Foldable.toList $ do
     name <- name
     Just $
-      mkDocumentSymbol
+      mkSymbolTree
         (nodeToText name)
-        LSP.SymbolKind_Interface
-        (astRangeToLspRange $ AST.nodeToRange class_)
-        (astRangeToLspRange $ AST.nodeToRange name)
+        SymbolKind.Class
+        (astRangeToLineColRange $ AST.nodeToRange class_)
+        (astRangeToLineColRange $ AST.nodeToRange name)
 
-dataTypeToSymbol :: Haskell.DataType -> AST.Err [LSP.DocumentSymbol]
+dataTypeToSymbol :: Haskell.DataType -> AST.Err [SymbolTree]
 dataTypeToSymbol dataType = do
   name <- AST.collapseErr dataType.name
   pure $ Foldable.toList $ do
     name <- name
     Just $
-      mkDocumentSymbol
+      mkSymbolTree
         (nodeToText name)
-        LSP.SymbolKind_Struct
-        (astRangeToLspRange $ AST.nodeToRange dataType)
-        (astRangeToLspRange $ AST.nodeToRange name)
+        SymbolKind.Type
+        (astRangeToLineColRange $ AST.nodeToRange dataType)
+        (astRangeToLineColRange $ AST.nodeToRange name)
 
-declToSymbol :: Haskell.Decl -> AST.Err [LSP.DocumentSymbol]
+declToSymbol :: Haskell.Decl -> AST.Err [SymbolTree]
 declToSymbol decl =
   case decl.getDecl of
     Inj @Haskell.Bind bind -> do
@@ -108,41 +119,38 @@ declToSymbol decl =
       pure $ Foldable.toList $ do
         name <- name
         Just $
-          mkDocumentSymbol
+          mkSymbolTree
             (nodeToText name)
-            LSP.SymbolKind_Function
-            (astRangeToLspRange $ AST.nodeToRange decl)
-            (astRangeToLspRange $ AST.nodeToRange name)
+            SymbolKind.Function
+            (astRangeToLineColRange $ AST.nodeToRange decl)
+            (astRangeToLineColRange $ AST.nodeToRange name)
     Inj @Haskell.Function fun -> do
       name <- AST.collapseErr fun.name
       pure $ Foldable.toList $ do
         name <- name
         Just $
-          mkDocumentSymbol
+          mkSymbolTree
             (nodeToText name)
-            LSP.SymbolKind_Function
-            (astRangeToLspRange $ AST.nodeToRange decl)
-            (astRangeToLspRange $ AST.nodeToRange name)
+            SymbolKind.Function
+            (astRangeToLineColRange $ AST.nodeToRange decl)
+            (astRangeToLineColRange $ AST.nodeToRange name)
     _ -> pure []
 
 -- TODO: check invariant that selectionRange is contained in range
-mkDocumentSymbol :: Text -> LSP.SymbolKind -> LSP.Range -> LSP.Range -> LSP.DocumentSymbol
-mkDocumentSymbol name kind range selectionRange =
-  LSP.DocumentSymbol
-    { LSP._name = name
-    , LSP._detail = Nothing
-    , LSP._kind = kind
-    , LSP._tags = Nothing
-    , LSP._deprecated = Nothing
-    , LSP._range = range
-    , LSP._selectionRange = selectionRange
-    , LSP._children = Nothing
+mkSymbolTree :: Text -> SymbolKind -> LineColRange -> LineColRange -> SymbolTree
+mkSymbolTree name kind range selectionRange =
+  SymbolTree
+    { name = name
+    , kind = kind
+    , range = range
+    , selectionRange = selectionRange
+    , children = []
     }
 
 nodeToText :: (AST.HasDynNode n) => n -> Text
 nodeToText = AST.nodeText . AST.getDynNode
 
-getDocumentSymbols :: AbsPath -> StaticLsM [LSP.DocumentSymbol]
+getDocumentSymbols :: AbsPath -> StaticLsM [SymbolTree]
 getDocumentSymbols path = do
   logInfo "get document symbols"
   logInfo $ T.pack $ "uri: " ++ show path

@@ -1,6 +1,7 @@
 module Data.LineColRange (
   LineColRange (..),
-empty)
+  empty,
+)
 where
 
 import Data.Pos (LineCol)

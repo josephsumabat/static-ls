@@ -1,19 +1,19 @@
-module Data.Path
-  ( Path (path, Path),
-    KnownPathKind (sPathKind),
-    AbsPath,
-    RelPath,
-    filePathToAbs,
-    unsafeFilePathToAbs,
-    filePathToRel,
-    toFilePath,
-    (</>),
-    makeRelative,
-    absToRel,
-    (<.>),
-    (-<.>),
-    filePathToAbsThrow,
-  )
+module Data.Path (
+  Path (path, Path),
+  KnownPathKind (sPathKind),
+  AbsPath,
+  RelPath,
+  filePathToAbs,
+  unsafeFilePathToAbs,
+  filePathToRel,
+  toFilePath,
+  (</>),
+  makeRelative,
+  absToRel,
+  (<.>),
+  (-<.>),
+  filePathToAbsThrow,
+)
 where
 
 import Control.Monad.Catch

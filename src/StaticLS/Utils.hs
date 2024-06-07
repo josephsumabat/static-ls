@@ -1,11 +1,11 @@
 module StaticLS.Utils where
 
 import Control.Monad.Catch
+import Data.Either.Extra qualified as Either
 import Data.Text (Text)
 import Data.Text qualified as T
 import GHC.Stack (HasCallStack)
 import UnliftIO.Exception (stringException)
-import qualified Data.Either.Extra as Either
 
 throwStringM :: (HasCallStack, MonadThrow m) => String -> m a
 throwStringM s = throwM (stringException s)

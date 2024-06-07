@@ -26,19 +26,19 @@ spec = do
 
               relativeHiFile `shouldBe` Just (Path.filePathToRel hi)
               hiFileExists `shouldBe` True
-              
-      check "returns a valid hi file when called on a src file" "test/TestData/Mod1.hs" "test/TestData/.hifiles/TestData/Mod1.hi"
-        -- staticEnv <- Test.initStaticEnv
-        -- p <- Path.filePathToAbs "test/TestData/Mod1.hs"
-        -- hiFile <-
-        --   runStaticEnv staticEnv $
-        --     runMaybeT $
-        --       srcFilePathToHiFilePath p
-        -- let relativeHiFile = Path.makeRelative staticEnv.wsRoot <$> hiFile
-        -- hiFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHiFile
 
-        -- relativeHiFile `shouldBe` Just (Path.filePathToRel "test/TestData/.hifiles/TestData/Mod1.hi")
-        -- hiFileExists `shouldBe` True
+      check "returns a valid hi file when called on a src file" "test/TestData/Mod1.hs" "test/TestData/.hifiles/TestData/Mod1.hi"
+      -- staticEnv <- Test.initStaticEnv
+      -- p <- Path.filePathToAbs "test/TestData/Mod1.hs"
+      -- hiFile <-
+      --   runStaticEnv staticEnv $
+      --     runMaybeT $
+      --       srcFilePathToHiFilePath p
+      -- let relativeHiFile = Path.makeRelative staticEnv.wsRoot <$> hiFile
+      -- hiFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHiFile
+
+      -- relativeHiFile `shouldBe` Just (Path.filePathToRel "test/TestData/.hifiles/TestData/Mod1.hi")
+      -- hiFileExists `shouldBe` True
 
       it "returns a valid hi file when called on a test/ file" $ do
         staticEnv <- Test.initStaticEnv

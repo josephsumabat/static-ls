@@ -9,7 +9,9 @@ import Control.Monad.RWS
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.LineColRange
 import Data.Maybe
+import Data.Path (AbsPath)
 import Data.Path qualified as Path
+import Data.Pos (LineCol)
 import Data.Text (Text, intercalate)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
@@ -37,8 +39,6 @@ import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
-import Data.Path (AbsPath)
-import Data.Pos (LineCol)
 
 -- | Retrieve hover information.
 retrieveHover ::

@@ -11,6 +11,7 @@ import AST.Haskell qualified as Haskell
 import Control.Monad.Except
 import Data.Coerce (coerce)
 import Data.Path (AbsPath)
+import Data.Pos (LineCol)
 import Data.Sum
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -21,7 +22,6 @@ import StaticLS.Logger (HasCallStack, logInfo)
 import StaticLS.StaticEnv (runHieDbExceptT)
 import StaticLS.StaticLsEnv
 import StaticLS.Utils (isRightOrThrow)
-import Data.Pos (LineCol)
 
 findModulesForDef :: HieDb -> Text -> IO [Text]
 findModulesForDef (getConn -> conn) name = do

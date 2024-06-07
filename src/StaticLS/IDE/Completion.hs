@@ -11,6 +11,7 @@ import AST.Haskell qualified as Haskell
 import Control.Applicative
 import Control.Monad
 import Data.Function ((&))
+import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -19,7 +20,6 @@ import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath
-import Data.Path (AbsPath)
 
 makeRelativeMaybe :: FilePath -> FilePath -> Maybe FilePath
 makeRelativeMaybe base path = do

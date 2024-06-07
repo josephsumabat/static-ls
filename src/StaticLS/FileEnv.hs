@@ -2,10 +2,10 @@ module StaticLS.FileEnv where
 
 import AST.Haskell qualified as Haskell
 import Data.HashMap.Strict (HashMap)
+import Data.Path (AbsPath)
 import Data.Text (Text)
 import Data.Text.Utf16.Rope.Mixed qualified as Rope
 import StaticLS.PositionDiff qualified as PositionDiff
-import Data.Path (AbsPath)
 
 -- | In memory representation of the current file system
 type FileEnv = HashMap AbsPath FileState

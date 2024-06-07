@@ -38,6 +38,7 @@ import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 import Data.Path (AbsPath)
+import Data.Pos (LineCol)
 
 -- | Retrieve hover information.
 retrieveHover ::
@@ -49,10 +50,9 @@ retrieveHover ::
   , MonadThrow m
   ) =>
   AbsPath ->
-  Position ->
+  LineCol ->
   m (Maybe Hover)
-retrieveHover path position = do
-  let lineCol = ProtoLSP.lineColFromProto position
+retrieveHover path lineCol = do
   runMaybeT $ do
     hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile

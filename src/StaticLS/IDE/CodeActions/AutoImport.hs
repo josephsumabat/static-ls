@@ -16,12 +16,12 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.HIE
 import StaticLS.Logger (HasCallStack, logInfo)
 import StaticLS.StaticEnv (runHieDbExceptT)
 import StaticLS.StaticLsEnv
 import StaticLS.Utils (isRightOrThrow)
+import Data.Pos (LineCol)
 
 findModulesForDef :: HieDb -> Text -> IO [Text]
 findModulesForDef (getConn -> conn) name = do
@@ -46,13 +46,13 @@ type AutoImportTypes =
 getModulesToImport ::
   (HasCallStack, ()) =>
   AbsPath ->
-  LSP.Position ->
+  LineCol ->
   StaticLsM [Text]
 getModulesToImport path pos = do
   _ <- logInfo "getModulesToImport"
   haskell <- getHaskell path
 
-  let astPoint = lspPositionToASTPoint pos
+  let astPoint = lineColToAstPoint pos
   _ <- logInfo $ T.pack $ "astPoint: " ++ show astPoint
   _ <- logInfo "got haskell"
   let maybeQualified = AST.getDeepestContaining @AutoImportTypes astPoint (AST.getDynNode haskell)

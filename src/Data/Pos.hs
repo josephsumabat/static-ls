@@ -1,7 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Data.Pos (
-  LineCol (..),
+  LineCol (.., LineCol),
   Pos (.., Pos),
   lineColToPos,
   posToLineCol,
@@ -9,7 +9,6 @@ module Data.Pos (
   splitLines,
   pos,
   lineCol,
-  pattern LineCol,
 )
 where
 

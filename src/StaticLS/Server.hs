@@ -73,7 +73,7 @@ handleTextDocumentHoverRequest :: Handlers (LspT c StaticLsM)
 handleTextDocumentHoverRequest = LSP.requestHandler SMethod_TextDocumentHover $ \req resp -> do
   let hoverParams = req._params
   path <- ProtoLSP.tdiToAbsPath hoverParams._textDocument
-  hover <- lift $ retrieveHover path hoverParams._position
+  hover <- lift $ retrieveHover path (ProtoLSP.lineColFromProto hoverParams._position)
   resp $ Right $ maybeToNull hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLsM)
@@ -81,21 +81,21 @@ handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \r
   lift $ logInfo "Received definition request."
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
-  defs <- lift $ getDefinition path params._position
+  defs <- lift $ getDefinition path (ProtoLSP.lineColFromProto params._position)
   resp $ Right . InR . InL $ defs
 
 handleTypeDefinitionRequest :: Handlers (LspT c StaticLsM)
 handleTypeDefinitionRequest = LSP.requestHandler SMethod_TextDocumentTypeDefinition $ \req resp -> do
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
-  defs <- lift $ getTypeDefinition path params._position
+  defs <- lift $ getTypeDefinition path (ProtoLSP.lineColFromProto params._position)
   resp $ Right . InR . InL $ defs
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \req res -> do
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
-  refs <- lift $ findRefs path params._position
+  refs <- lift $ findRefs path (ProtoLSP.lineColFromProto params._position)
   res $ Right . InL $ refs
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)

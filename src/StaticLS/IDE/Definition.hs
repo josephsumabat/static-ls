@@ -35,14 +35,15 @@ import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 import System.Directory (doesFileExist)
 import Data.Path (AbsPath)
+import Data.Pos (LineCol)
 
 getDefinition ::
   (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
   AbsPath ->
-  LSP.Position ->
+  LineCol ->
   m [LSP.DefinitionLink]
-getDefinition path position = do
-  let lineCol = ProtoLSP.lineColFromProto position
+getDefinition path lineCol = do
+  -- let lineCol = ProtoLSP.lineColFromProto position
   mLocationLinks <- runMaybeT $ do
     hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
@@ -71,10 +72,9 @@ getDefinition path position = do
 getTypeDefinition ::
   (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
   AbsPath ->
-  LSP.Position ->
+  LineCol ->
   m [LSP.DefinitionLink]
-getTypeDefinition path position = do
-  let lineCol = ProtoLSP.lineColFromProto position
+getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile

@@ -22,10 +22,10 @@ import StaticLS.HIE.File
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
+import Data.Pos (LineCol)
 
-findRefs :: (HasStaticEnv m, MonadThrow m, HasFileEnv m, MonadIO m) => AbsPath -> LSP.Position -> m [LSP.Location]
-findRefs path position = do
-  let lineCol = ProtoLSP.lineColFromProto position
+findRefs :: (HasStaticEnv m, MonadThrow m, HasFileEnv m, MonadIO m) => AbsPath -> LineCol -> m [LSP.Location]
+findRefs path lineCol = do
   mLocList <- runMaybeT $ do
     hieFile <- exceptToMaybeT $ getHieFile path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile

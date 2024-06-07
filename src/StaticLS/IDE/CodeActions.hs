@@ -60,7 +60,7 @@ handleCodeAction req resp = do
   let tdi = params._textDocument
   path <- ProtoLSP.uriToAbsPath tdi._uri
   let range = params._range
-  modulesToImport <- lift $ getModulesToImport path range._start
+  modulesToImport <- lift $ getModulesToImport path (ProtoLSP.lineColFromProto range._start)
   codeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions tdi) modulesToImport
   resp (Right (LSP.InL (fmap LSP.InR codeActions)))
   pure ()

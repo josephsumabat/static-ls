@@ -14,7 +14,6 @@ import Data.Function ((&))
 import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger (logInfo)
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv

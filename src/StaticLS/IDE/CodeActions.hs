@@ -8,19 +8,27 @@ module StaticLS.IDE.CodeActions where
 import Control.Lens.Operators
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.Maybe
 import Data.Aeson hiding (Null)
 import Data.List qualified as List
+import Data.Maybe (fromMaybe)
 import Data.Path (AbsPath)
+import Data.Pos (LineCol)
 import Data.Text
 import Data.Text qualified as T
+import GHC.Iface.Ext.Types qualified as GHC
+import GHC.Iface.Ext.Utils qualified as GHC
 import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message qualified as LSP
 import Language.LSP.Protocol.Types qualified as LSP
 import Language.LSP.Server qualified as LSP
+import StaticLS.HIE (getTypesAtPoint, lineColToHieDbCoords)
+import StaticLS.HIE.File (getHieFileFromPath)
 import StaticLS.IDE.CodeActions.AutoImport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.Logger (logInfo)
 import StaticLS.ProtoLSP qualified as ProtoLSP
+import StaticLS.SDoc (showGhc)
 import StaticLS.StaticLsEnv
 import StaticLS.Utils
 import System.IO
@@ -32,8 +40,18 @@ globalCodeActions :: [GlobalCodeAction]
 globalCodeActions =
   []
 
--- GlobalCodeAction { run = runCodeAction }
-
+mkCodeAction :: Text -> LSP.CodeAction
+mkCodeAction title =
+  LSP.CodeAction
+    { _title = title
+    , _kind = Just LSP.CodeActionKind_QuickFix
+    , _diagnostics = Nothing
+    , _edit = Nothing
+    , _command = Nothing
+    , _isPreferred = Nothing
+    , _disabled = Nothing
+    , _data_ = Nothing
+    }
 createAutoImportCodeActions :: AbsPath -> Text -> StaticLsM [LSP.CodeAction]
 createAutoImportCodeActions path toImport =
   pure
@@ -52,6 +70,24 @@ createAutoImportCodeActions path toImport =
 getCodeActions :: StaticLsM [CodeAction]
 getCodeActions = undefined
 
+typesCodeActions :: AbsPath -> LineCol -> StaticLsM [LSP.CodeAction]
+typesCodeActions path lineCol = do
+  res <- runMaybeT do
+    hieFile <- getHieFileFromPath path
+    let types =
+          fmap
+            ( showGhc
+                . GHC.hieTypeToIface
+                . flip
+                  GHC.recoverFullType
+                  (GHC.hie_types hieFile)
+            )
+            $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol)
+    pure ((mkCodeAction . (":: " <>)) <$> types)
+  case res of
+    Nothing -> pure []
+    Just types -> pure types
+
 handleCodeAction :: LSP.Handler (LSP.LspT c StaticLsM) LSP.Method_TextDocumentCodeAction
 handleCodeAction req resp = do
   _ <- lift $ logInfo "handleCodeAction"
@@ -59,8 +95,11 @@ handleCodeAction req resp = do
   let tdi = params._textDocument
   path <- ProtoLSP.uriToAbsPath tdi._uri
   let range = params._range
-  modulesToImport <- lift $ getModulesToImport path (ProtoLSP.lineColFromProto range._start)
-  codeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions path) modulesToImport
+  let lineCol = (ProtoLSP.lineColFromProto range._start)
+  modulesToImport <- lift $ getModulesToImport path lineCol
+  typesCodeActions <- lift $ typesCodeActions path lineCol
+  importCodeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions path) modulesToImport
+  let codeActions = typesCodeActions ++ importCodeActions
   resp (Right (LSP.InL (fmap LSP.InR codeActions)))
   pure ()
 

@@ -13,23 +13,54 @@ module StaticLS.HIE (
   lineColToAstPoint,
   hiedbCoordsToLineCol,
   astRangeToLineColRange,
+  lineColToHieDbCoords,
+  getTypesAtPoint,
 )
 where
 
 import AST qualified
 import Control.Error.Util (hush)
 import Control.Exception (Exception)
-import Control.Monad (join, (<=<))
+import Control.Monad (guard, join, (<=<))
+import Control.Monad.Catch
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (ExceptT, throwE)
+import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Foldable qualified as Foldable
 import Data.LineColRange (LineColRange (..))
+import Data.LineColRange qualified as LineColRange
+import Data.List (isSuffixOf)
 import Data.Map qualified as Map
-import Data.Maybe (mapMaybe)
+import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
+import Data.Path (AbsPath)
+import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
 import Data.Set qualified as Set
+import Data.Text qualified as T
+import Data.Text.Encoding qualified as T.Encoding
+import Development.IDE.GHC.Error (
+  srcSpanToFilename,
+  srcSpanToRange,
+ )
 import GHC qualified
+import GHC.Data.FastString qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
+import GHC.Iface.Ext.Utils qualified as GHC
+import GHC.Iface.Type qualified as GHC
+import GHC.Plugins qualified as GHC
+import GHC.Utils.Monad (mapMaybeM)
 import HieDb (pointCommand)
+import HieDb qualified
 import Language.LSP.Protocol.Types qualified as LSP
+import StaticLS.FileEnv
+import StaticLS.HIE.File
+import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.Logger
+import StaticLS.Maybe
+import StaticLS.StaticEnv
+import StaticLS.StaticLsEnv
+import System.Directory (doesFileExist)
 
 -- | LSP Position is 0 indexed
 -- Note HieDbCoords are 1 indexed
@@ -74,6 +105,9 @@ lspPositionToASTPoint position =
     { row = fromIntegral position._line
     , col = fromIntegral position._character
     }
+
+lineColToHieDbCoords :: LineCol -> HieDbCoords
+lineColToHieDbCoords (LineCol line col) = (line + 1, col + 1)
 
 lineColToAstPoint :: LineCol -> AST.Point
 lineColToAstPoint (LineCol line col) =
@@ -128,3 +162,31 @@ intToUInt x =
  where
   minBoundAsInt = fromIntegral $ minBound @LSP.UInt
   maxBoundAsInt = fromIntegral $ maxBound @LSP.UInt
+
+getTypesAtPoint :: GHC.HieFile -> HieDbCoords -> [GHC.TypeIndex]
+getTypesAtPoint hieFile coords =
+  join $
+    HieDb.pointCommand
+      hieFile
+      coords
+      Nothing
+      ( \hieAst -> do
+          let nodeInfo = nodeInfo' hieAst
+          let identTypes = mapMaybe GHC.identType $ Map.elems $ GHC.nodeIdentifiers nodeInfo
+          identTypes ++ GHC.nodeType nodeInfo
+      )
+
+nodeInfo' :: GHC.HieAST GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
+nodeInfo' = Map.foldl' combineNodeInfo' GHC.emptyNodeInfo . GHC.getSourcedNodeInfo . GHC.sourcedNodeInfo
+
+combineNodeInfo' :: GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
+GHC.NodeInfo as ai ad `combineNodeInfo'` GHC.NodeInfo bs bi bd =
+  GHC.NodeInfo (Set.union as bs) (mergeSorted ai bi) (Map.unionWith (<>) ad bd)
+
+mergeSorted :: [GHC.TypeIndex] -> [GHC.TypeIndex] -> [GHC.TypeIndex]
+mergeSorted la@(a : as0) lb@(b : bs0) = case compare a b of
+  LT -> a : mergeSorted as0 lb
+  EQ -> a : mergeSorted as0 bs0
+  GT -> b : mergeSorted la bs0
+mergeSorted as0 [] = as0
+mergeSorted [] bs0 = bs0

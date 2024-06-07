@@ -10,12 +10,11 @@ import Data.Foldable qualified as Foldable
 import Data.LineColRange (LineColRange (..))
 import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
-import Data.Map qualified as Map
+import Data.List.Extra (nubOrd)
 import Data.Maybe (fromMaybe, maybeToList)
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
-import Data.Set qualified as Set
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
 import Development.IDE.GHC.Error (
@@ -82,14 +81,8 @@ getTypeDefinition path lineCol = do
     hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
     lineCol' <- lineColToHieLineCol path hieSource lineCol
-    let types' =
-          join $
-            HieDb.pointCommand
-              hieFile
-              (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
-              Nothing
-              (GHC.nodeType . nodeInfo')
-        types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
+    let types' = nubOrd $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol')
+    let types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
     join <$> mapM (lift . nameToLocation) (typeToName =<< types)
   pure $ maybe [] id mLocationLinks
  where
@@ -102,22 +95,6 @@ getTypeDefinition path lineCol = do
     name = case tyFix of
       (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
       _ -> []
-
-  -- pulled from https://github.com/wz1000/HieDb/blob/6905767fede641747f5c24ce02f1ea73fc8c26e5/src/HieDb/Compat.hs#L147
-  nodeInfo' :: GHC.HieAST GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
-  nodeInfo' = Map.foldl' combineNodeInfo' GHC.emptyNodeInfo . GHC.getSourcedNodeInfo . GHC.sourcedNodeInfo
-
-  combineNodeInfo' :: GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
-  GHC.NodeInfo as ai ad `combineNodeInfo'` GHC.NodeInfo bs bi bd =
-    GHC.NodeInfo (Set.union as bs) (mergeSorted ai bi) (Map.unionWith (<>) ad bd)
-
-  mergeSorted :: [GHC.TypeIndex] -> [GHC.TypeIndex] -> [GHC.TypeIndex]
-  mergeSorted la@(a : as0) lb@(b : bs0) = case compare a b of
-    LT -> a : mergeSorted as0 lb
-    EQ -> a : mergeSorted as0 bs0
-    GT -> b : mergeSorted la bs0
-  mergeSorted as0 [] = as0
-  mergeSorted [] bs0 = bs0
 
 ---------------------------------------------------------------------
 -- The following code is largely taken from ghcide with slight modifications

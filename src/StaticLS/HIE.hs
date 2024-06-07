@@ -11,6 +11,7 @@ module StaticLS.HIE
     lspPositionToASTPoint,
     astRangeToLspRange,
     lineColToAstPoint,
+    hiedbCoordsToLineCol,
   )
 where
 
@@ -58,6 +59,9 @@ hieAstsAtPoint hiefile start end = pointCommand hiefile start end id
 
 hiedbCoordsToLspPosition :: (Monad m) => HieDbCoords -> ExceptT UIntConversionException m LSP.Position
 hiedbCoordsToLspPosition (line, col) = LSP.Position <$> intToUInt (line - 1) <*> intToUInt (col - 1)
+
+hiedbCoordsToLineCol :: HieDbCoords -> LineCol
+hiedbCoordsToLineCol (line, col) = LineCol (line - 1) (col - 1)
 
 lspPositionToHieDbCoords :: LSP.Position -> HieDbCoords
 lspPositionToHieDbCoords position = (fromIntegral position._line + 1, fromIntegral position._character + 1)

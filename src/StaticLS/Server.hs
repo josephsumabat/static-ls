@@ -82,14 +82,16 @@ handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \r
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   defs <- lift $ getDefinition path (ProtoLSP.lineColFromProto params._position)
-  resp $ Right . InR . InL $ defs
+  let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
+  resp $ Right . InR . InL $ locations
 
 handleTypeDefinitionRequest :: Handlers (LspT c StaticLsM)
 handleTypeDefinitionRequest = LSP.requestHandler SMethod_TextDocumentTypeDefinition $ \req resp -> do
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   defs <- lift $ getTypeDefinition path (ProtoLSP.lineColFromProto params._position)
-  resp $ Right . InR . InL $ defs
+  let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
+  resp $ Right . InR . InL $ locations
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \req res -> do

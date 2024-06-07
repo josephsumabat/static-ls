@@ -6,16 +6,22 @@ module StaticLS.ProtoLSP (
   lineColRangeFromProto,
   absPathToUri,
   tdiToAbsPath,
+  lineColRangeFromProto,
+  locationToLocationLink,
+  lineColRangeToProto,
+  fileLcRangeToLocation,
 )
 where
 
 import Control.Monad ((<=<))
 import Data.LineColRange
 import Control.Monad.Catch
+import Data.LineColRange (LineColRange (..))
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos
 import Language.LSP.Protocol.Types qualified as LSP
+import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.Utils
 
 lineColToProto :: LineCol -> LSP.Position
@@ -27,17 +33,12 @@ lineColFromProto (LSP.Position {_line, _character}) =
   LineCol (fromIntegral _line) (fromIntegral _character)
 
 lineColRangeFromProto :: LSP.Range -> LineColRange
-lineColRangeFromProto (LSP.Range pos1 pos2) =
-  LineColRange
-    { start = lineColFromProto pos1
-    , end = lineColFromProto pos2
-    }
+lineColRangeFromProto (LSP.Range start end) =
+  LineColRange (lineColFromProto start) (lineColFromProto end)
 
 lineColRangeToProto :: LineColRange -> LSP.Range
-lineColRangeToProto (LineColRange pos1 pos2) =
-  LSP.Range
-    (lineColToProto pos1)
-    (lineColToProto pos2)
+lineColRangeToProto (LineColRange start end) =
+  LSP.Range (lineColToProto start) (lineColToProto end)
 
 -- beware: the uri must be absolute or this function will return Nothing
 uriToAbsPath :: (MonadThrow m) => LSP.Uri -> m AbsPath
@@ -49,6 +50,15 @@ tdiToAbsPath = uriToAbsPath . (._uri)
 absPathToUri :: AbsPath -> LSP.Uri
 absPathToUri = LSP.filePathToUri . Path.toFilePath
 
--- lineColRangeFromProto :: LSP.Range -> LineColRange
--- lineColRangeFromProto (LSP.Range start end) =
---   LineColRange (lineColFromProto start) (lineColFromProto end)
+locationToLocationLink :: LSP.Location -> LSP.LocationLink
+locationToLocationLink LSP.Location {..} =
+  LSP.LocationLink
+    { _originSelectionRange = Nothing
+    , _targetUri = _uri
+    , _targetRange = _range
+    , _targetSelectionRange = _range
+    }
+
+fileLcRangeToLocation :: FileLcRange -> LSP.Location
+fileLcRangeToLocation (FileWith path range) =
+  LSP.Location (absPathToUri path) (lineColRangeToProto range)

@@ -40,6 +40,7 @@ library
       Data.Path
       Data.Pos
       Data.Range
+      Data.Rope
       StaticLS.Except
       StaticLS.FileEnv
       StaticLS.FilePath
@@ -92,6 +93,7 @@ library
       DataKinds
       PatternSynonyms
       BlockArguments
+      ViewPatterns
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
       Diff
@@ -156,6 +158,7 @@ executable static-ls
       DataKinds
       PatternSynonyms
       BlockArguments
+      ViewPatterns
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates
   build-depends:
       Diff
@@ -237,6 +240,7 @@ test-suite static-ls-test
       DataKinds
       PatternSynonyms
       BlockArguments
+      ViewPatterns
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:

@@ -3,11 +3,11 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module StaticLS.Server (
-  runServer,
-  updateFileState,
-  module X,
-)
+module StaticLS.Server
+  ( runServer,
+    updateFileState,
+    module X,
+  )
 where
 
 import AST.Haskell qualified as Haskell
@@ -19,30 +19,31 @@ import Data.List as X
 import Data.Maybe as X (fromMaybe)
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
+import Data.Rope qualified as Rope
 import Data.Text qualified as T
-import Data.Text.Utf16.Rope.Mixed qualified as Rope
 import Language.LSP.Logging qualified as LSP.Logging
-import Language.LSP.Protocol.Message (
-  Method (..),
-  ResponseError (..),
-  SMethod (..),
-  TMessage,
-  TNotificationMessage (..),
-  TRequestMessage (..),
- )
+import Language.LSP.Protocol.Message
+  ( Method (..),
+    ResponseError (..),
+    SMethod (..),
+    TMessage,
+    TNotificationMessage (..),
+    TRequestMessage (..),
+  )
 import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
-import Language.LSP.Server (
-  Handlers,
-  LanguageContextEnv,
-  LspT,
-  ServerDefinition (..),
-  mapHandlers,
-  type (<~>) (Iso),
- )
+import Language.LSP.Server
+  ( Handlers,
+    LanguageContextEnv,
+    LspT,
+    ServerDefinition (..),
+    mapHandlers,
+    type (<~>) (Iso),
+  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.FileEnv
+import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as CodeActions
 import StaticLS.IDE.Completion (Completion (..), getCompletion)
 import StaticLS.IDE.Definition
@@ -111,14 +112,21 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   updateFileStateForUri params._textDocument._uri
 
 updateFileState :: AbsPath -> Rope.Rope -> StaticLsM ()
-updateFileState path virtualFileContents = do
-  let contents = virtualFileContents
-  let contentsText = Rope.toText contents
+updateFileState path contentsRope = do
+  let contentsText = Rope.toText contentsRope
   let tree = Haskell.parse contentsText
   let tokens = PositionDiff.lex $ T.unpack contentsText
   fileStates <- asks (.fileEnv)
   IORef.modifyIORef' fileStates $ \fileStates ->
-    HashMap.insert path FileState {contents, contentsText, tree, tokens} fileStates
+    HashMap.insert
+      path
+      FileState
+        { contentsRope,
+          contentsText,
+          tree,
+          tokens
+        }
+      fileStates
   pure ()
 
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
@@ -127,7 +135,7 @@ updateFileStateForUri uri = do
   virtualFile <- LSP.getVirtualFile normalizedUri
   virtualFile <- isJustOrThrow "no virtual file" virtualFile
   path <- ProtoLSP.uriToAbsPath uri
-  lift $ updateFileState path virtualFile._file_text
+  lift $ updateFileState path (Rope.fromTextRope virtualFile._file_text)
   pure ()
 
 handleDidChange :: Handlers (LspT c StaticLsM)
@@ -159,33 +167,46 @@ handleSetTrace :: Handlers (LspT c StaticLsM)
 handleSetTrace = LSP.notificationHandler SMethod_SetTrace $ \_ -> pure ()
 
 handleCodeAction :: Handlers (LspT c StaticLsM)
-handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction CodeActions.handleCodeAction
+handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req res -> do
+  _ <- lift $ logInfo "handleCodeAction"
+  let params = req._params
+  let tdi = params._textDocument
+  path <- ProtoLSP.uriToAbsPath tdi._uri
+  let range = params._range
+  let lineCol = (ProtoLSP.lineColFromProto range._start)
+  let assists = getCodeActions path lineCol
+  -- modulesToImport <- lift $ getModulesToImport path lineCol
+  -- typesCodeActions <- lift $ typesCodeActions path lineCol
+  -- importCodeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions path) modulesToImport
+  -- let codeActions = typesCodeActions ++ importCodeActions
+  -- res (Right (LSP.InL (fmap LSP.InR codeActions)))
+  pure ()
 
 handleResolveCodeAction :: Handlers (LspT c StaticLsM)
-handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve CodeActions.handleResolveCodeAction
+handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve undefined
 
 toLspCompletion :: Completion -> CompletionItem
 toLspCompletion Completion {label, insertText} =
   LSP.CompletionItem
-    { _label = label
-    , _labelDetails = Nothing
-    , _kind = Just LSP.CompletionItemKind_Function
-    , _textEditText = Nothing
-    , _data_ = Nothing
-    , _tags = Nothing
-    , _insertTextMode = Nothing
-    , _deprecated = Nothing
-    , _preselect = Nothing
-    , _detail = Nothing
-    , _documentation = Nothing
-    , _sortText = Nothing
-    , _filterText = Nothing
-    , _insertText = Just insertText
-    , _insertTextFormat = Just LSP.InsertTextFormat_Snippet
-    , _textEdit = Nothing
-    , _additionalTextEdits = Nothing
-    , _commitCharacters = Nothing
-    , _command = Nothing
+    { _label = label,
+      _labelDetails = Nothing,
+      _kind = Just LSP.CompletionItemKind_Function,
+      _textEditText = Nothing,
+      _data_ = Nothing,
+      _tags = Nothing,
+      _insertTextMode = Nothing,
+      _deprecated = Nothing,
+      _preselect = Nothing,
+      _detail = Nothing,
+      _documentation = Nothing,
+      _sortText = Nothing,
+      _filterText = Nothing,
+      _insertText = Just insertText,
+      _insertTextFormat = Just LSP.InsertTextFormat_Snippet,
+      _textEdit = Nothing,
+      _additionalTextEdits = Nothing,
+      _commitCharacters = Nothing,
+      _command = Nothing
     }
 
 handleCompletion :: Handlers (LspT c StaticLsM)
@@ -197,9 +218,9 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
   let lspCompletions = fmap toLspCompletion completions
   let lspList =
         LSP.CompletionList
-          { _isIncomplete = False
-          , _itemDefaults = Nothing
-          , _items = lspCompletions
+          { _isIncomplete = False,
+            _itemDefaults = Nothing,
+            _items = lspCompletions
           }
   res $ Right $ InR $ InL lspList
   pure ()
@@ -219,8 +240,8 @@ handleDocumentSymbols = LSP.requestHandler SMethod_TextDocumentDocumentSymbol $ 
 -----------------------------------------------------------------
 
 data LspEnv config = LspEnv
-  { staticLsEnv :: StaticLsEnv
-  , config :: LanguageContextEnv config
+  { staticLsEnv :: StaticLsEnv,
+    config :: LanguageContextEnv config
   }
 
 initServer :: StaticEnvOptions -> LoggerM IO -> LanguageContextEnv config -> TMessage 'Method_Initialize -> IO (Either ResponseError (LspEnv config))
@@ -231,59 +252,59 @@ initServer staticEnvOptions logger serverConfig _ = do
     serverStaticEnv <- ExceptT $ Right <$> initStaticLsEnv wsRoot staticEnvOptions logger
     pure $
       LspEnv
-        { staticLsEnv = serverStaticEnv
-        , config = serverConfig
+        { staticLsEnv = serverStaticEnv,
+          config = serverConfig
         }
- where
-  getWsRoot :: LSP.LspM config (Either ResponseError FilePath)
-  getWsRoot = do
-    mRootPath <- LSP.getRootPath
-    pure $ case mRootPath of
-      Nothing -> Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
-      Just p -> Right p
+  where
+    getWsRoot :: LSP.LspM config (Either ResponseError FilePath)
+    getWsRoot = do
+      mRootPath <- LSP.getRootPath
+      pure $ case mRootPath of
+        Nothing -> Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
+        Just p -> Right p
 
 serverDef :: StaticEnvOptions -> LoggerM IO -> ServerDefinition ()
 serverDef argOptions logger =
   ServerDefinition
-    { onConfigChange = \_conf -> pure ()
-    , configSection = ""
-    , parseConfig = \_conf _value -> Right ()
-    , doInitialize = initServer argOptions logger
-    , -- TODO: Do handlers need to inspect clientCapabilities?
+    { onConfigChange = \_conf -> pure (),
+      configSection = "",
+      parseConfig = \_conf _value -> Right (),
+      doInitialize = initServer argOptions logger,
+      -- TODO: Do handlers need to inspect clientCapabilities?
       staticHandlers = \_clientCapabilities ->
         mapHandlers goReq goNot $
           mconcat
-            [ handleInitialized
-            , handleChangeConfiguration
-            , handleTextDocumentHoverRequest
-            , handleDefinitionRequest
-            , handleTypeDefinitionRequest
-            , handleReferencesRequest
-            , handleCancelNotification
-            , handleDidOpen
-            , handleDidChange
-            , handleDidClose
-            , handleDidSave
-            , handleWorkspaceSymbol
-            , handleSetTrace
-            , handleCodeAction
-            , handleResolveCodeAction
-            , handleDocumentSymbols
-            , handleCompletion
-            ]
-    , interpretHandler = \env -> Iso (runStaticLsM env.staticLsEnv . LSP.runLspT env.config) liftIO
-    , options = lspOptions
-    , defaultConfig = ()
+            [ handleInitialized,
+              handleChangeConfiguration,
+              handleTextDocumentHoverRequest,
+              handleDefinitionRequest,
+              handleTypeDefinitionRequest,
+              handleReferencesRequest,
+              handleCancelNotification,
+              handleDidOpen,
+              handleDidChange,
+              handleDidClose,
+              handleDidSave,
+              handleWorkspaceSymbol,
+              handleSetTrace,
+              handleCodeAction,
+              handleResolveCodeAction,
+              handleDocumentSymbols,
+              handleCompletion
+            ],
+      interpretHandler = \env -> Iso (runStaticLsM env.staticLsEnv . LSP.runLspT env.config) liftIO,
+      options = lspOptions,
+      defaultConfig = ()
     }
- where
-  catchAndLog m = do
-    Exception.catchAny m $ \e ->
-      LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
+  where
+    catchAndLog m = do
+      Exception.catchAny m $ \e ->
+        LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
 
-  goReq f = \msg k -> catchAndLog $ f msg k
+    goReq f = \msg k -> catchAndLog $ f msg k
 
-  goNot f = \msg -> do
-    catchAndLog $ f msg
+    goNot f = \msg -> do
+      catchAndLog $ f msg
 
 lspOptions :: LSP.Options
 lspOptions =
@@ -291,18 +312,18 @@ lspOptions =
     { LSP.optTextDocumentSync =
         Just
           LSP.TextDocumentSyncOptions
-            { LSP._openClose = Just True
-            , LSP._change = Just LSP.TextDocumentSyncKind_Incremental
-            , LSP._willSave = Just False
-            , LSP._willSaveWaitUntil = Just False
-            , LSP._save =
+            { LSP._openClose = Just True,
+              LSP._change = Just LSP.TextDocumentSyncKind_Incremental,
+              LSP._willSave = Just False,
+              LSP._willSaveWaitUntil = Just False,
+              LSP._save =
                 Just $
                   InR $
                     LSP.SaveOptions
                       { LSP._includeText = Just False
                       }
-            }
-    , LSP.optCompletionTriggerCharacters = Just ['.']
+            },
+      LSP.optCompletionTriggerCharacters = Just ['.']
     }
 
 runServer :: StaticEnvOptions -> LoggerM IO -> IO Int

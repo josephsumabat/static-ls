@@ -71,6 +71,7 @@ default-extensions:
 - DataKinds
 - PatternSynonyms
 - BlockArguments
+- ViewPatterns
 
 ghc-options:
   - -Wall

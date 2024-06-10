@@ -121,7 +121,6 @@ resolveLazyAssist (CodeActionMessage {kind, path}) = do
       insertPoint <- getImportsInsertPoint rope tree & isRightOrThrowT
       let change = Edit.insert insertPoint $ "\nimport " <> toImport <> "\n"
       logInfo $ T.pack $ "Inserting import: " <> show change
-      liftIO $ hPutStrLn stderr "Resolving auto import action"
       pure $ SourceEdit.single path change
     NoMessage -> do
       pure SourceEdit.empty

@@ -16,8 +16,7 @@ modToFilePath modName ext =
 
 -- | Substitute a filepath extension and parent directory starting from some root
 subRootExtensionFilepath :: (MonadIO m) => AbsPath -> AbsPath -> String -> AbsPath -> MaybeT m AbsPath
-subRootExtensionFilepath wsRoot parent extension srcPath =
-  do
+subRootExtensionFilepath wsRoot parent extension srcPath = do
     let absoluteSrcDirs = (wsRoot Path.</>) <$> srcDirs
     -- Normalize to absolute paths to drop the prefix
     let noPrefixSrcPath =

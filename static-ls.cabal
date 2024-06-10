@@ -73,6 +73,7 @@ library
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
       StaticLS.StaticLsEnv
+      StaticLS.Tree
       StaticLS.Utils
   other-modules:
       Paths_static_ls

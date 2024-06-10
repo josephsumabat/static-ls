@@ -12,8 +12,11 @@ where
 
 import AST.Haskell qualified as Haskell
 import Colog.Core qualified as Colog
+import Control.Lens.Operators
 import Control.Monad.Reader
 import Control.Monad.Trans.Except
+import Data.Aeson qualified as Aeson
+import Data.Function ((&))
 import Data.HashMap.Strict qualified as HashMap
 import Data.List as X
 import Data.Maybe as X (fromMaybe)
@@ -22,6 +25,7 @@ import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
 import Language.LSP.Logging qualified as LSP.Logging
+import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message
   ( Method (..),
     ResponseError (..),
@@ -45,6 +49,8 @@ import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.FileEnv
 import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as CodeActions
+import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
+import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
 import StaticLS.IDE.Completion (Completion (..), getCompletion)
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
@@ -174,16 +180,30 @@ handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req res 
   path <- ProtoLSP.uriToAbsPath tdi._uri
   let range = params._range
   let lineCol = (ProtoLSP.lineColFromProto range._start)
-  let assists = getCodeActions path lineCol
-  -- modulesToImport <- lift $ getModulesToImport path lineCol
-  -- typesCodeActions <- lift $ typesCodeActions path lineCol
-  -- importCodeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions path) modulesToImport
-  -- let codeActions = typesCodeActions ++ importCodeActions
-  -- res (Right (LSP.InL (fmap LSP.InR codeActions)))
+  assists <- lift $ getCodeActions path lineCol
+  rope <- lift $ getSourceRope path
+  let codeActions = fmap (ProtoLSP.assistToCodeAction rope) assists
+  res (Right (LSP.InL (fmap LSP.InR codeActions)))
   pure ()
 
 handleResolveCodeAction :: Handlers (LspT c StaticLsM)
-handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve undefined
+handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req res -> do
+  _ <- lift $ logInfo "handleResolveCodeAction"
+  let codeAction = req._params
+
+  jsonData <- codeAction._data_ & isJustOrThrow "code action didn't come with json data"
+  let resultSuccessOrThrow res = case res of
+        Aeson.Success a -> pure a
+        Aeson.Error e -> Exception.throwString ("failed to parse json: " ++ e)
+  codeActionMessage <- Aeson.fromJSON @IDE.CodeActions.CodeActionMessage jsonData & resultSuccessOrThrow
+  let path = codeActionMessage.path
+  sourceEdit <- lift $ IDE.CodeActions.resolveLazyAssist codeActionMessage
+  rope <- lift $ getSourceRope path
+  let workspaceEdit = ProtoLSP.sourceEditToProto rope sourceEdit
+  let newCodeAction = codeAction & LSP.edit ?~ workspaceEdit
+  res $ Right newCodeAction
+  -- let tdi = params._textDocument
+  pure ()
 
 toLspCompletion :: Completion -> CompletionItem
 toLspCompletion Completion {label, insertText} =

@@ -177,6 +177,6 @@ assistToCodeAction rope Assist {label, sourceEdit} =
       _isPreferred = Nothing,
       _disabled = Nothing,
       _data_ = case sourceEdit of
-        Right data_ -> Just $ Aeson.toJSON data_
         Left _ -> Nothing
+        Right data_ -> Just $ Aeson.toJSON data_
     }

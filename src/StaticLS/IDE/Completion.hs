@@ -1,13 +1,11 @@
 {-# LANGUAGE BlockArguments #-}
 
-module StaticLS.IDE.Completion (
-  getCompletion,
-  Completion (..),
-)
+module StaticLS.IDE.Completion
+  ( getCompletion,
+    Completion (..),
+  )
 where
 
-import AST qualified
-import AST.Haskell qualified as Haskell
 import Control.Applicative
 import Control.Monad
 import Data.Function ((&))
@@ -18,6 +16,7 @@ import Data.Text qualified as T
 import StaticLS.Logger (logInfo)
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
+import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath
 
@@ -43,15 +42,10 @@ uriToModule absPath = do
     let modText = T.replace (T.pack [pathSeparator]) "." (T.pack modPathWithoutExt)
     pure modText
 
-getHeader :: Haskell.Haskell -> AST.Err (Maybe Haskell.Header)
-getHeader haskell = do
-  header <- AST.collapseErr haskell.children
-  pure header
-
 getCompletion :: AbsPath -> StaticLsM [Completion]
 getCompletion uri = do
   haskell <- getHaskell uri
-  header <- getHeader haskell & isRightOrThrowT
+  header <- Tree.getHeader haskell & isRightOrThrowT
   mod <- uriToModule uri
   case (header, mod) of
     (Nothing, Just mod) -> do
@@ -60,7 +54,7 @@ getCompletion uri = do
     (_, _) -> pure []
 
 data Completion = Completion
-  { label :: !Text
-  , insertText :: !Text
+  { label :: !Text,
+    insertText :: !Text
   }
   deriving (Show, Eq)

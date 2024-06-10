@@ -14,8 +14,7 @@ data Context = Context
   }
 
 data CodeActionMessageKind
-  = GlobalActionMessage !Int
-  | AutoImportActionMessage !Text
+  = AutoImportActionMessage !Text
   | NoMessage
 
 data CodeActionMessage = CodeActionMessage

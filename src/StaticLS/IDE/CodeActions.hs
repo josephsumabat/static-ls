@@ -5,72 +5,57 @@
 
 module StaticLS.IDE.CodeActions where
 
+import AST qualified
+import AST.Haskell qualified as Haskell
 import Control.Lens.Operators
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe
-import Data.Aeson hiding (Null)
+import Data.Edit qualified as Edit
 import Data.List qualified as List
+import Data.List.NonEmpty qualified as NE
 import Data.Path (AbsPath)
-import Data.Pos (LineCol)
+import Data.Pos (LineCol (..), Pos (..))
+import Data.Rope (Rope)
 import Data.Text
 import Data.Text qualified as T
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
-import Language.LSP.Protocol.Lens qualified as LSP
-import Language.LSP.Protocol.Message qualified as LSP
 import Language.LSP.Protocol.Types qualified as LSP
-import Language.LSP.Server qualified as LSP
 import StaticLS.HIE (getTypesAtPoint, lineColToHieDbCoords)
 import StaticLS.HIE.File (getHieFileFromPath)
 import StaticLS.IDE.CodeActions.AutoImport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
-import StaticLS.Logger (logInfo)
+import StaticLS.Logger
 import StaticLS.SDoc (showGhc)
 import StaticLS.StaticLsEnv
+import StaticLS.Tree qualified as Tree
 import StaticLS.Utils
 import System.IO
-import UnliftIO.Exception qualified as Exception
 
--- TODO: rename these to static code actions
--- these are the code actions that will always either be present or not present, and are not dynamically generated
 globalCodeActions :: [GlobalCodeAction]
 globalCodeActions =
   []
 
 data Assist = Assist
-  { label :: !Text,
-    sourceEdit :: Either SourceEdit CodeActionMessage
+  { label :: !Text
+  , sourceEdit :: Either SourceEdit CodeActionMessage
   }
 
 mkAssist :: Text -> SourceEdit -> Assist
 mkAssist label sourceEdit =
   Assist
-    { label,
-      sourceEdit = Left sourceEdit
+    { label
+    , sourceEdit = Left sourceEdit
     }
 
 mkLazyAssist :: Text -> CodeActionMessage -> Assist
 mkLazyAssist label sourceEdit =
   Assist
-    { label,
-      sourceEdit = Right sourceEdit
+    { label
+    , sourceEdit = Right sourceEdit
     }
-
--- mkCodeAction :: Text -> LSP.CodeAction
--- mkCodeAction title =
---   LSP.CodeAction
---     { _title = title,
---       _kind = Just LSP.CodeActionKind_QuickFix,
---       _diagnostics = Nothing,
---       _edit = Nothing,
---       _command = Nothing,
---       _isPreferred = Nothing,
---       _disabled = Nothing,
---       _data_ = Nothing
---     }
 
 createAutoImportCodeActions :: AbsPath -> Text -> StaticLsM [Assist]
 createAutoImportCodeActions path toImport =
@@ -98,21 +83,6 @@ typesCodeActions path lineCol = do
     Nothing -> pure []
     Just types -> pure types
 
--- handleCodeAction :: LSP.Handler (LSP.LspT c StaticLsM) LSP.Method_TextDocumentCodeAction
--- handleCodeAction req resp = do
---   _ <- lift $ logInfo "handleCodeAction"
---   let params = req._params
---   let tdi = params._textDocument
---   path <- ProtoLSP.uriToAbsPath tdi._uri
---   let range = params._range
---   let lineCol = (ProtoLSP.lineColFromProto range._start)
---   modulesToImport <- lift $ getModulesToImport path lineCol
---   typesCodeActions <- lift $ typesCodeActions path lineCol
---   importCodeActions <- lift $ List.concat <$> mapM (createAutoImportCodeActions path) modulesToImport
---   let codeActions = typesCodeActions ++ importCodeActions
---   resp (Right (LSP.InL (fmap LSP.InR codeActions)))
---   pure ()
-
 getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]
 getCodeActions path lineCol = do
   modulesToImport <- getModulesToImport path lineCol
@@ -121,52 +91,40 @@ getCodeActions path lineCol = do
   let codeActions = typesCodeActions ++ importCodeActions
   pure codeActions
 
--- handleResolveCodeAction :: LSP.Handler (LSP.LspT c StaticLsM) LSP.Method_CodeActionResolve
--- handleResolveCodeAction req resp = do
---   let action = req._params
---   liftIO $ do
---     hPutStrLn stderr "Resolving code action"
---     hPutStrLn stderr $ show action
---   let resultSuccessOrThrow res = case res of
---         Success a -> pure a
---         Error e -> Exception.throwString ("failed to parse json: " ++ e)
---   message <- isJustOrThrow "expected data in code action" action._data_
---   message <- pure $ fromJSON @CodeActionMessage message
---   message <- resultSuccessOrThrow message
---   contents <- lift $ getSource message.path
---   case message.kind of
---     AutoImportActionMessage toImport -> do
---       (lineNum, lineLength) <-
---         T.lines contents
---           & List.zip [0 :: Int ..]
---           & List.find (\(_i, line) -> T.count (T.pack "where") line == 1)
---           & fmap (\(i, line) -> (i, T.length line))
---           & isJustOrThrow "could not find where in the header of the module"
---       liftIO $ hPutStrLn stderr "Resolving auto import action"
---       let uri = ProtoLSP.absPathToUri message.path
---       let textDocumentEdit =
---             LSP.TextDocumentEdit
---               { _textDocument =
---                   LSP.OptionalVersionedTextDocumentIdentifier
---                     { _uri = uri,
---                       _version = LSP.InR LSP.Null
---                     },
---                 _edits =
---                   fmap
---                     LSP.InL
---                     [ textEditInsert (LSP.Position (fromIntegral lineNum) (fromIntegral lineLength)) (T.pack "\n\nimport " <> toImport)
---                     ]
---               }
---       let workspaceEdit =
---             LSP.WorkspaceEdit
---               { _changes = Nothing,
---                 _documentChanges = Just [LSP.InL textDocumentEdit],
---                 _changeAnnotations = Nothing
---               }
---       liftIO $ hPutStrLn stderr ("workspace edit: " ++ show workspaceEdit)
---       resp (Right (action & LSP.edit ?~ workspaceEdit))
---       pure ()
---     _ -> Exception.throwString "don't know how to resolve this code action"
+getImportsInsertPoint :: Rope -> Haskell.Haskell -> AST.Err Pos
+getImportsInsertPoint rope hs = do
+  imports <- Tree.getImports hs
+  case imports of
+    Nothing -> do
+      header <- Tree.getHeader hs
+      case header of
+        Nothing -> do
+          pure $ Pos 0
+        Just header -> do
+          let end = (AST.nodeToRange header).endByte
+          pure $ Tree.byteToPos rope end
+    Just imports -> do
+      let lastImport = NE.last <$> NE.nonEmpty imports.imports
+      case lastImport of
+        Nothing -> undefined
+        Just lastImport -> do
+          let end = lastImport.dynNode.unDynNode.nodeRange.endByte
+          pure $ Tree.byteToPos rope end
+
+resolveLazyAssist :: CodeActionMessage -> StaticLsM SourceEdit
+resolveLazyAssist (CodeActionMessage {kind, path}) = do
+  contents <- getSource path
+  rope <- getSourceRope path
+  case kind of
+    AutoImportActionMessage toImport -> do
+      tree <- getHaskell path
+      insertPoint <- getImportsInsertPoint rope tree & isRightOrThrowT
+      let change = Edit.insert insertPoint $ "\nimport " <> toImport <> "\n"
+      logInfo $ T.pack $ "Inserting import: " <> show change
+      liftIO $ hPutStrLn stderr "Resolving auto import action"
+      pure $ SourceEdit.single path change
+    NoMessage -> do
+      pure SourceEdit.empty
 
 textEditInsert :: LSP.Position -> Text -> LSP.TextEdit
 textEditInsert pos text = LSP.TextEdit (LSP.Range pos pos) text

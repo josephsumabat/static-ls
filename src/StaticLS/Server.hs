@@ -135,7 +135,7 @@ updateFileState path contentsRope = do
 
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
-  normalizedUri <- pure $ toNormalizedUri uri
+  let normalizedUri = toNormalizedUri uri
   virtualFile <- LSP.getVirtualFile normalizedUri
   virtualFile <- isJustOrThrow "no virtual file" virtualFile
   path <- ProtoLSP.uriToAbsPath uri

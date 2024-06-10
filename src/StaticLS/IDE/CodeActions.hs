@@ -59,7 +59,7 @@ mkLazyAssist label sourceEdit =
 
 createAutoImportCodeActions :: AbsPath -> Text -> StaticLsM [Assist]
 createAutoImportCodeActions path toImport =
-  pure $
+  pure
     [ mkLazyAssist
         ("import " <> toImport)
         (CodeActionMessage {kind = AutoImportActionMessage toImport, path})
@@ -70,14 +70,13 @@ typesCodeActions path lineCol = do
   res <- runMaybeT do
     hieFile <- getHieFileFromPath path
     let types =
-          fmap
-            ( showGhc
-                . GHC.hieTypeToIface
-                . flip
-                  GHC.recoverFullType
-                  (GHC.hie_types hieFile)
-            )
-            $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol)
+          ( showGhc
+              . GHC.hieTypeToIface
+              . flip
+                GHC.recoverFullType
+                (GHC.hie_types hieFile)
+          )
+            <$> getTypesAtPoint hieFile (lineColToHieDbCoords lineCol)
     pure ((flip mkAssist SourceEdit.empty . (":: " <>)) <$> types)
   case res of
     Nothing -> pure []

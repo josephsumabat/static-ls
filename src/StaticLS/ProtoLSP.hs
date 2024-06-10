@@ -158,7 +158,7 @@ sourceEditToProto rope SourceEdit {fileEdits, fsEdits} =
                 { _uri = absPathToUri path
                 , _version = LSP.InR LSP.Null
                 }
-          , _edits = fmap LSP.InL $ editToProto rope edit
+          , _edits = LSP.InL <$> editToProto rope edit
           }
     )
       <$> HashMap.toList

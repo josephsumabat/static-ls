@@ -58,7 +58,7 @@ getDefinition path lineCol = do
               Nothing
               hieAstNodeToIdentifiers
     join <$> mapM (lift . identifierToLocation) identifiersAtPoint
-  pure $ maybe [] id mLocationLinks
+  pure $ fromMaybe [] mLocationLinks
  where
   identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [FileLcRange]
   identifierToLocation =
@@ -84,7 +84,7 @@ getTypeDefinition path lineCol = do
     let types' = nubOrd $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol')
     let types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
     join <$> mapM (lift . nameToLocation) (typeToName =<< types)
-  pure $ maybe [] id mLocationLinks
+  pure $ fromMaybe [] mLocationLinks
  where
   typeToName = goTypeToName []
 

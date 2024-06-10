@@ -47,10 +47,10 @@ spec = do
 
     let emptyOpts =
           StaticEnvOptions
-            { optionHieDbPath = "",
-              optionHieFilesPath = "",
-              optionSrcDirs = [],
-              optionHiFilesPath = ""
+            { optionHieDbPath = ""
+            , optionHieFilesPath = ""
+            , optionSrcDirs = []
+            , optionHiFilesPath = ""
             }
 
     check "Returns a valid hie file" Test.defaultTestStaticEnvOptions "test/TestData/.hiefiles/TestData/Mod1.hie" (Test.assertRight "expected succesful read")
@@ -63,35 +63,36 @@ spec = do
     --   _ <- Test.assertRight "expected succesful read" hieFile
     --   pure ()
 
-    check "Does not crash when given an invalid hie file to read " emptyOpts  "./test/TestData/Mod1.hs" (Test.assertLeft "expected failure")
-      -- let emptyOpts =
-      --       StaticEnvOptions
-      --         { optionHieDbPath = "",
-      --           optionHieFilesPath = "",
-      --           optionSrcDirs = [],
-      --           optionHiFilesPath = ""
-      --         }
-      -- staticEnv <- Test.initStaticEnvOpts emptyOpts
-      -- hieFile <-
-      --   runStaticEnv staticEnv $
-      --     runExceptT $
-      --       getHieFile "./test/TestData/Mod1.hs"
-      -- _ <- Test.assertLeft "expected failure" hieFile
-      -- pure ()
+    check "Does not crash when given an invalid hie file to read " emptyOpts "./test/TestData/Mod1.hs" (Test.assertLeft "expected failure")
+    -- let emptyOpts =
+    --       StaticEnvOptions
+    --         { optionHieDbPath = "",
+    --           optionHieFilesPath = "",
+    --           optionSrcDirs = [],
+    --           optionHiFilesPath = ""
+    --         }
+    -- staticEnv <- Test.initStaticEnvOpts emptyOpts
+    -- hieFile <-
+    --   runStaticEnv staticEnv $
+    --     runExceptT $
+    --       getHieFile "./test/TestData/Mod1.hs"
+    -- _ <- Test.assertLeft "expected failure" hieFile
+    -- pure ()
 
     check "Does not crash when given no file to read" emptyOpts "" (Test.assertLeft "expected failure")
-    -- it $ do
-    --   let emptyOpts =
-    --         StaticEnvOptions
-    --           { optionHieDbPath = "",
-    --             optionHieFilesPath = "",
-    --             optionSrcDirs = [],
-    --             optionHiFilesPath = ""
-    --           }
-    --   staticEnv <- Test.initStaticEnvOpts emptyOpts
-    --   hieFile <-
-    --     runStaticEnv staticEnv $
-    --       runExceptT $
-    --         getHieFile ""
-    --   _ <- Test.assertLeft "expected failure" hieFile
-    --   pure ()
+
+-- it $ do
+--   let emptyOpts =
+--         StaticEnvOptions
+--           { optionHieDbPath = "",
+--             optionHieFilesPath = "",
+--             optionSrcDirs = [],
+--             optionHiFilesPath = ""
+--           }
+--   staticEnv <- Test.initStaticEnvOpts emptyOpts
+--   hieFile <-
+--     runStaticEnv staticEnv $
+--       runExceptT $
+--         getHieFile ""
+--   _ <- Test.assertLeft "expected failure" hieFile
+--   pure ()

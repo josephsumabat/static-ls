@@ -1,16 +1,16 @@
 module TestImport where
 
 import Control.Monad.IO.Class
-import Data.Text.IO qualified as T
+import Data.Path (AbsPath)
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
+import Data.Text.IO qualified as T
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger
 import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
 import StaticLS.StaticLsEnv as StaticLsEnv
-import Data.Path (AbsPath)
 
 import Data.Path qualified as Path
 import TestImport.Assert

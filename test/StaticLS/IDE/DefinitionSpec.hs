@@ -11,36 +11,37 @@ import TestImport.TestData qualified as Test
 
 spec :: Spec
 spec = do
-  let check name initOpts mkPathAndPos assertList expected = do
-        it name $ do
-          staticEnv <- Test.initStaticLsEnv initOpts
-          defnLinks <- runStaticLsM staticEnv $ do
-            pathAndPos@(path, _) <- liftIO mkPathAndPos
-            _ <- Test.updateTestFileState path
-            uncurry getDefinition pathAndPos
-          defnLink <- assertList defnLinks
-          expectedDefnLink <- expected
-          defnLink `shouldBe` expectedDefnLink
-          pure ()
+  let
+    check name initOpts mkPathAndPos assertList expected = do
+      it name $ do
+        staticEnv <- Test.initStaticLsEnv initOpts
+        defnLinks <- runStaticLsM staticEnv $ do
+          pathAndPos@(path, _) <- liftIO mkPathAndPos
+          _ <- Test.updateTestFileState path
+          uncurry getDefinition pathAndPos
+        defnLink <- assertList defnLinks
+        expectedDefnLink <- expected
+        defnLink `shouldBe` expectedDefnLink
+        pure ()
   pure ()
 
   describe "Correctly retrieves definitions" $ do
     describe "All available sources" $ do
       check
-        "retrieves the myFun definition from the same module"
+        "retrieves the myFun definition from a different module"
         defaultStaticEnvOptions
         Test.myFunRef1TdiAndPosition
         (Test.assertHead "no definition link found")
         Test.myFunDefLocation
 
   -- it "retrieves the myFun definition from a different module" $ do
-  --   staticEnv <- Test.initStaticLsEnv
+  --   staticEnv <- Test.initStaticLsEnv defaultStaticEnvOptions
   --   defnLinks <- runStaticLsM staticEnv $ do
   --     tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
   --     _ <- Test.updateTestFileState tdi
   --     uncurry getDefinition tdiAndPos
   --   defnLink <- Test.assertHead "no definition link found" defnLinks
-  --   expectedDefnLink <- Test.myFunDefDefinitionLink
+  --   expectedDefnLink <- Test.myFunDefLocation
   --   defnLink `shouldBe` expectedDefnLink
 
   describe "Missing sources" $ do

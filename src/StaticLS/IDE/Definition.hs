@@ -46,7 +46,11 @@ getDefinition ::
   m [FileLcRange]
 getDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
+    liftIO $ putStrLn $ "path: " ++ (show path)
+    hieFilePath <- srcFilePathToHieFilePath path
+    liftIO $ putStrLn $ "hieFilePath: " ++ (show hieFilePath)
     hieFile <- getHieFileFromPath path
+    liftIO $ putStrLn $ "hieFile: " ++ (show hieFile)
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
     lineCol' <- lineColToHieLineCol path hieSource lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
@@ -58,6 +62,7 @@ getDefinition path lineCol = do
               Nothing
               hieAstNodeToIdentifiers
     join <$> mapM (lift . identifierToLocation) identifiersAtPoint
+  liftIO $ putStrLn $ "mLocationLinks: " ++ (show mLocationLinks)
   pure $ maybe [] id mLocationLinks
  where
   identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [FileLcRange]

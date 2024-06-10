@@ -15,10 +15,10 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import TestImport.Assert
 
-initStaticLsEnv :: IO StaticLsEnv
-initStaticLsEnv = do
+initStaticLsEnv :: StaticEnvOptions -> IO StaticLsEnv
+initStaticLsEnv opts = do
   wsRoot <- Path.filePathToAbs "."
-  StaticLsEnv.initStaticLsEnv wsRoot defaultTestStaticEnvOptions noOpLogger
+  StaticLsEnv.initStaticLsEnv wsRoot opts noOpLogger
 
 -- updates the file state by reading it from the file system
 updateTestFileState :: AbsPath -> StaticLsM ()

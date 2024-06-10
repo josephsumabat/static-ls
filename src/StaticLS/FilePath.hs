@@ -17,11 +17,11 @@ modToFilePath modName ext =
 -- | Substitute a filepath extension and parent directory starting from some root
 subRootExtensionFilepath :: (MonadIO m) => AbsPath -> AbsPath -> String -> AbsPath -> MaybeT m AbsPath
 subRootExtensionFilepath wsRoot parent extension srcPath = do
-    let absoluteSrcDirs = (wsRoot Path.</>) <$> srcDirs
-    -- Normalize to absolute paths to drop the prefix
-    let noPrefixSrcPath =
-          List.foldl' (\path absSrcDir -> Path.makeRelative absSrcDir path) (Path.absToRel srcPath) absoluteSrcDirs
-        -- Set the directory path and substitute the file extension
-        newPath = parent Path.</> noPrefixSrcPath Path.-<.> extension
-    True <- liftIO $ Dir.doesFileExist newPath.path
-    pure newPath
+  let absoluteSrcDirs = (wsRoot Path.</>) <$> srcDirs
+  -- Normalize to absolute paths to drop the prefix
+  let noPrefixSrcPath =
+        List.foldl' (\path absSrcDir -> Path.makeRelative absSrcDir path) (Path.absToRel srcPath) absoluteSrcDirs
+      -- Set the directory path and substitute the file extension
+      newPath = parent Path.</> noPrefixSrcPath Path.-<.> extension
+  True <- liftIO $ Dir.doesFileExist newPath.path
+  pure newPath

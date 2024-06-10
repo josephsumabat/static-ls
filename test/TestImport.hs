@@ -15,7 +15,7 @@ import StaticLS.StaticLsEnv as StaticLsEnv
 import Data.Path qualified as Path
 import TestImport.Assert
 
-initStaticLsEnv ::  IO StaticLsEnv
+initStaticLsEnv :: IO StaticLsEnv
 initStaticLsEnv = do
   wsRoot <- Path.filePathToAbs "."
   StaticLsEnv.initStaticLsEnv wsRoot defaultTestStaticEnvOptions noOpLogger

@@ -6,7 +6,7 @@ import Control.Monad (join)
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Path (AbsPath)

@@ -8,7 +8,6 @@ module StaticLS.IDE.CodeActions where
 import AST qualified
 import AST.Haskell qualified as Haskell
 import Control.Lens.Operators
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe
 import Data.Edit qualified as Edit
 import Data.List qualified as List
@@ -32,7 +31,6 @@ import StaticLS.SDoc (showGhc)
 import StaticLS.StaticLsEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils
-import System.IO
 
 globalCodeActions :: [GlobalCodeAction]
 globalCodeActions =

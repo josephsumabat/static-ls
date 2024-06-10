@@ -6,20 +6,7 @@ module StaticLS.ProtoLSP (
   lineColRangeFromProto,
   absPathToUri,
   tdiToAbsPath,
-  lineColRangeFromProto,
   locationToLocationLink,
-  lineColRangeToProto,
-  fileLcRangeToLocation,
-  symbolToProto,
-  symbolTreeToProto,
-  lineColToProto,
-  lineColFromProto,
-  uriToAbsPath,
-  absPathToUri,
-  tdiToAbsPath,
-  lineColRangeFromProto,
-  locationToLocationLink,
-  lineColRangeToProto,
   fileLcRangeToLocation,
   symbolToProto,
   symbolTreeToProto,
@@ -39,7 +26,6 @@ import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineColRange
-import Data.LineColRange (LineColRange (..))
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos
@@ -143,7 +129,7 @@ editToProto rope edit =
 
 -- TODO: convert fsEdits
 sourceEditToProto :: Rope -> SourceEdit -> LSP.WorkspaceEdit
-sourceEditToProto rope SourceEdit {fileEdits, fsEdits} =
+sourceEditToProto rope SourceEdit {fileEdits, fsEdits = _} =
   LSP.WorkspaceEdit
     { _changes = Nothing
     , _documentChanges = Just (fmap LSP.InL documentChanges)

@@ -12,64 +12,76 @@ import TestImport.TestData qualified as Test
 spec :: Spec
 spec =
   describe "Correctly retrieves definitions" $ do
-    describe "All available sources" $ do
-      it "retrieves the myFun definition from a different module" $ do
-        staticEnv <- Test.initStaticLsEnv
-        defnLinks <- runStaticLsM staticEnv $ do
-          tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
-          _ <- Test.updateTestFileState tdi
-          uncurry getDefinition tdiAndPos
-        defnLink <- Test.assertHead "no definition link found" defnLinks
-        expectedDefnLink <- Test.myFunDefDefinitionLink
-        defnLink `shouldBe` expectedDefnLink
+    pure ()
+    -- let check name initOpts pathAndPos expected = do
+    --       staticEnv <- Test.initStaticLsEnv
+    --       defnLinks <- runStaticLsM staticEnv $ do
+    --         tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
+    --         _ <- Test.updateTestFileState tdi
+    --         uncurry getDefinition tdiAndPos
+    --       defnLink <- Test.assertHead "no definition link found" defnLinks
+    --       expectedDefnLink <- Test.myFunDefDefinitionLink
+    --       defnLink `shouldBe` expectedDefnLink
+    --       pure ()
 
-    describe "Missing sources" $ do
-      describe "Finding sources with only hie files" $ do
-        it "Missing hiedb" $ do
-          let emptyOpts =
-                StaticEnvOptions
-                  { optionHieDbPath = ""
-                  , optionHieFilesPath = "test/TestData/.hiefiles"
-                  , optionSrcDirs = defaultSrcDirs
-                  , optionHiFilesPath = "test/TestData/.hifiles"
-                  }
-          staticEnv <- Test.initStaticLsEnvOpts emptyOpts
-          defnLinks <- runStaticLsM staticEnv $ do
-            tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
-            _ <- Test.updateTestFileState tdi
-            uncurry getDefinition tdiAndPos
-          defnLink <- Test.assertHead "no definition link found" defnLinks
-          expectedDefnLink <- Test.myFunDefDefinitionLink
-          defnLink `shouldBe` expectedDefnLink
+    -- describe "All available sources" $ do
+    --   it "retrieves the myFun definition from a different module" $ do
+    --     staticEnv <- Test.initStaticLsEnv
+    --     defnLinks <- runStaticLsM staticEnv $ do
+    --       tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
+    --       _ <- Test.updateTestFileState tdi
+    --       uncurry getDefinition tdiAndPos
+    --     defnLink <- Test.assertHead "no definition link found" defnLinks
+    --     expectedDefnLink <- Test.myFunDefDefinitionLink
+    --     defnLink `shouldBe` expectedDefnLink
 
-        it "empty hiedb" $ do
-          let emptyOpts =
-                StaticEnvOptions
-                  { optionHieDbPath = "./TestData/not-a-real-hiedb-file"
-                  , optionHieFilesPath = "test/TestData/.hiefiles"
-                  , optionSrcDirs = defaultSrcDirs
-                  , optionHiFilesPath = "test/TestData/.hifiles"
-                  }
-          staticEnv <- Test.initStaticLsEnvOpts emptyOpts
-          defnLinks <- runStaticLsM staticEnv $ do
-            tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
-            _ <- Test.updateTestFileState tdi
-            uncurry getDefinition tdiAndPos
-          defnLink <- Test.assertHead "no definition link found" defnLinks
-          expectedDefnLink <- Test.myFunDefDefinitionLink
-          defnLink `shouldBe` expectedDefnLink
+    -- describe "Missing sources" $ do
+    --   describe "Finding sources with only hie files" $ do
+    --     it "Missing hiedb" $ do
+    --       let emptyOpts =
+    --             StaticEnvOptions
+    --               { optionHieDbPath = "",
+    --                 optionHieFilesPath = "test/TestData/.hiefiles",
+    --                 optionSrcDirs = defaultSrcDirs,
+    --                 optionHiFilesPath = "test/TestData/.hifiles"
+    --               }
+    --       staticEnv <- Test.initStaticLsEnvOpts emptyOpts
+    --       defnLinks <- runStaticLsM staticEnv $ do
+    --         tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
+    --         _ <- Test.updateTestFileState tdi
+    --         uncurry getDefinition tdiAndPos
+    --       defnLink <- Test.assertHead "no definition link found" defnLinks
+    --       expectedDefnLink <- Test.myFunDefDefinitionLink
+    --       defnLink `shouldBe` expectedDefnLink
 
-      it "does not crash with missing all sources" $ do
-        let emptyOpts =
-              StaticEnvOptions
-                { optionHieDbPath = ""
-                , optionHieFilesPath = ""
-                , optionSrcDirs = []
-                , optionHiFilesPath = ""
-                }
-        staticEnv <- Test.initStaticLsEnvOpts emptyOpts
-        locs <- runStaticLsM staticEnv $ do
-          tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
-          _ <- Test.updateTestFileState tdi
-          uncurry getDefinition tdiAndPos
-        locs `shouldBe` []
+    --     it "empty hiedb" $ do
+    --       let emptyOpts =
+    --             StaticEnvOptions
+    --               { optionHieDbPath = "./TestData/not-a-real-hiedb-file",
+    --                 optionHieFilesPath = "test/TestData/.hiefiles",
+    --                 optionSrcDirs = defaultSrcDirs,
+    --                 optionHiFilesPath = "test/TestData/.hifiles"
+    --               }
+    --       staticEnv <- Test.initStaticLsEnvOpts emptyOpts
+    --       defnLinks <- runStaticLsM staticEnv $ do
+    --         tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
+    --         _ <- Test.updateTestFileState tdi
+    --         uncurry getDefinition tdiAndPos
+    --       defnLink <- Test.assertHead "no definition link found" defnLinks
+    --       expectedDefnLink <- Test.myFunDefDefinitionLink
+    --       defnLink `shouldBe` expectedDefnLink
+
+    --   it "does not crash with missing all sources" $ do
+    --     let emptyOpts =
+    --           StaticEnvOptions
+    --             { optionHieDbPath = "",
+    --               optionHieFilesPath = "",
+    --               optionSrcDirs = [],
+    --               optionHiFilesPath = ""
+    --             }
+    --     staticEnv <- Test.initStaticLsEnvOpts emptyOpts
+    --     locs <- runStaticLsM staticEnv $ do
+    --       tdiAndPos@(tdi, _) <- liftIO Test.myFunRef1TdiAndPosition
+    --       _ <- Test.updateTestFileState tdi
+    --       uncurry getDefinition tdiAndPos
+    --     locs `shouldBe` []

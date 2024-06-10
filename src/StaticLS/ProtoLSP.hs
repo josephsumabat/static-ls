@@ -32,13 +32,13 @@ module StaticLS.ProtoLSP (
 where
 
 import Control.Monad ((<=<))
-import Data.LineColRange
 import Control.Monad.Catch
 import Data.Aeson qualified as Aeson
 import Data.Change (Change (..))
 import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.HashMap.Strict qualified as HashMap
+import Data.LineColRange
 import Data.LineColRange (LineColRange (..))
 import Data.Path (AbsPath)
 import Data.Path qualified as Path

@@ -1,8 +1,10 @@
 module StaticLS.IDE.Hover.Info (hoverInfo) where
 
 import Data.Array
+import Data.LineColRange (LineColRange)
 import Data.List.Extra (dropEnd1, nubOrd)
 import Data.Map qualified as M
+import Data.Pos (LineCol)
 import Data.Text qualified as T
 import Development.IDE.GHC.Error (realSrcSpanToRange)
 import GHC hiding (getDocs)
@@ -11,10 +13,8 @@ import GHC.Iface.Ext.Utils
 import GHC.Plugins hiding ((<>))
 import Language.LSP.Protocol.Types
 import StaticLS.HI
+import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.SDoc
-import Data.Pos (LineCol)
-import qualified StaticLS.ProtoLSP as ProtoLSP
-import Data.LineColRange (LineColRange)
 
 -------------------------------------------------------------------
 -- The following code is taken partially from halfsp

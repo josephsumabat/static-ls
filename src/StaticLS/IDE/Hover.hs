@@ -34,9 +34,9 @@ import StaticLS.HIE.File
 import StaticLS.IDE.Hover.Info
 import StaticLS.Logger (HasLogger, logInfo)
 import StaticLS.Maybe
+import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
-import qualified StaticLS.ProtoLSP as ProtoLSP
 
 -- | Retrieve hover information.
 retrieveHover ::

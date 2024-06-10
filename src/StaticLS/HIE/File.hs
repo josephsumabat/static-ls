@@ -38,9 +38,6 @@ import StaticLS.StaticEnv
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
 
--- getHieFileFromUri :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m GHC.HieFile
--- getHieFileFromUri = exceptToMaybeT . getHieFile <=< uriToHieFilePath
-
 -- | Retrieve a hie info from a lsp text document identifier
 -- Returns a Maybe instead of throwing because we want to handle
 -- the case when there is no hie file and do something reasonable

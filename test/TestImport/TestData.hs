@@ -21,17 +21,6 @@ myFunDefTdiAndPosition =
         LSP.TextDocumentIdentifier $ LSP.filePathToUri "test/TestData/Mod2.hs"
    in (tdi, pos)
 
--- myFunDefDefinitionLink :: IO LSP.DefinitionLink
--- myFunDefDefinitionLink = do
---   LSP.Location {..} <- myFunDefLocation
---   pure . LSP.DefinitionLink $
---     LSP.LocationLink
---       { _originSelectionRange = Nothing
---       , _targetUri = _uri
---       , _targetRange = _range
---       , _targetSelectionRange = _range
---       }
-
 myFunDefLocation :: IO FileLcRange
 myFunDefLocation = do
   absPath <- Path.filePathToAbs "test/TestData/Mod2.hs"
@@ -42,24 +31,6 @@ myFunDefLocation = do
         { start = LineCol 10 0
         , end = LineCol 10 5
         }
-
--- pure $
---   LSP.Location
---     { LSP._uri = LSP.filePathToUri absDir,
---       LSP._range =
---         LSP.Range
---           { _start =
---               LSP.Position
---                 { LSP._line = 10,
---                   LSP._character = 0
---                 },
---             LSP._end =
---               LSP.Position
---                 { LSP._line = 10,
---                   LSP._character = 5
---                 }
---           }
---     }
 
 myFunRef1TdiAndPosition :: IO (AbsPath, LineCol)
 myFunRef1TdiAndPosition = do

@@ -100,8 +100,7 @@ typesCodeActions path pos lineCol = do
               case res of
                 Nothing -> pure []
                 Just types -> pure types
-            else
-              pure []
+            else pure []
 
 getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]
 getCodeActions path lineCol = do

@@ -26,7 +26,6 @@ import Language.LSP.Protocol.Types (
   sectionSeparator,
   type (|?) (..),
  )
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
 import StaticLS.HI
 import StaticLS.HI.File
@@ -37,6 +36,7 @@ import StaticLS.Logger (HasLogger, logInfo)
 import StaticLS.Maybe
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
+import qualified StaticLS.ProtoLSP as ProtoLSP
 
 -- | Retrieve hover information.
 retrieveHover ::
@@ -57,7 +57,7 @@ retrieveHover path lineCol = do
     lineCol' <- lineColToHieLineCol path hieSource lineCol
     lift $ logInfo $ T.pack $ "lineCol: " <> show lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
-    docs <- docsAtPoint hieFile (ProtoLSP.lineColToProto lineCol')
+    docs <- docsAtPoint hieFile lineCol'
     let mHieInfo =
           listToMaybe $
             pointCommand
@@ -71,7 +71,7 @@ retrieveHover path lineCol = do
         maybe
           (pure Nothing)
           ( \(mRange, contents) -> do
-              mSrcRange <- runMaybeT $ hieRangeToSrcRange uri hieSource mRange
+              mSrcRange <- runMaybeT $ hieRangeToSrcRange path hieSource mRange
               pure $ Just (mSrcRange, contents)
           )
           mHieInfo
@@ -85,12 +85,11 @@ retrieveHover path lineCol = do
       , _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
       }
 
-  hieRangeToSrcRange :: LSP.Uri -> Text -> Maybe Range -> MaybeT m Range
-  hieRangeToSrcRange uri hieSource mHieRange = do
-    hieRange <- toAlt mHieRange
-    let lineColRange = ProtoLSP.lineColRangeFromProto hieRange
-    srcStart <- hieLineColToLineCol uri hieSource lineColRange.start
-    srcEnd <- hieLineColToLineCol uri hieSource lineColRange.end
+  hieRangeToSrcRange :: AbsPath -> Text -> Maybe LineColRange -> MaybeT m Range
+  hieRangeToSrcRange path hieSource mLineColRange = do
+    lineColRange <- toAlt mLineColRange
+    srcStart <- hieLineColToLineCol path hieSource lineColRange.start
+    srcEnd <- hieLineColToLineCol path hieSource lineColRange.end
     pure $ ProtoLSP.lineColRangeToProto (LineColRange srcStart srcEnd)
 
 docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.HieFile -> LineCol -> m [NameDocs]

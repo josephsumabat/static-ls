@@ -22,7 +22,6 @@ import Language.LSP.Protocol.Types (
   Hover (..),
   MarkupContent (..),
   MarkupKind (..),
-  Position,
   Range (..),
   sectionSeparator,
   type (|?) (..),
@@ -36,7 +35,6 @@ import StaticLS.HIE.File
 import StaticLS.IDE.Hover.Info
 import StaticLS.Logger (HasLogger, logInfo)
 import StaticLS.Maybe
-import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 
@@ -64,7 +62,7 @@ retrieveHover path lineCol = do
           listToMaybe $
             pointCommand
               hieFile
-              (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
+              (lineColToHieDbCoords lineCol')
               Nothing
               (hoverInfo (GHC.hie_types hieFile) docs)
     -- Convert the location from the hie file back to an original src location
@@ -95,9 +93,9 @@ retrieveHover path lineCol = do
     srcEnd <- hieLineColToLineCol uri hieSource lineColRange.end
     pure $ ProtoLSP.lineColRangeToProto (LineColRange srcStart srcEnd)
 
-docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.HieFile -> Position -> m [NameDocs]
+docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.HieFile -> LineCol -> m [NameDocs]
 docsAtPoint hieFile position = do
-  let names = namesAtPoint hieFile (lspPositionToHieDbCoords position)
+  let names = namesAtPoint hieFile (lineColToHieDbCoords position)
       modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
   modIfaceFiles <- fromMaybe [] <$> runMaybeT (mapM modToHiFile modNames)
   modIfaces <- catMaybes <$> mapM (runMaybeT . readHiFile . Path.toFilePath) modIfaceFiles

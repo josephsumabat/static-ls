@@ -1,9 +1,9 @@
 {-# LANGUAGE BlockArguments #-}
 
-module StaticLS.IDE.Completion
-  ( getCompletion,
-    Completion (..),
-  )
+module StaticLS.IDE.Completion (
+  getCompletion,
+  Completion (..),
+)
 where
 
 import Control.Applicative
@@ -26,8 +26,8 @@ makeRelativeMaybe base path = do
   guard $ path /= rel
   pure rel
 
-uriToModule :: AbsPath -> StaticLsM (Maybe Text)
-uriToModule absPath = do
+pathToModule :: AbsPath -> StaticLsM (Maybe Text)
+pathToModule absPath = do
   let fp = Path.toFilePath absPath
   staticEnv <- getStaticEnv
   let srcDirs = staticEnv.srcDirs
@@ -43,10 +43,10 @@ uriToModule absPath = do
     pure modText
 
 getCompletion :: AbsPath -> StaticLsM [Completion]
-getCompletion uri = do
-  haskell <- getHaskell uri
+getCompletion path = do
+  haskell <- getHaskell path
   header <- Tree.getHeader haskell & isRightOrThrowT
-  mod <- uriToModule uri
+  mod <- pathToModule path
   case (header, mod) of
     (Nothing, Just mod) -> do
       let label = "module " <> mod <> " where"
@@ -54,7 +54,7 @@ getCompletion uri = do
     (_, _) -> pure []
 
 data Completion = Completion
-  { label :: !Text,
-    insertText :: !Text
+  { label :: !Text
+  , insertText :: !Text
   }
   deriving (Show, Eq)

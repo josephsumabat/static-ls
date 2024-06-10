@@ -87,10 +87,10 @@ absPathToUri = LSP.filePathToUri . Path.toFilePath
 locationToLocationLink :: LSP.Location -> LSP.LocationLink
 locationToLocationLink LSP.Location {..} =
   LSP.LocationLink
-    { _originSelectionRange = Nothing,
-      _targetUri = _uri,
-      _targetRange = _range,
-      _targetSelectionRange = _range
+    { _originSelectionRange = Nothing
+    , _targetUri = _uri
+    , _targetRange = _range
+    , _targetSelectionRange = _range
     }
 
 fileLcRangeToLocation :: FileLcRange -> LSP.Location
@@ -109,32 +109,32 @@ symbolKindToProto = \case
 symbolToProto :: Symbol -> LSP.SymbolInformation
 symbolToProto Symbol {name, kind, loc} =
   LSP.SymbolInformation
-    { _name = name,
-      _kind = symbolKindToProto kind,
-      _deprecated = Nothing,
-      _location = fileLcRangeToLocation loc,
-      _containerName = Nothing,
-      _tags = Nothing
+    { _name = name
+    , _kind = symbolKindToProto kind
+    , _deprecated = Nothing
+    , _location = fileLcRangeToLocation loc
+    , _containerName = Nothing
+    , _tags = Nothing
     }
 
 symbolTreeToProto :: SymbolTree -> LSP.DocumentSymbol
 symbolTreeToProto SymbolTree {name, kind, range, selectionRange, children} =
   LSP.DocumentSymbol
-    { _name = name,
-      _tags = Nothing,
-      _detail = Nothing,
-      _kind = symbolKindToProto kind,
-      _deprecated = Nothing,
-      _range = lineColRangeToProto range,
-      _selectionRange = lineColRangeToProto selectionRange,
-      _children = Just $ symbolTreeToProto <$> children
+    { _name = name
+    , _tags = Nothing
+    , _detail = Nothing
+    , _kind = symbolKindToProto kind
+    , _deprecated = Nothing
+    , _range = lineColRangeToProto range
+    , _selectionRange = lineColRangeToProto selectionRange
+    , _children = Just $ symbolTreeToProto <$> children
     }
 
 changeToProto :: Rope -> Change -> LSP.TextEdit
 changeToProto rope Change {insert, delete} =
   LSP.TextEdit
-    { LSP._range = lineColRangeToProto (Rope.rangeToLineColRange rope delete),
-      LSP._newText = insert
+    { LSP._range = lineColRangeToProto (Rope.rangeToLineColRange rope delete)
+    , LSP._newText = insert
     }
 
 editToProto :: Rope -> Edit -> [LSP.TextEdit]
@@ -145,38 +145,38 @@ editToProto rope edit =
 sourceEditToProto :: Rope -> SourceEdit -> LSP.WorkspaceEdit
 sourceEditToProto rope SourceEdit {fileEdits, fsEdits} =
   LSP.WorkspaceEdit
-    { _changes = Nothing,
-      _documentChanges = Just (fmap LSP.InL documentChanges),
-      _changeAnnotations = Nothing
+    { _changes = Nothing
+    , _documentChanges = Just (fmap LSP.InL documentChanges)
+    , _changeAnnotations = Nothing
     }
-  where
-    documentChanges =
-      ( \(path, edit) ->
-          LSP.TextDocumentEdit
-            { _textDocument =
-                LSP.OptionalVersionedTextDocumentIdentifier
-                  { _uri = absPathToUri path,
-                    _version = LSP.InR LSP.Null
-                  },
-              _edits = fmap LSP.InL $ editToProto rope edit
-            }
-      )
-        <$> HashMap.toList
-          fileEdits
+ where
+  documentChanges =
+    ( \(path, edit) ->
+        LSP.TextDocumentEdit
+          { _textDocument =
+              LSP.OptionalVersionedTextDocumentIdentifier
+                { _uri = absPathToUri path
+                , _version = LSP.InR LSP.Null
+                }
+          , _edits = fmap LSP.InL $ editToProto rope edit
+          }
+    )
+      <$> HashMap.toList
+        fileEdits
 
 assistToCodeAction :: Rope -> Assist -> LSP.CodeAction
 assistToCodeAction rope Assist {label, sourceEdit} =
   LSP.CodeAction
-    { _title = label,
-      _kind = Just LSP.CodeActionKind_QuickFix,
-      _diagnostics = Nothing,
-      _edit = case sourceEdit of
+    { _title = label
+    , _kind = Just LSP.CodeActionKind_QuickFix
+    , _diagnostics = Nothing
+    , _edit = case sourceEdit of
         Left edit -> Just $ sourceEditToProto rope edit
-        Right _ -> Nothing,
-      _command = Nothing,
-      _isPreferred = Nothing,
-      _disabled = Nothing,
-      _data_ = case sourceEdit of
+        Right _ -> Nothing
+    , _command = Nothing
+    , _isPreferred = Nothing
+    , _disabled = Nothing
+    , _data_ = case sourceEdit of
         Left _ -> Nothing
         Right data_ -> Just $ Aeson.toJSON data_
     }

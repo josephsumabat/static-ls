@@ -10,6 +10,7 @@ import Data.IORef qualified as IORef
 import Data.Path (AbsPath)
 import Data.Pos (LineCol, Pos)
 import Data.Pos qualified as Position
+import Data.Rope (Rope)
 import Data.Text (Text)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
@@ -18,7 +19,6 @@ import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import StaticLS.Utils (isJustOrThrow)
-import Data.Rope (Rope)
 
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information

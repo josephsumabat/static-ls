@@ -54,7 +54,7 @@ getDefinition path lineCol = do
           join $
             HieDb.pointCommand
               hieFile
-              (lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol'))
+              (lineColToHieDbCoords lineCol')
               Nothing
               hieAstNodeToIdentifiers
     join <$> mapM (lift . identifierToLocation) identifiersAtPoint

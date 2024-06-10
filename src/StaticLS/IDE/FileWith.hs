@@ -6,8 +6,8 @@ import Data.Path (AbsPath)
 import Data.Range (Range)
 
 data FileWith a = FileWith
-  { path :: AbsPath,
-    loc :: a
+  { path :: AbsPath
+  , loc :: a
   }
   deriving (Show, Eq, Functor, Foldable, Traversable)
 

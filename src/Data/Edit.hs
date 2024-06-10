@@ -1,11 +1,11 @@
-module Data.Edit
-  ( Edit,
-    insert,
-    delete,
-    replace,
-    changesToEdit,
-    getChanges,
-  )
+module Data.Edit (
+  Edit,
+  insert,
+  delete,
+  replace,
+  changesToEdit,
+  getChanges,
+)
 where
 
 import Data.Change (Change)

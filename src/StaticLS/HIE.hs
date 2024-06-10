@@ -20,47 +20,19 @@ where
 
 import AST qualified
 import Control.Error.Util (hush)
-import Control.Exception (Exception)
-import Control.Monad (guard, join, (<=<))
+import Control.Monad (join, (<=<))
 import Control.Monad.Catch
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (ExceptT, throwE)
-import Control.Monad.Trans.Maybe (MaybeT (..))
-import Data.Foldable qualified as Foldable
 import Data.LineColRange (LineColRange (..))
-import Data.LineColRange qualified as LineColRange
-import Data.List (isSuffixOf)
 import Data.Map qualified as Map
-import Data.Maybe (fromMaybe, mapMaybe, maybeToList)
-import Data.Path (AbsPath)
-import Data.Path qualified as Path
+import Data.Maybe (mapMaybe)
 import Data.Pos (LineCol (..))
 import Data.Set qualified as Set
-import Data.Text qualified as T
-import Data.Text.Encoding qualified as T.Encoding
-import Development.IDE.GHC.Error (
-  srcSpanToFilename,
-  srcSpanToRange,
- )
 import GHC qualified
-import GHC.Data.FastString qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
-import GHC.Iface.Type qualified as GHC
-import GHC.Plugins qualified as GHC
-import GHC.Utils.Monad (mapMaybeM)
 import HieDb (pointCommand)
-import HieDb qualified
 import Language.LSP.Protocol.Types qualified as LSP
-import StaticLS.FileEnv
-import StaticLS.HIE.File
-import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
-import StaticLS.Logger
-import StaticLS.Maybe
-import StaticLS.StaticEnv
-import StaticLS.StaticLsEnv
-import System.Directory (doesFileExist)
 
 -- | LSP Position is 0 indexed
 -- Note HieDbCoords are 1 indexed

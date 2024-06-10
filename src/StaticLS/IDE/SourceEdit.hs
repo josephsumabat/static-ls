@@ -1,9 +1,9 @@
-module StaticLS.IDE.SourceEdit
-  ( SourceEdit (..),
-    FsEdit (..),
-    single,
-    empty,
-  )
+module StaticLS.IDE.SourceEdit (
+  SourceEdit (..),
+  FsEdit (..),
+  single,
+  empty,
+)
 where
 
 import Data.Edit (Edit)
@@ -12,25 +12,25 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.Path (AbsPath)
 
 data SourceEdit = SourceEdit
-  { fileEdits :: !(HashMap AbsPath Edit),
-    fsEdits :: ![FsEdit]
+  { fileEdits :: !(HashMap AbsPath Edit)
+  , fsEdits :: ![FsEdit]
   }
 
 empty :: SourceEdit
 empty =
   SourceEdit
-    { fileEdits = HashMap.empty,
-      fsEdits = []
+    { fileEdits = HashMap.empty
+    , fsEdits = []
     }
 
 single :: AbsPath -> Edit -> SourceEdit
 single path edit =
   SourceEdit
-    { fileEdits = HashMap.singleton path edit,
-      fsEdits = []
+    { fileEdits = HashMap.singleton path edit
+    , fsEdits = []
     }
 
 data FsEdit = FsEditMoveFile
-  { src :: !AbsPath,
-    dst :: !AbsPath
+  { src :: !AbsPath
+  , dst :: !AbsPath
   }

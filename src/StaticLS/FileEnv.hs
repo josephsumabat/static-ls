@@ -12,10 +12,10 @@ type FileEnv = HashMap AbsPath FileState
 
 -- Important: Keep these fields lazy so that responding to edits happens instantly
 data FileState = FileState
-  { contentsRope :: Rope,
-    contentsText :: Text,
-    tree :: Haskell.Haskell,
-    tokens :: [PositionDiff.Token]
+  { contentsRope :: Rope
+  , contentsText :: Text
+  , tree :: Haskell.Haskell
+  , tokens :: [PositionDiff.Token]
   }
   deriving (Show)
 

@@ -1,8 +1,8 @@
-module StaticLS.HISpec (spec)
-where
+module StaticLS.HISpec (spec) where
 
 import Control.Monad.Trans.Except
 import Control.Monad.Trans.Maybe
+import Data.Path qualified as Path
 import Language.LSP.Protocol.Types
 import StaticLS.HI
 import StaticLS.HI.File
@@ -17,7 +17,8 @@ spec = do
   describe "getDocs" $ do
     it "Returns expected docs" $ do
       hiFile <- runMaybeT $ readHiFile "test/TestData/.hifiles/TestData/Mod2.hi"
-      eHieFile <- runExceptT $ getHieFile "test/TestData/.hiefiles/TestData/Mod2.hie"
+      hiePath <- Path.filePathToAbs "test/TestData/.hiefiles/TestData/Mod2.hie"
+      eHieFile <- runExceptT $ getHieFile hiePath
       hieFile <- Test.assertRight "expected hie file" eHieFile
       modiface <- Test.assertJust "expected succesful read" hiFile
       fnLocation <- myFunDefLocation

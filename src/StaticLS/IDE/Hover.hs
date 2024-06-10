@@ -75,7 +75,6 @@ retrieveHover path lineCol = do
               pure $ Just (mSrcRange, contents)
           )
           mHieInfo
-
     pure $ hoverInfoToHover srcInfo
  where
   hoverInfoToHover :: (Maybe Range, [Text]) -> Hover

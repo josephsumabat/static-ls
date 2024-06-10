@@ -15,6 +15,8 @@ module StaticLS.HIE (
   astRangeToLineColRange,
   lineColToHieDbCoords,
   getTypesAtPoint,
+  getPrintedTypesAtPoint,
+  astRangeToRange,
 )
 where
 
@@ -26,13 +28,16 @@ import Control.Monad.Trans.Except (ExceptT, throwE)
 import Data.LineColRange (LineColRange (..))
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
-import Data.Pos (LineCol (..))
+import Data.Pos (LineCol (..), Pos (..))
+import Data.Range (Range (..))
 import Data.Set qualified as Set
+import Data.Text (Text)
 import GHC qualified
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
 import HieDb (pointCommand)
 import Language.LSP.Protocol.Types qualified as LSP
+import StaticLS.SDoc (showGhc)
 
 -- | LSP Position is 0 indexed
 -- Note HieDbCoords are 1 indexed
@@ -88,6 +93,12 @@ lineColToAstPoint (LineCol line col) =
     , col = fromIntegral col
     }
 
+astRangeToRange :: AST.Range -> Range
+astRangeToRange range =
+  Range
+    (Pos (AST.startByte range))
+    (Pos (AST.endByte range))
+
 astRangeToLineColRange :: AST.Range -> LineColRange
 astRangeToLineColRange range =
   LineColRange
@@ -134,6 +145,16 @@ intToUInt x =
  where
   minBoundAsInt = fromIntegral $ minBound @LSP.UInt
   maxBoundAsInt = fromIntegral $ maxBound @LSP.UInt
+
+getPrintedTypesAtPoint :: GHC.HieFile -> LineCol -> [Text]
+getPrintedTypesAtPoint hieFile lineCol =
+  ( showGhc
+      . GHC.hieTypeToIface
+      . flip
+        GHC.recoverFullType
+        (GHC.hie_types hieFile)
+  )
+    <$> getTypesAtPoint hieFile (lineColToHieDbCoords lineCol)
 
 getTypesAtPoint :: GHC.HieFile -> HieDbCoords -> [GHC.TypeIndex]
 getTypesAtPoint hieFile coords =

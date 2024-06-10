@@ -8,26 +8,28 @@ module StaticLS.IDE.CodeActions where
 import AST qualified
 import AST.Haskell qualified as Haskell
 import Control.Lens.Operators
+import Control.Monad qualified as Monad
 import Control.Monad.Trans.Maybe
 import Data.Edit qualified as Edit
+import Data.Either.Extra qualified as Either.Extra
 import Data.List qualified as List
 import Data.List.NonEmpty qualified as NE
 import Data.Path (AbsPath)
 import Data.Pos (LineCol (..), Pos (..))
+import Data.Range qualified as Range
 import Data.Rope (Rope)
+import Data.Rope qualified as Rope
+import Data.Sum (Nil, (:+), pattern Inj)
 import Data.Text
 import Data.Text qualified as T
-import GHC.Iface.Ext.Types qualified as GHC
-import GHC.Iface.Ext.Utils qualified as GHC
 import Language.LSP.Protocol.Types qualified as LSP
-import StaticLS.HIE (getTypesAtPoint, lineColToHieDbCoords)
+import StaticLS.HIE
 import StaticLS.HIE.File (getHieFileFromPath)
 import StaticLS.IDE.CodeActions.AutoImport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Logger
-import StaticLS.SDoc (showGhc)
 import StaticLS.StaticLsEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils
@@ -63,27 +65,50 @@ createAutoImportCodeActions path toImport =
         (CodeActionMessage {kind = AutoImportActionMessage toImport, path})
     ]
 
-typesCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]
-typesCodeActions path lineCol = do
-  res <- runMaybeT do
-    hieFile <- getHieFileFromPath path
-    let types =
-          ( showGhc
-              . GHC.hieTypeToIface
-              . flip
-                GHC.recoverFullType
-                (GHC.hie_types hieFile)
-          )
-            <$> getTypesAtPoint hieFile (lineColToHieDbCoords lineCol)
-    pure ((flip mkAssist SourceEdit.empty . (":: " <>)) <$> types)
-  case res of
+type AddTypeContext = Haskell.Bind :+ Haskell.Function :+ Nil
+
+typesCodeActions :: AbsPath -> Pos -> LineCol -> StaticLsM [Assist]
+typesCodeActions path pos lineCol = do
+  haskell <- getHaskell path
+  let astPoint = lineColToAstPoint lineCol
+  let node = AST.getDeepestContaining @AddTypeContext astPoint haskell.dynNode.unDynNode
+  case node of
     Nothing -> pure []
-    Just types -> pure types
+    Just bind -> do
+      let bindName = Monad.join $ Either.Extra.eitherToMaybe do
+            case bind of
+              Inj (function :: Haskell.Function) -> do
+                name <- AST.collapseErr function.name
+                pure name
+              Inj @Haskell.Bind bind -> do
+                name <- AST.collapseErr bind.name
+                pure name
+              _ -> Left ""
+      logInfo $ T.pack $ "got bind " <> show bind
+      case bindName of
+        Nothing -> pure []
+        Just name -> do
+          let nameRange = astRangeToRange $ AST.nodeToRange name
+          let nameText = AST.nodeToText name
+          logInfo $ T.pack $ "got name " <> show nameText
+          if (nameRange `Range.contains` pos)
+            then do
+              res <- runMaybeT do
+                hieFile <- getHieFileFromPath path
+                let types = getPrintedTypesAtPoint hieFile lineCol
+                pure ((flip mkAssist SourceEdit.empty . (\name -> nameText <> " :: " <> name)) <$> types)
+              case res of
+                Nothing -> pure []
+                Just types -> pure types
+            else
+              pure []
 
 getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]
 getCodeActions path lineCol = do
   modulesToImport <- getModulesToImport path lineCol
-  typesCodeActions <- typesCodeActions path lineCol
+  rope <- getSourceRope path
+  let pos = Rope.lineColToPos rope lineCol
+  typesCodeActions <- typesCodeActions path pos lineCol
   importCodeActions <- List.concat <$> mapM (createAutoImportCodeActions path) modulesToImport
   let codeActions = typesCodeActions ++ importCodeActions
   pure codeActions

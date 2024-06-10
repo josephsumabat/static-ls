@@ -8,7 +8,6 @@ import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
-import System.Directory qualified as Dir
 
 myFunDefTdiAndPosition :: (LSP.TextDocumentIdentifier, LSP.Position)
 myFunDefTdiAndPosition =

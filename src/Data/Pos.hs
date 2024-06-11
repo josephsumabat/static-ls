@@ -5,8 +5,6 @@ module Data.Pos (
   Pos (.., Pos),
   lineColToPos,
   posToLineCol,
-  splitLinesWithEnd,
-  splitLines,
   pos,
   lineCol,
 )
@@ -17,14 +15,21 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.TextUtils
 import GHC.Stack (HasCallStack)
 
--- 0 based
+-- 0 based line and columns
+-- When are LineCol valid indices?
+-- Consider the string "abcd\n1234"
+-- Valid indices are (LineCol 0 0) to (LineCol 0 4)
+-- and (LineCol 1 0) to (LineCol 1 3)
+-- If you are pointing to the end of the string, such as at the end of a LineColRange, then
+-- (LineCol 1 4) is valid, but (LineCol 2 0) is not.
 data LineCol = UnsafeLineCol
   { line :: !Int
   , col :: !Int
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 pattern LineCol :: (HasCallStack) => Int -> Int -> LineCol
 pattern LineCol l c <- UnsafeLineCol l c
@@ -73,17 +78,3 @@ posToLineCol source UnsafePos {pos} =
   lastLineBeforePos = NE.last linesBeforePos
   line = length linesBeforePos - 1
   col = T.length lastLineBeforePos
-
--- never empty
-splitLinesWithEnd :: Text -> NonEmpty Text
-splitLinesWithEnd t =
-  lines
-    & zip [0 :: Int ..]
-    & map (\(i, l) -> if i == linesLen - 1 then l else l <> "\n")
-    & NE.fromList
- where
-  lines = T.splitOn "\n" t
-  linesLen = length lines
-
-splitLines :: Text -> [Text]
-splitLines = T.splitOn "\n"

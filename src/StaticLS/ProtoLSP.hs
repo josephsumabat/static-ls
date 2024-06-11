@@ -62,7 +62,7 @@ posToLSPPosition rope pos = lineColToProto $ Rope.posToLineCol rope pos
 
 -- beware: the uri must be absolute or this function will return Nothing
 uriToAbsPath :: (MonadThrow m) => LSP.Uri -> m AbsPath
-uriToAbsPath = Path.filePathToAbsThrow <=< (isJustOrThrow "uri was not a file" . LSP.uriToFilePath)
+uriToAbsPath = Path.filePathToAbsThrow <=< (isJustOrThrowS "uri was not a file" . LSP.uriToFilePath)
 
 tdiToAbsPath :: (MonadThrow m) => LSP.TextDocumentIdentifier -> m AbsPath
 tdiToAbsPath = uriToAbsPath . (._uri)

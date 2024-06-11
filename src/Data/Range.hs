@@ -12,7 +12,7 @@ data Range = Range
   { start :: !Pos
   , end :: !Pos
   }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 empty :: Pos -> Range
 empty p = Range p p

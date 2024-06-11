@@ -11,6 +11,13 @@ module Data.Rope (
   lineColRangeToRange,
   change,
   edit,
+  splitAt,
+  getLine,
+  uncheckedGetLine,
+  linesLength,
+  isValidLineCol,
+  isValidLineColEnd,
+  indexRange,
 )
 where
 
@@ -21,13 +28,14 @@ import Data.Foldable qualified as Foldable
 import Data.LineColRange (LineColRange (..))
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Range (Range (..))
+import Data.String (IsString)
 import Data.Text (Text)
 import Data.Text.Lines as Rope (Position (..))
 import Data.Text.Utf16.Rope.Mixed qualified as Rope
-import Prelude hiding (length)
+import Prelude hiding (getLine, length, splitAt)
 
 newtype Rope = Rope {rope :: Rope.Rope}
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Semigroup, Monoid, IsString)
 
 fromTextRope :: Rope.Rope -> Rope
 fromTextRope = Rope
@@ -66,6 +74,7 @@ rangeToLineColRange :: Rope -> Range -> LineColRange
 rangeToLineColRange r (Range start end) =
   LineColRange (posToLineCol r start) (posToLineCol r end)
 
+-- TODO: this should be tested
 lineColRangeToRange :: Rope -> LineColRange -> Range
 lineColRangeToRange r (LineColRange start end) =
   Range (lineColToPos r start) (lineColToPos r end)
@@ -80,3 +89,59 @@ change Change {insert, delete} (Rope rope) =
 
 edit :: Edit -> Rope -> Rope
 edit (Edit.getChanges -> changes) rope = Foldable.foldl' (flip change) rope changes
+
+-- TODO: return a maybe
+splitAt :: LineCol -> Rope -> (Rope, Rope)
+splitAt (LineCol line col) (Rope rope) = (Rope before, Rope after)
+ where
+  (before, after) =
+    Rope.charSplitAtPosition
+      ( Rope.Position
+          { posLine = (fromIntegral line)
+          , posColumn = (fromIntegral col)
+          }
+      )
+      rope
+
+indexRange :: Rope -> Range -> Maybe Rope
+indexRange (Rope r) (Range (Pos start) (Pos end))
+  | start < fromIntegral (Rope.charLength r) && end < fromIntegral (Rope.charLength r) =
+      Just (Rope indexed)
+  | otherwise = Nothing
+ where
+  (_beforeStart, afterStart) = Rope.charSplitAt (fromIntegral start) r
+  (indexed, _) = Rope.charSplitAt (fromIntegral (end - start)) afterStart
+
+isValidLineCol :: Rope -> LineCol -> Bool
+isValidLineCol r (LineCol line col) =
+  line >= 0
+    && col >= 0
+    && line < fromIntegral @Word @Int (Rope.lengthInLines rope)
+    && col < length (uncheckedGetLine r (Pos line))
+ where
+  rope = r.rope
+
+-- may point to the end of something in an exclusive range
+isValidLineColEnd :: Rope -> LineCol -> Bool
+isValidLineColEnd r (LineCol line col) =
+  line >= 0
+    && col >= 0
+    && line < fromIntegral @Word @Int (Rope.lengthInLines rope)
+    && col <= length (uncheckedGetLine r (Pos line))
+ where
+  rope = r.rope
+linesLength :: Rope -> Int
+linesLength (Rope rope) = fromIntegral . Rope.lengthInLines $ rope
+
+-- | get the line, including the newline!
+getLine :: Rope -> Pos -> Maybe Rope
+getLine rope line
+  | line.pos < fromIntegral (Rope.lengthInLines rope.rope) = Just $! uncheckedGetLine rope line
+  | otherwise = Nothing
+
+uncheckedGetLine :: Rope -> Pos -> Rope
+uncheckedGetLine (Rope rope) (Pos line) =
+  Rope theLine
+ where
+  (_before, after) = Rope.splitAtLine (fromIntegral line) rope
+  (theLine, _) = Rope.splitAtLine 1 after

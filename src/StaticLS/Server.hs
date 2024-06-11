@@ -137,7 +137,7 @@ updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
   let normalizedUri = toNormalizedUri uri
   virtualFile <- LSP.getVirtualFile normalizedUri
-  virtualFile <- isJustOrThrow "no virtual file" virtualFile
+  virtualFile <- isJustOrThrowS "no virtual file" virtualFile
   path <- ProtoLSP.uriToAbsPath uri
   lift $ updateFileState path (Rope.fromTextRope virtualFile._file_text)
   pure ()
@@ -189,7 +189,7 @@ handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req re
   _ <- lift $ logInfo "handleResolveCodeAction"
   let codeAction = req._params
 
-  jsonData <- codeAction._data_ & isJustOrThrow "code action didn't come with json data"
+  jsonData <- codeAction._data_ & isJustOrThrowS "code action didn't come with json data"
   let resultSuccessOrThrow res = case res of
         Aeson.Success a -> pure a
         Aeson.Error e -> Exception.throwString ("failed to parse json: " ++ e)

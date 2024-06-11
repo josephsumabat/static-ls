@@ -10,8 +10,13 @@ import UnliftIO.Exception (stringException)
 throwStringM :: (HasCallStack, MonadThrow m) => String -> m a
 throwStringM s = throwM (stringException s)
 
-isJustOrThrow :: (HasCallStack, MonadThrow m) => String -> Maybe a -> m a
-isJustOrThrow s m = case m of
+isJustOrThrowE :: (HasCallStack, MonadThrow m, Exception e) => e -> Maybe a -> m a
+isJustOrThrowE e m = case m of
+  Just a -> pure a
+  Nothing -> throwM e
+
+isJustOrThrowS :: (HasCallStack, MonadThrow m) => String -> Maybe a -> m a
+isJustOrThrowS s m = case m of
   Just a -> pure a
   Nothing -> throwStringM s
 

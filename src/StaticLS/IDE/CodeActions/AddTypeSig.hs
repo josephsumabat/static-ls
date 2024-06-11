@@ -60,16 +60,12 @@ codeAction path pos lineCol = do
   case name of
     Nothing -> pure []
     Just name -> do
-      let nameRange = astRangeToRange $ AST.nodeToRange name
       let nameText = AST.nodeToText name
       logInfo $ T.pack $ "got name " <> show nameText
-      if (nameRange `Range.contains` pos)
-        then do
-          res <- runMaybeT do
-            hieFile <- getHieFileFromPath path
-            let types = getPrintedTypesAtPoint hieFile lineCol
-            pure ((flip mkAssist SourceEdit.empty . (\name -> nameText <> " :: " <> name)) <$> types)
-          case res of
-            Nothing -> pure []
-            Just types -> pure types
-        else pure []
+      res <- runMaybeT do
+        hieFile <- getHieFileFromPath path
+        let types = getPrintedTypesAtPoint hieFile lineCol
+        pure ((flip mkAssist SourceEdit.empty . (\name -> nameText <> " :: " <> name)) <$> types)
+      case res of
+        Nothing -> pure []
+        Just types -> pure types

@@ -8,6 +8,7 @@ import Data.Text
 import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.StaticLsEnv
+import StaticLS.IDE.SourceEdit (SourceEdit)
 
 data Context = Context
   { textDocument :: !TextDocumentIdentifier
@@ -27,7 +28,7 @@ data GlobalCodeAction = GlobalCodeAction
   { name :: !Text
   , run :: Context -> StaticLsM (Maybe ())
   }
-  
+
 $(deriveJSON defaultOptions ''CodeActionMessageKind)
 $(deriveJSON defaultOptions ''CodeActionMessage)
 

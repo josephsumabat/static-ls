@@ -219,6 +219,7 @@ test-suite static-ls-test
       StaticLS.HI.FileSpec
       StaticLS.HIE.FileSpec
       StaticLS.HISpec
+      StaticLS.IDE.CodeActions.AddTypeSigSpec
       StaticLS.IDE.DefinitionSpec
       StaticLS.IDE.HoverSpec
       StaticLS.PositionDiffSpec

@@ -6,6 +6,7 @@ import Data.Aeson.TH
 import Data.Path (AbsPath)
 import Data.Text
 import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
+import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.StaticLsEnv
 
 data Context = Context
@@ -27,9 +28,24 @@ data GlobalCodeAction = GlobalCodeAction
   , run :: Context -> StaticLsM (Maybe ())
   }
 
-data CodeAction = CodeAction
-  {
-  }
-
 $(deriveJSON defaultOptions ''CodeActionMessageKind)
 $(deriveJSON defaultOptions ''CodeActionMessage)
+
+data Assist = Assist
+  { label :: !Text
+  , sourceEdit :: Either SourceEdit CodeActionMessage
+  }
+
+mkAssist :: Text -> SourceEdit -> Assist
+mkAssist label sourceEdit =
+  Assist
+    { label
+    , sourceEdit = Left sourceEdit
+    }
+
+mkLazyAssist :: Text -> CodeActionMessage -> Assist
+mkLazyAssist label sourceEdit =
+  Assist
+    { label
+    , sourceEdit = Right sourceEdit
+    }

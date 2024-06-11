@@ -7,9 +7,13 @@
 module StaticLS.IDE.CodeActions.AutoImport where
 
 import AST qualified
+import AST.Err qualified as Haskell
 import AST.Haskell qualified as Haskell
 import Control.Monad.Except
 import Data.Coerce (coerce)
+import Data.Either.Extra (eitherToMaybe)
+import Data.List.NonEmpty qualified as NE
+import Data.Maybe (catMaybes)
 import Data.Path (AbsPath)
 import Data.Pos (LineCol)
 import Data.Sum
@@ -43,11 +47,16 @@ type AutoImportTypes =
     :+ Haskell.ConstructorOperator
     :+ Nil
 
+data ModulesToImport = ModulesToImport
+  { moduleNames :: [Text]
+  , moduleQualifier :: Maybe Text
+  }
+
 getModulesToImport ::
   (HasCallStack, ()) =>
   AbsPath ->
   LineCol ->
-  StaticLsM [Text]
+  StaticLsM ModulesToImport
 getModulesToImport path pos = do
   _ <- logInfo "getModulesToImport"
   haskell <- getHaskell path
@@ -55,16 +64,57 @@ getModulesToImport path pos = do
   let astPoint = lineColToAstPoint pos
   _ <- logInfo $ T.pack $ "astPoint: " ++ show astPoint
   _ <- logInfo "got haskell"
-  let maybeQualified = AST.getDeepestContaining @AutoImportTypes astPoint (AST.getDynNode haskell)
-  case maybeQualified of
-    Just qualified -> do
-      let node = AST.getDynNode qualified
-      let nodeText = AST.nodeText node
-      _ <- logInfo $ T.pack $ "qualified: " ++ show node
-      _ <- logInfo $ T.pack $ "qualified: " ++ show nodeText
+  -- TODO: Remove double traversal of AST
+  let maybeQualified =
+        AST.getDeepestContaining
+          @Haskell.Qualified
+          astPoint
+          (AST.getDynNode haskell)
+      maybeImportable =
+        AST.getDeepestContaining
+          @AutoImportTypes
+          astPoint
+          ( maybe
+              (AST.getDynNode haskell)
+              AST.getDynNode
+              maybeQualified
+          )
+  case maybeImportable of
+    Just importableNode -> do
+      let node = AST.getDynNode importableNode
+          nodeText = AST.nodeText node
+          -- Get the module qualifier from the AST if applicable
+          mQualifier =
+            (toQualifierImports . getQualifiers) <$> maybeQualified
+
       res <- runExceptT $ runHieDbExceptT (\db -> findModulesForDef db nodeText)
       res <- isRightOrThrow res
-      pure res
+      pure $
+        ModulesToImport
+          { moduleNames = res
+          , moduleQualifier = mQualifier
+          }
     _ -> do
       logInfo $ T.pack "no qualified: "
-      pure []
+      pure
+        ModulesToImport
+          { moduleNames = []
+          , moduleQualifier = Nothing
+          }
+ where
+  toQualifierImports :: [Haskell.ModuleId] -> Text
+  toQualifierImports modIds =
+    T.intercalate "." ((AST.nodeText . AST.getDynNode) <$> modIds)
+
+  getQualifiers :: Haskell.Qualified -> [Haskell.ModuleId]
+  getQualifiers qualifiedNode =
+    either (const []) (unwrapModIds . (.children)) qualifiedNode.module'
+
+  unwrapModIds :: Haskell.Err (NE.NonEmpty (Haskell.Err (Haskell.ModuleId))) -> [Haskell.ModuleId]
+  unwrapModIds eModIds =
+    either
+      (const [])
+      ( \modIds ->
+          catMaybes (NE.toList $ eitherToMaybe <$> modIds)
+      )
+      eModIds

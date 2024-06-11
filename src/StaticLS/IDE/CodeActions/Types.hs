@@ -3,6 +3,7 @@
 module StaticLS.IDE.CodeActions.Types where
 
 import Data.Aeson.TH
+import Data.Path (AbsPath)
 import Data.Text
 import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
 import StaticLS.StaticLsEnv
@@ -13,12 +14,12 @@ data Context = Context
   }
 
 data CodeActionMessageKind
-  = GlobalActionMessage !Int
-  | AutoImportActionMessage !Text
+  = AutoImportActionMessage !Text
+  | NoMessage
 
 data CodeActionMessage = CodeActionMessage
   { kind :: !CodeActionMessageKind
-  , tdi :: !TextDocumentIdentifier
+  , path :: !AbsPath
   }
 
 data GlobalCodeAction = GlobalCodeAction

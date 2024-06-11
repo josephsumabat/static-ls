@@ -4,7 +4,9 @@ module Data.Edit (
   delete,
   replace,
   changesToEdit,
-) where
+  getChanges,
+)
+where
 
 import Data.Change (Change)
 import Data.Change qualified as Change
@@ -29,3 +31,6 @@ replace r t = Edit [Change.replace r t]
 -- TODO: change if they are disjoint
 changesToEdit :: [Change] -> Edit
 changesToEdit = Edit . List.sortOn (\c -> (c.delete.start, c.delete.end))
+
+getChanges :: Edit -> [Change]
+getChanges (Edit cs) = cs

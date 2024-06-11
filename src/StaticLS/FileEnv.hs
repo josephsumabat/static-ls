@@ -2,16 +2,17 @@ module StaticLS.FileEnv where
 
 import AST.Haskell qualified as Haskell
 import Data.HashMap.Strict (HashMap)
+import Data.Path (AbsPath)
+import Data.Rope (Rope)
 import Data.Text (Text)
-import Data.Text.Utf16.Rope.Mixed qualified as Rope
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.PositionDiff qualified as PositionDiff
 
 -- | In memory representation of the current file system
-type FileEnv = HashMap LSP.NormalizedUri FileState
+type FileEnv = HashMap AbsPath FileState
 
+-- Important: Keep these fields lazy so that responding to edits happens instantly
 data FileState = FileState
-  { contents :: Rope.Rope
+  { contentsRope :: Rope
   , contentsText :: Text
   , tree :: Haskell.Haskell
   , tokens :: [PositionDiff.Token]

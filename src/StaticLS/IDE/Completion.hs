@@ -6,18 +6,17 @@ module StaticLS.IDE.Completion (
 )
 where
 
-import AST qualified
-import AST.Haskell qualified as Haskell
 import Control.Applicative
 import Control.Monad
 import Data.Function ((&))
+import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger (logInfo)
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
+import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath
 
@@ -27,9 +26,9 @@ makeRelativeMaybe base path = do
   guard $ path /= rel
   pure rel
 
-uriToModule :: LSP.Uri -> StaticLsM (Maybe Text)
-uriToModule uri = do
-  let fp = LSP.uriToFilePath uri
+pathToModule :: AbsPath -> StaticLsM (Maybe Text)
+pathToModule absPath = do
+  let fp = Path.toFilePath absPath
   staticEnv <- getStaticEnv
   let srcDirs = staticEnv.srcDirs
   let wsRoot = staticEnv.wsRoot
@@ -37,23 +36,17 @@ uriToModule uri = do
   logInfo $ T.pack $ "srcDirs: " <> show srcDirs
   logInfo $ T.pack $ "wsRoot: " <> show wsRoot
   pure $ do
-    fp <- fp
     modPath <- asum ((\srcDir -> makeRelativeMaybe (Path.toFilePath srcDir) fp) <$> srcDirs)
     let (modPathWithoutExt, ext) = splitExtension modPath
     guard $ ext == ".hs"
     let modText = T.replace (T.pack [pathSeparator]) "." (T.pack modPathWithoutExt)
     pure modText
 
-getHeader :: Haskell.Haskell -> AST.Err (Maybe Haskell.Header)
-getHeader haskell = do
-  header <- AST.collapseErr haskell.children
-  pure header
-
-getCompletion :: LSP.Uri -> StaticLsM [Completion]
-getCompletion uri = do
-  haskell <- getHaskell uri
-  header <- getHeader haskell & isRightOrThrowT
-  mod <- uriToModule uri
+getCompletion :: AbsPath -> StaticLsM [Completion]
+getCompletion path = do
+  haskell <- getHaskell path
+  header <- Tree.getHeader haskell & isRightOrThrowT
+  mod <- pathToModule path
   case (header, mod) of
     (Nothing, Just mod) -> do
       let label = "module " <> mod <> " where"

@@ -1,6 +1,7 @@
 module StaticLS.IDE.Hover.Info (hoverInfo) where
 
 import Data.Array
+import Data.LineColRange (LineColRange)
 import Data.List.Extra (dropEnd1, nubOrd)
 import Data.Map qualified as M
 import Data.Text qualified as T
@@ -9,8 +10,8 @@ import GHC hiding (getDocs)
 import GHC.Iface.Ext.Types
 import GHC.Iface.Ext.Utils
 import GHC.Plugins hiding ((<>))
-import Language.LSP.Protocol.Types
 import StaticLS.HI
+import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.SDoc
 
 -------------------------------------------------------------------
@@ -18,8 +19,8 @@ import StaticLS.SDoc
 -- See: https://github.com/masaeedu/halfsp/blob/master/lib/GhcideSteal.hs
 -- for the original source
 -------------------------------------------------------------------
-hoverInfo :: Array TypeIndex HieTypeFlat -> [NameDocs] -> HieAST TypeIndex -> (Maybe Range, [T.Text])
-hoverInfo typeLookup docs ast = (Just spanRange, map prettyIdent idents ++ pTypes ++ prettyDocumentation docs)
+hoverInfo :: Array TypeIndex HieTypeFlat -> [NameDocs] -> HieAST TypeIndex -> (Maybe LineColRange, [T.Text])
+hoverInfo typeLookup docs ast = (Just (ProtoLSP.lineColRangeFromProto spanRange), map prettyIdent idents ++ pTypes ++ prettyDocumentation docs)
  where
   pTypes
     | [_] <- idents = dropEnd1 $ map wrapHaskell prettyTypes

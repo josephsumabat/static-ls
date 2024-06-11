@@ -1,7 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module StaticLS.HIE.File (
-  getHieFileFromUri,
   getHieFile,
   modToHieFile,
   modToSrcFile,
@@ -11,6 +10,7 @@ module StaticLS.HIE.File (
   -- far slower on startup and currently unused
   getHieFileMap,
   hieFileMapToSrcMap,
+  getHieFileFromPath,
 )
 where
 
@@ -29,12 +29,10 @@ import GHC.Iface.Ext.Binary qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Types.Name.Cache qualified as GHC
 import HieDb qualified
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FilePath
 import StaticLS.HIE.File.Except
 import StaticLS.HieDb qualified as HieDb
 import StaticLS.Maybe (flatMaybeT, toAlt)
-import StaticLS.ProtoLSP qualified as LSPProto
 import StaticLS.SrcFiles
 import StaticLS.StaticEnv
 import System.Directory qualified as Dir
@@ -44,18 +42,18 @@ import System.FilePath ((</>))
 -- Returns a Maybe instead of throwing because we want to handle
 -- the case when there is no hie file and do something reasonable
 -- Most functions that get the file text will throw if the file text is not found
-getHieFileFromUri :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m GHC.HieFile
-getHieFileFromUri = exceptToMaybeT . getHieFile <=< (fmap Path.toFilePath . uriToHieFilePath)
+getHieFileFromPath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m GHC.HieFile
+getHieFileFromPath = (exceptToMaybeT . getHieFile) <=< srcFilePathToHieFilePath
 
-uriToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m AbsPath
-uriToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSPProto.uriToAbsPath)
+-- uriToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m AbsPath
+-- uriToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSPProto.uriToAbsPath)
 
 -- | Retrieve an hie file from a module name
 modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile
 modToHieFile = exceptToMaybeT . getHieFile <=< modToHieFilePath
 
 -- | Retrieve a src file from a module name
-modToSrcFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m SrcFilePath
+modToSrcFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m AbsPath
 modToSrcFile = hieFilePathToSrcFilePath <=< modToHieFilePath
 
 -- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
@@ -66,7 +64,7 @@ srcFilePathToHieFilePath srcPath =
     <|> srcFilePathToHieFilePathHieDb srcPath
 
 -- | Fetch an hie file from a src file
-hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
+hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 hieFilePathToSrcFilePath hiePath = do
   hieFilePathToSrcFilePathHieDb hiePath
     <|> hieFilePathToSrcFilePathFromFile hiePath
@@ -76,7 +74,7 @@ hieFilePathToSrcFilePath hiePath = do
 -----------------------------------------------------------------------------------
 
 -- | Retrieve an hie file from a hie filepath
-getHieFile :: (HasCallStack, MonadIO m) => HieFilePath -> ExceptT HieFileReadException m GHC.HieFile
+getHieFile :: (HasCallStack, MonadIO m) => AbsPath -> ExceptT HieFileReadException m GHC.HieFile
 getHieFile hieFilePath = do
   -- Attempt to read valid hie file version
   -- NOTE: attempting to override an incorrect header and read an hie file
@@ -86,7 +84,7 @@ getHieFile hieFilePath = do
     liftIO
       ( fmap
           (first HieFileVersionException)
-          (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) nameCache hieFilePath)
+          (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) nameCache (Path.toFilePath hieFilePath))
           `catch` (\(_ :: SomeException) -> pure . Left $ HieFileReadException)
       )
   ExceptT $ pure (second GHC.hie_file_result result)
@@ -101,30 +99,30 @@ srcFilePathToHieFilePathHieDb srcPath = do
     HieDb.lookupHieFileFromSource hieDb (Path.toFilePath srcPath)
   pure $ Path.unsafeFilePathToAbs $ HieDb.hieModuleHieFile hieModRow
 
-hieFilePathToSrcFilePathHieDb :: (HasStaticEnv m, MonadIO m) => SrcFilePath -> MaybeT m HieFilePath
+hieFilePathToSrcFilePathHieDb :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 hieFilePathToSrcFilePathHieDb hiePath = do
-  absHiePath <- liftIO $ Dir.makeAbsolute hiePath
   Just hieModRow <- runHieDbMaybeT $ \hieDb -> do
-    HieDb.lookupHieFileFromHie hieDb absHiePath
-  toAlt . HieDb.modInfoSrcFile $ HieDb.hieModInfo hieModRow
+    HieDb.lookupHieFileFromHie hieDb (Path.toFilePath hiePath)
+  res <- toAlt $ HieDb.modInfoSrcFile $ HieDb.hieModInfo hieModRow
+  Path.filePathToAbs res
 
-modToHieFilePath :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m HieFilePath
+modToHieFilePath :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m AbsPath
 modToHieFilePath modName =
   flatMaybeT $ runHieDbMaybeT $ \hieDb ->
     runMaybeT $ do
       Right unitId <- liftIO (HieDb.resolveUnitId hieDb modName)
       Just hieModRow <- liftIO $ HieDb.lookupHieFile hieDb modName unitId
-      pure hieModRow.hieModuleHieFile
+      Path.filePathToAbs hieModRow.hieModuleHieFile
 
 -----------------------------------------------------------------------------------
 -- File/Directory method for getting hie files - faster but somewhat "hacky"
 -- Useful as a fallback
 -----------------------------------------------------------------------------------
 
-hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, MonadIO m) => HieFilePath -> MaybeT m SrcFilePath
+hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 hieFilePathToSrcFilePathFromFile hiePath = do
   hieFile <- exceptToMaybeT $ getHieFile hiePath
-  liftIO $ Dir.makeAbsolute hieFile.hie_hs_file
+  liftIO $ Path.filePathToAbs hieFile.hie_hs_file
 
 -- | Retrieve a hie file path from a src path
 --

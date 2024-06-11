@@ -40,6 +40,7 @@ library
       Data.Path
       Data.Pos
       Data.Range
+      Data.Rope
       StaticLS.Except
       StaticLS.FileEnv
       StaticLS.FilePath
@@ -55,10 +56,12 @@ library
       StaticLS.IDE.Completion
       StaticLS.IDE.Definition
       StaticLS.IDE.DocumentSymbols
+      StaticLS.IDE.FileWith
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.References
       StaticLS.IDE.SourceEdit
+      StaticLS.IDE.SymbolKind
       StaticLS.IDE.Workspace.Symbol
       StaticLS.Logger
       StaticLS.Maybe
@@ -70,6 +73,7 @@ library
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
       StaticLS.StaticLsEnv
+      StaticLS.Tree
       StaticLS.Utils
   other-modules:
       Paths_static_ls
@@ -90,6 +94,7 @@ library
       DataKinds
       PatternSynonyms
       BlockArguments
+      ViewPatterns
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -hiedir test/TestData/.hiefiles -haddock
   build-depends:
       Diff
@@ -107,6 +112,7 @@ library
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
@@ -153,6 +159,7 @@ executable static-ls
       DataKinds
       PatternSynonyms
       BlockArguments
+      ViewPatterns
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates
   build-depends:
       Diff
@@ -170,6 +177,7 @@ executable static-ls
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
@@ -233,6 +241,7 @@ test-suite static-ls-test
       DataKinds
       PatternSynonyms
       BlockArguments
+      ViewPatterns
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
   build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
@@ -252,6 +261,7 @@ test-suite static-ls-test
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
+    , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*

@@ -15,70 +15,65 @@ spec :: Spec
 spec = do
   describe "Can convert from src to hie file" $ do
     describe "src file to hie file" $ do
-      it "returns a valid hie file when called on a src file" $ do
-        staticEnv <- Test.initStaticEnv
-        p <- Path.filePathToAbs "src/StaticLS/HIE/File.hs"
-        hieFile <-
-          runStaticEnv staticEnv $
-            runMaybeT $
-              srcFilePathToHieFilePath p
-        let relativeHieFile = Path.makeRelative staticEnv.wsRoot <$> hieFile
-        hieFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHieFile
+      let check name srcPath hiePath = do
+            it name $ do
+              staticEnv <- Test.initStaticEnv
+              p <- Path.filePathToAbs srcPath
+              hieFile <-
+                runStaticEnv staticEnv $
+                  runMaybeT $
+                    srcFilePathToHieFilePath p
+              let relativeHieFile = Path.makeRelative staticEnv.wsRoot <$> hieFile
+              hieFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHieFile
 
-        relativeHieFile `shouldBe` Just (Path.filePathToRel "test/TestData/.hiefiles/StaticLS/HIE/File.hie")
-        hieFileExists `shouldBe` True
+              relativeHieFile `shouldBe` Just (Path.filePathToRel hiePath)
+              hieFileExists `shouldBe` True
+              pure @IO ()
 
-      it "returns a valid hie file when called on a test/ file" $ do
-        staticEnv <- Test.initStaticEnv
-        p <- Path.filePathToAbs "test/TestData/Mod1.hs"
-        hieFile <-
-          runStaticEnv staticEnv $
-            runMaybeT $
-              srcFilePathToHieFilePath p
-        let relativeHieFile = Path.makeRelative staticEnv.wsRoot <$> hieFile
-        hieFileExists <- maybe (pure False) (doesFileExist . Path.toFilePath) relativeHieFile
+      check
+        "returns a valid hie file when called on a src file"
+        "src/StaticLS/HIE/File.hs"
+        "test/TestData/.hiefiles/StaticLS/HIE/File.hie"
 
-        relativeHieFile `shouldBe` Just (Path.filePathToRel "test/TestData/.hiefiles/TestData/Mod1.hie")
-        hieFileExists `shouldBe` True
+      check
+        "returns a valid hie file when called on a test/ file"
+        "test/TestData/Mod1.hs"
+        "test/TestData/.hiefiles/TestData/Mod1.hie"
 
   describe "getHieFile" $ do
-    it "Returns a valid hie file" $ do
-      staticEnv <- Test.initStaticEnv
-      hieFile <-
-        runStaticEnv staticEnv $
-          runExceptT $
-            getHieFile "test/TestData/.hiefiles/TestData/Mod1.hie"
-      _ <- Test.assertRight "expected succesful read" hieFile
-      pure ()
+    let check name initOpts hiePath assertEither = do
+          it name $ do
+            hiePath <- Path.filePathToAbs hiePath
+            staticEnv <- Test.initStaticEnvOpts initOpts
+            hieFile <-
+              runStaticEnv staticEnv $
+                runExceptT $
+                  getHieFile hiePath
+            _ <- assertEither hieFile
+            pure ()
 
-    it "Does not crash when given an invalid hie file to read " $ do
-      let emptyOpts =
-            StaticEnvOptions
-              { optionHieDbPath = ""
-              , optionHieFilesPath = ""
-              , optionSrcDirs = []
-              , optionHiFilesPath = ""
-              }
-      staticEnv <- Test.initStaticEnvOpts emptyOpts
-      hieFile <-
-        runStaticEnv staticEnv $
-          runExceptT $
-            getHieFile "./test/TestData/Mod1.hs"
-      _ <- Test.assertLeft "expected failure" hieFile
-      pure ()
+    let emptyOpts =
+          StaticEnvOptions
+            { optionHieDbPath = ""
+            , optionHieFilesPath = ""
+            , optionSrcDirs = []
+            , optionHiFilesPath = ""
+            }
 
-    it "Does not crash when given no file to read" $ do
-      let emptyOpts =
-            StaticEnvOptions
-              { optionHieDbPath = ""
-              , optionHieFilesPath = ""
-              , optionSrcDirs = []
-              , optionHiFilesPath = ""
-              }
-      staticEnv <- Test.initStaticEnvOpts emptyOpts
-      hieFile <-
-        runStaticEnv staticEnv $
-          runExceptT $
-            getHieFile ""
-      _ <- Test.assertLeft "expected failure" hieFile
-      pure ()
+    check
+      "Returns a valid hie file"
+      Test.defaultTestStaticEnvOptions
+      "test/TestData/.hiefiles/TestData/Mod1.hie"
+      (Test.assertRight "expected succesful read")
+
+    check
+      "Does not crash when given an invalid hie file to read "
+      emptyOpts
+      "./test/TestData/Mod1.hs"
+      (Test.assertLeft "expected failure")
+
+    check
+      "Does not crash when given no file to read"
+      emptyOpts
+      ""
+      (Test.assertLeft "expected failure")

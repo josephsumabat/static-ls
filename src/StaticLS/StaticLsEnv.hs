@@ -10,8 +10,8 @@ import Data.IORef qualified as IORef
 import Data.Path (AbsPath)
 import Data.Pos (LineCol, Pos)
 import Data.Pos qualified as Position
+import Data.Rope (Rope)
 import Data.Text (Text)
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FileEnv
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
@@ -64,54 +64,58 @@ initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
 runStaticLsM :: StaticLsEnv -> StaticLsM a -> IO a
 runStaticLsM = flip runReaderT
 
-getHaskell :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m Haskell.Haskell
+getHaskell :: (HasFileEnv m, MonadThrow m) => AbsPath -> m Haskell.Haskell
 getHaskell uri = do
   fileState <- getFileStateThrow uri
   pure fileState.tree
 
-getSource :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m Text
+getSourceRope :: (HasFileEnv m, MonadThrow m) => AbsPath -> m Rope
+getSourceRope uri = do
+  fileState <- getFileStateThrow uri
+  pure $ fileState.contentsRope
+
+getSource :: (HasFileEnv m, MonadThrow m) => AbsPath -> m Text
 getSource uri = do
   fileState <- getFileStateThrow uri
   pure fileState.contentsText
 
-getFileState :: (HasFileEnv m) => LSP.Uri -> m (Maybe FileState)
-getFileState uri = do
-  uri <- pure $ LSP.toNormalizedUri uri
+getFileState :: (HasFileEnv m) => AbsPath -> m (Maybe FileState)
+getFileState path = do
   fileStates <- getFileEnv
-  let fileState = HashMap.lookup uri fileStates
+  let fileState = HashMap.lookup path fileStates
   pure fileState
 
-getFileStateThrow :: (HasFileEnv m, MonadThrow m) => LSP.Uri -> m FileState
+getFileStateThrow :: (HasFileEnv m, MonadThrow m) => AbsPath -> m FileState
 getFileStateThrow uri = do
   fileState <- getFileState uri
   isJustOrThrow ("File not found: " ++ show uri) fileState
 
-posToHiePos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> Pos -> MaybeT m Pos
+posToHiePos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> Pos -> MaybeT m Pos
 posToHiePos uri hieSource pos = do
   source <- lift $ getSource uri
   let diff = PositionDiff.diffText source hieSource
   let pos' = PositionDiff.updatePositionUsingDiff pos diff
   pure pos'
 
-hiePosToPos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> Pos -> MaybeT m Pos
-hiePosToPos uri hieSource hiePos = do
-  source <- lift $ getSource uri
+hiePosToPos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> Pos -> MaybeT m Pos
+hiePosToPos path hieSource hiePos = do
+  source <- lift $ getSource path
   let diff = PositionDiff.diffText hieSource source
   let pos' = PositionDiff.updatePositionUsingDiff hiePos diff
   pure pos'
 
-hieLineColToLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> LineCol -> MaybeT m LineCol
-hieLineColToLineCol uri hieSource lineCol = do
-  source <- lift $ getSource uri
+hieLineColToLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> LineCol -> MaybeT m LineCol
+hieLineColToLineCol path hieSource lineCol = do
+  source <- lift $ getSource path
   let pos = Position.lineColToPos hieSource lineCol
-  pos' <- hiePosToPos uri hieSource pos
+  pos' <- hiePosToPos path hieSource pos
   let lineCol' = Position.posToLineCol source pos'
   pure lineCol'
 
-lineColToHieLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => LSP.Uri -> Text -> LineCol -> MaybeT m LineCol
-lineColToHieLineCol uri hieSource lineCol = do
-  source <- lift $ getSource uri
+lineColToHieLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> LineCol -> MaybeT m LineCol
+lineColToHieLineCol path hieSource lineCol = do
+  source <- lift $ getSource path
   let pos = Position.lineColToPos source lineCol
-  pos' <- posToHiePos uri hieSource pos
+  pos' <- posToHiePos path hieSource pos
   let lineCol' = Position.posToLineCol hieSource pos'
   pure lineCol'

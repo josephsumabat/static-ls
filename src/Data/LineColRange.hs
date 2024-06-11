@@ -1,5 +1,6 @@
 module Data.LineColRange (
   LineColRange (..),
+  empty,
 )
 where
 
@@ -10,3 +11,6 @@ data LineColRange = LineColRange
   , end :: !LineCol
   }
   deriving (Eq, Show)
+
+empty :: LineCol -> LineColRange
+empty p = LineColRange p p

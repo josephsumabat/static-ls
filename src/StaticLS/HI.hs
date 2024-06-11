@@ -18,7 +18,7 @@ import GHC.Types.Unique.Map qualified as GHC
 import StaticLS.SDoc
 
 data NameDocs = NameDocs
-  { declComment :: Maybe [GHC.HsDoc GHC.GhcRn]
+  { declComment :: [GHC.HsDoc GHC.GhcRn]
   , argComments :: IntMap.IntMap (GHC.HsDoc GHC.GhcRn)
   }
 
@@ -28,7 +28,8 @@ instance GHC.Outputable NameDocs where
 renderNameDocs :: NameDocs -> Text
 renderNameDocs nameDocs =
   T.drop 1 $ -- Drop the leading space from haddock comments
-    maybe "" (T.concat . fmap showGhc) nameDocs.declComment
+    T.concat . fmap showGhc $
+      nameDocs.declComment
 
 getDocsBatch :: [GHC.Name] -> GHC.ModIface -> [NameDocs]
 getDocsBatch names iface =
@@ -46,7 +47,7 @@ getDocsBatch names iface =
          in ( \name ->
                 NameDocs
                   { declComment =
-                      Map.lookup (GHC.nameStableString name) declMap
+                      fromMaybe [] $ Map.lookup (GHC.nameStableString name) declMap
                   , argComments =
                       fromMaybe mempty $
                         Map.lookup (GHC.nameStableString name) argsMap
@@ -65,7 +66,7 @@ getDocs name iface =
         } ->
         Just $
           NameDocs
-            { declComment = normalizeNameLookup name decls
+            { declComment = fromMaybe [] $ normalizeNameLookup name decls
             , argComments = fromMaybe mempty $ normalizeNameLookup name args
             }
 

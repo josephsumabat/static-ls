@@ -10,21 +10,34 @@ module StaticLS.HIE (
   namesAtPoint,
   lspPositionToASTPoint,
   astRangeToLspRange,
+  lineColToAstPoint,
+  hiedbCoordsToLineCol,
+  astRangeToLineColRange,
+  lineColToHieDbCoords,
+  getTypesAtPoint,
+  getPrintedTypesAtPoint,
+  astRangeToRange,
 )
 where
 
 import AST qualified
 import Control.Error.Util (hush)
-import Control.Exception (Exception)
 import Control.Monad (join, (<=<))
+import Control.Monad.Catch
 import Control.Monad.Trans.Except (ExceptT, throwE)
+import Data.LineColRange (LineColRange (..))
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
+import Data.Pos (LineCol (..), Pos (..))
+import Data.Range (Range (..))
 import Data.Set qualified as Set
+import Data.Text (Text)
 import GHC qualified
 import GHC.Iface.Ext.Types qualified as GHC
+import GHC.Iface.Ext.Utils qualified as GHC
 import HieDb (pointCommand)
 import Language.LSP.Protocol.Types qualified as LSP
+import StaticLS.SDoc (showGhc)
 
 -- | LSP Position is 0 indexed
 -- Note HieDbCoords are 1 indexed
@@ -57,6 +70,9 @@ hieAstsAtPoint hiefile start end = pointCommand hiefile start end id
 hiedbCoordsToLspPosition :: (Monad m) => HieDbCoords -> ExceptT UIntConversionException m LSP.Position
 hiedbCoordsToLspPosition (line, col) = LSP.Position <$> intToUInt (line - 1) <*> intToUInt (col - 1)
 
+hiedbCoordsToLineCol :: HieDbCoords -> LineCol
+hiedbCoordsToLineCol (line, col) = LineCol (line - 1) (col - 1)
+
 lspPositionToHieDbCoords :: LSP.Position -> HieDbCoords
 lspPositionToHieDbCoords position = (fromIntegral position._line + 1, fromIntegral position._character + 1)
 
@@ -66,6 +82,37 @@ lspPositionToASTPoint position =
     { row = fromIntegral position._line
     , col = fromIntegral position._character
     }
+
+lineColToHieDbCoords :: LineCol -> HieDbCoords
+lineColToHieDbCoords (LineCol line col) = (line + 1, col + 1)
+
+lineColToAstPoint :: LineCol -> AST.Point
+lineColToAstPoint (LineCol line col) =
+  AST.Point
+    { row = fromIntegral line
+    , col = fromIntegral col
+    }
+
+astRangeToRange :: AST.Range -> Range
+astRangeToRange range =
+  Range
+    (Pos (AST.startByte range))
+    (Pos (AST.endByte range))
+
+astRangeToLineColRange :: AST.Range -> LineColRange
+astRangeToLineColRange range =
+  LineColRange
+    ( LineCol
+        ( fromIntegral $
+            AST.row $
+              AST.startPoint range
+        )
+        (fromIntegral $ AST.col $ AST.startPoint range)
+    )
+    ( LineCol
+        (fromIntegral $ AST.row $ AST.endPoint range)
+        (fromIntegral (AST.col (AST.endPoint range)))
+    )
 
 -- TODO: this is wrong, ast positions can hit the end of the line exclusive
 -- but if lsp positions want to hit include the newline, it must start at the next line
@@ -98,3 +145,41 @@ intToUInt x =
  where
   minBoundAsInt = fromIntegral $ minBound @LSP.UInt
   maxBoundAsInt = fromIntegral $ maxBound @LSP.UInt
+
+getPrintedTypesAtPoint :: GHC.HieFile -> LineCol -> [Text]
+getPrintedTypesAtPoint hieFile lineCol =
+  ( showGhc
+      . GHC.hieTypeToIface
+      . flip
+        GHC.recoverFullType
+        (GHC.hie_types hieFile)
+  )
+    <$> getTypesAtPoint hieFile (lineColToHieDbCoords lineCol)
+
+getTypesAtPoint :: GHC.HieFile -> HieDbCoords -> [GHC.TypeIndex]
+getTypesAtPoint hieFile coords =
+  join $
+    HieDb.pointCommand
+      hieFile
+      coords
+      Nothing
+      ( \hieAst -> do
+          let nodeInfo = nodeInfo' hieAst
+          let identTypes = mapMaybe GHC.identType $ Map.elems $ GHC.nodeIdentifiers nodeInfo
+          identTypes ++ GHC.nodeType nodeInfo
+      )
+
+nodeInfo' :: GHC.HieAST GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
+nodeInfo' = Map.foldl' combineNodeInfo' GHC.emptyNodeInfo . GHC.getSourcedNodeInfo . GHC.sourcedNodeInfo
+
+combineNodeInfo' :: GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex -> GHC.NodeInfo GHC.TypeIndex
+GHC.NodeInfo as ai ad `combineNodeInfo'` GHC.NodeInfo bs bi bd =
+  GHC.NodeInfo (Set.union as bs) (mergeSorted ai bi) (Map.unionWith (<>) ad bd)
+
+mergeSorted :: [GHC.TypeIndex] -> [GHC.TypeIndex] -> [GHC.TypeIndex]
+mergeSorted la@(a : as0) lb@(b : bs0) = case compare a b of
+  LT -> a : mergeSorted as0 lb
+  EQ -> a : mergeSorted as0 bs0
+  GT -> b : mergeSorted la bs0
+mergeSorted as0 [] = as0
+mergeSorted [] bs0 = bs0

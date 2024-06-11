@@ -10,16 +10,18 @@ import AST qualified
 import AST.Haskell qualified as Haskell
 import Control.Monad.Except
 import Data.Coerce (coerce)
+import Data.Path (AbsPath)
+import Data.Pos (LineCol)
 import Data.Sum
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.HIE
-import StaticLS.Logger (HasCallStack, logError, logInfo)
+import StaticLS.Logger (HasCallStack, logInfo)
 import StaticLS.StaticEnv (runHieDbExceptT)
 import StaticLS.StaticLsEnv
+import StaticLS.Utils (isRightOrThrow)
 
 findModulesForDef :: HieDb -> Text -> IO [Text]
 findModulesForDef (getConn -> conn) name = do
@@ -43,15 +45,14 @@ type AutoImportTypes =
 
 getModulesToImport ::
   (HasCallStack, ()) =>
-  LSP.TextDocumentIdentifier ->
-  LSP.Position ->
+  AbsPath ->
+  LineCol ->
   StaticLsM [Text]
-getModulesToImport tdi pos = do
+getModulesToImport path pos = do
   _ <- logInfo "getModulesToImport"
-  let uri = tdi._uri
-  haskell <- getHaskell uri
+  haskell <- getHaskell path
 
-  let astPoint = lspPositionToASTPoint pos
+  let astPoint = lineColToAstPoint pos
   _ <- logInfo $ T.pack $ "astPoint: " ++ show astPoint
   _ <- logInfo "got haskell"
   let maybeQualified = AST.getDeepestContaining @AutoImportTypes astPoint (AST.getDynNode haskell)
@@ -62,11 +63,8 @@ getModulesToImport tdi pos = do
       _ <- logInfo $ T.pack $ "qualified: " ++ show node
       _ <- logInfo $ T.pack $ "qualified: " ++ show nodeText
       res <- runExceptT $ runHieDbExceptT (\db -> findModulesForDef db nodeText)
-      case res of
-        Left e -> do
-          _ <- logError $ T.pack $ "e: " ++ show e
-          pure []
-        Right res'' -> pure res''
+      res <- isRightOrThrow res
+      pure res
     _ -> do
       logInfo $ T.pack "no qualified: "
       pure []

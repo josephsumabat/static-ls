@@ -9,23 +9,30 @@ module StaticLS.IDE.CodeActions.AutoImport where
 import AST qualified
 import AST.Err qualified as Haskell
 import AST.Haskell qualified as Haskell
+import Control.Lens.Operators
 import Control.Monad.Except
 import Data.Coerce (coerce)
+import Data.Edit qualified as Edit
 import Data.Either.Extra (eitherToMaybe)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe (catMaybes)
 import Data.Path (AbsPath)
-import Data.Pos (LineCol)
+import Data.Pos (LineCol (..), Pos (..))
+import Data.Rope (Rope)
 import Data.Sum
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
 import StaticLS.HIE
-import StaticLS.Logger (HasCallStack, logInfo)
+import StaticLS.IDE.CodeActions.Types
+import StaticLS.IDE.SourceEdit (SourceEdit)
+import StaticLS.IDE.SourceEdit qualified as SourceEdit
+import StaticLS.Logger
 import StaticLS.StaticEnv (runHieDbExceptT)
 import StaticLS.StaticLsEnv
-import StaticLS.Utils (isRightOrThrow)
+import StaticLS.Tree qualified as Tree
+import StaticLS.Utils
 
 findModulesForDef :: HieDb -> Text -> IO [Text]
 findModulesForDef (getConn -> conn) name = do
@@ -48,8 +55,8 @@ type AutoImportTypes =
     :+ Nil
 
 data ModulesToImport = ModulesToImport
-  { moduleNames :: [Text]
-  , moduleQualifier :: Maybe Text
+  { moduleNames :: [Text],
+    moduleQualifier :: Maybe Text
   }
 
 getModulesToImport ::
@@ -91,30 +98,83 @@ getModulesToImport path pos = do
       res <- isRightOrThrow res
       pure $
         ModulesToImport
-          { moduleNames = res
-          , moduleQualifier = mQualifier
+          { moduleNames = res,
+            moduleQualifier = mQualifier
           }
     _ -> do
       logInfo $ T.pack "no qualified: "
       pure
         ModulesToImport
-          { moduleNames = []
-          , moduleQualifier = Nothing
+          { moduleNames = [],
+            moduleQualifier = Nothing
           }
- where
-  toQualifierImports :: [Haskell.ModuleId] -> Text
-  toQualifierImports modIds =
-    T.intercalate "." ((AST.nodeText . AST.getDynNode) <$> modIds)
+  where
+    toQualifierImports :: [Haskell.ModuleId] -> Text
+    toQualifierImports modIds =
+      T.intercalate "." ((AST.nodeText . AST.getDynNode) <$> modIds)
 
-  getQualifiers :: Haskell.Qualified -> [Haskell.ModuleId]
-  getQualifiers qualifiedNode =
-    either (const []) (unwrapModIds . (.children)) qualifiedNode.module'
+    getQualifiers :: Haskell.Qualified -> [Haskell.ModuleId]
+    getQualifiers qualifiedNode =
+      either (const []) (unwrapModIds . (.children)) qualifiedNode.module'
 
-  unwrapModIds :: Haskell.Err (NE.NonEmpty (Haskell.Err (Haskell.ModuleId))) -> [Haskell.ModuleId]
-  unwrapModIds eModIds =
-    either
-      (const [])
-      ( \modIds ->
-          catMaybes (NE.toList $ eitherToMaybe <$> modIds)
-      )
-      eModIds
+    unwrapModIds :: Haskell.Err (NE.NonEmpty (Haskell.Err (Haskell.ModuleId))) -> [Haskell.ModuleId]
+    unwrapModIds eModIds =
+      either
+        (const [])
+        ( \modIds ->
+            catMaybes (NE.toList $ eitherToMaybe <$> modIds)
+        )
+        eModIds
+
+createAutoImportCodeActions :: AbsPath -> Maybe Text -> Text -> StaticLsM [Assist]
+createAutoImportCodeActions path mQualifier toImport =
+  let importText =
+        ( maybe
+            ("import " <> toImport)
+            (\qualifier -> ("import qualified " <> toImport <> " as " <> qualifier))
+            mQualifier
+        )
+   in pure
+        [ mkLazyAssist
+            importText
+            (CodeActionMessage {kind = AutoImportActionMessage importText, path})
+        ]
+
+codeAction :: AbsPath -> LineCol -> StaticLsM [Assist]
+codeAction path lineCol = do
+  modulesToImport <- getModulesToImport path lineCol
+  let moduleNamesToImport = modulesToImport.moduleNames
+      mModuleQualifier = modulesToImport.moduleQualifier
+  importCodeActions <-
+    concat
+      <$> mapM (createAutoImportCodeActions path mModuleQualifier) moduleNamesToImport
+  pure importCodeActions
+
+getImportsInsertPoint :: Rope -> Haskell.Haskell -> AST.Err Pos
+getImportsInsertPoint rope hs = do
+  imports <- Tree.getImports hs
+  case imports of
+    Nothing -> do
+      header <- Tree.getHeader hs
+      case header of
+        Nothing -> do
+          pure $ Pos 0
+        Just header -> do
+          let end = (AST.nodeToRange header).endByte
+          pure $ Tree.byteToPos rope end
+    Just imports -> do
+      let lastImport = NE.last <$> NE.nonEmpty imports.imports
+      case lastImport of
+        Nothing -> undefined
+        Just lastImport -> do
+          let end = lastImport.dynNode.unDynNode.nodeRange.endByte
+          pure $ Tree.byteToPos rope end
+
+resolveLazy :: AbsPath -> Text -> StaticLsM SourceEdit
+resolveLazy path toImport = do
+  tree <- getHaskell path
+  rope <- getSourceRope path
+  insertPoint <- getImportsInsertPoint rope tree & isRightOrThrowT
+  let change = Edit.insert insertPoint $ "\n" <> toImport <> "\n"
+  logInfo $ T.pack $ "Inserting import: " <> show change
+  pure $ SourceEdit.single path change

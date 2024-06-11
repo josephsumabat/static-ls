@@ -53,6 +53,7 @@ library
       StaticLS.HIE.File.Except
       StaticLS.HieDb
       StaticLS.IDE.CodeActions
+      StaticLS.IDE.CodeActions.AddTypeSig
       StaticLS.IDE.CodeActions.AutoImport
       StaticLS.IDE.CodeActions.Types
       StaticLS.IDE.Completion
@@ -231,6 +232,7 @@ test-suite static-ls-test
       TestImport.HieDb
       TestImport.Placeholder
       TestImport.PlaceholderSpec
+      TestImport.Setup
       TestImport.TestData
       Paths_static_ls
   autogen-modules:

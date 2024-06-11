@@ -32,7 +32,7 @@ import Data.Pos
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Language.LSP.Protocol.Types qualified as LSP
-import StaticLS.IDE.CodeActions (Assist (..))
+import StaticLS.IDE.CodeActions.Types (Assist (..))
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.IDE.SourceEdit (SourceEdit (..))

@@ -18,7 +18,8 @@ spec = do
     --              ^^^^^^^^^^^ 'other stuff'
     --                ^ single
     -- let testing = 1242324
-    --     ^^^^^^^ the testing identifier
+    let another = 13241234
+    --  ^^^^^^^ the testing identifier
     |]
     let annotations = parseAnnotations s
     case annotations of

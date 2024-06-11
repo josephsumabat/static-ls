@@ -55,8 +55,8 @@ type AutoImportTypes =
     :+ Nil
 
 data ModulesToImport = ModulesToImport
-  { moduleNames :: [Text],
-    moduleQualifier :: Maybe Text
+  { moduleNames :: [Text]
+  , moduleQualifier :: Maybe Text
   }
 
 getModulesToImport ::
@@ -98,33 +98,33 @@ getModulesToImport path pos = do
       res <- isRightOrThrow res
       pure $
         ModulesToImport
-          { moduleNames = res,
-            moduleQualifier = mQualifier
+          { moduleNames = res
+          , moduleQualifier = mQualifier
           }
     _ -> do
       logInfo $ T.pack "no qualified: "
       pure
         ModulesToImport
-          { moduleNames = [],
-            moduleQualifier = Nothing
+          { moduleNames = []
+          , moduleQualifier = Nothing
           }
-  where
-    toQualifierImports :: [Haskell.ModuleId] -> Text
-    toQualifierImports modIds =
-      T.intercalate "." ((AST.nodeText . AST.getDynNode) <$> modIds)
+ where
+  toQualifierImports :: [Haskell.ModuleId] -> Text
+  toQualifierImports modIds =
+    T.intercalate "." ((AST.nodeText . AST.getDynNode) <$> modIds)
 
-    getQualifiers :: Haskell.Qualified -> [Haskell.ModuleId]
-    getQualifiers qualifiedNode =
-      either (const []) (unwrapModIds . (.children)) qualifiedNode.module'
+  getQualifiers :: Haskell.Qualified -> [Haskell.ModuleId]
+  getQualifiers qualifiedNode =
+    either (const []) (unwrapModIds . (.children)) qualifiedNode.module'
 
-    unwrapModIds :: Haskell.Err (NE.NonEmpty (Haskell.Err (Haskell.ModuleId))) -> [Haskell.ModuleId]
-    unwrapModIds eModIds =
-      either
-        (const [])
-        ( \modIds ->
-            catMaybes (NE.toList $ eitherToMaybe <$> modIds)
-        )
-        eModIds
+  unwrapModIds :: Haskell.Err (NE.NonEmpty (Haskell.Err (Haskell.ModuleId))) -> [Haskell.ModuleId]
+  unwrapModIds eModIds =
+    either
+      (const [])
+      ( \modIds ->
+          catMaybes (NE.toList $ eitherToMaybe <$> modIds)
+      )
+      eModIds
 
 createAutoImportCodeActions :: AbsPath -> Maybe Text -> Text -> StaticLsM [Assist]
 createAutoImportCodeActions path mQualifier toImport =

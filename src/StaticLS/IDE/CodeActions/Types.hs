@@ -6,8 +6,8 @@ import Data.Aeson.TH
 import Data.Path (AbsPath)
 import Data.Text
 import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
-import StaticLS.StaticLsEnv
 import StaticLS.IDE.SourceEdit (SourceEdit)
+import StaticLS.StaticLsEnv
 
 data Context = Context
   { textDocument :: !TextDocumentIdentifier

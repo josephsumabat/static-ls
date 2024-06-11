@@ -17,7 +17,7 @@ import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
-import StaticLS.Utils (isJustOrThrow)
+import StaticLS.Utils (isJustOrThrowS)
 
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information
@@ -88,7 +88,7 @@ getFileState path = do
 getFileStateThrow :: (HasFileEnv m, MonadThrow m) => AbsPath -> m FileState
 getFileStateThrow uri = do
   fileState <- getFileState uri
-  isJustOrThrow ("File not found: " ++ show uri) fileState
+  isJustOrThrowS ("File not found: " ++ show uri) fileState
 
 posToHiePos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> Pos -> MaybeT m Pos
 posToHiePos uri hieSource pos = do

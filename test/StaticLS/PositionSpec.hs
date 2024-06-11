@@ -7,6 +7,7 @@ import Data.List.NonEmpty qualified as NE
 import Data.Pos
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.TextUtils
 import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck

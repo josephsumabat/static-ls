@@ -9,6 +9,7 @@ import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.StaticLsEnv
 import StaticLS.IDE.SourceEdit (SourceEdit)
+import StaticLS.StaticLsEnv
 
 data Context = Context
   { textDocument :: !TextDocumentIdentifier

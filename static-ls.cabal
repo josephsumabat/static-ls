@@ -229,6 +229,8 @@ test-suite static-ls-test
       TestImport.AnnotationSpec
       TestImport.Assert
       TestImport.HieDb
+      TestImport.Placeholder
+      TestImport.PlaceholderSpec
       TestImport.TestData
       Paths_static_ls
   autogen-modules:

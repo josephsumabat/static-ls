@@ -57,13 +57,19 @@ mkLazyAssist label sourceEdit =
     , sourceEdit = Right sourceEdit
     }
 
-createAutoImportCodeActions :: AbsPath -> Text -> StaticLsM [Assist]
-createAutoImportCodeActions path toImport =
-  pure
-    [ mkLazyAssist
-        ("import " <> toImport)
-        (CodeActionMessage {kind = AutoImportActionMessage toImport, path})
-    ]
+createAutoImportCodeActions :: AbsPath -> Maybe Text -> Text -> StaticLsM [Assist]
+createAutoImportCodeActions path mQualifier toImport =
+  let importText =
+        ( maybe
+            ("import " <> toImport)
+            (\qualifier -> ("import qualified " <> toImport <> " as " <> qualifier))
+            mQualifier
+        )
+   in pure
+        [ mkLazyAssist
+            importText
+            (CodeActionMessage {kind = AutoImportActionMessage importText, path})
+        ]
 
 type AddTypeContext = Haskell.Bind :+ Haskell.Function :+ Nil
 
@@ -105,10 +111,14 @@ typesCodeActions path pos lineCol = do
 getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]
 getCodeActions path lineCol = do
   modulesToImport <- getModulesToImport path lineCol
+  let moduleNamesToImport = modulesToImport.moduleNames
+      mModuleQualifier = modulesToImport.moduleQualifier
   rope <- getSourceRope path
   let pos = Rope.lineColToPos rope lineCol
   typesCodeActions <- typesCodeActions path pos lineCol
-  importCodeActions <- List.concat <$> mapM (createAutoImportCodeActions path) modulesToImport
+  importCodeActions <-
+    List.concat
+      <$> mapM (createAutoImportCodeActions path mModuleQualifier) moduleNamesToImport
   let codeActions = typesCodeActions ++ importCodeActions
   pure codeActions
 
@@ -134,13 +144,13 @@ getImportsInsertPoint rope hs = do
 
 resolveLazyAssist :: CodeActionMessage -> StaticLsM SourceEdit
 resolveLazyAssist (CodeActionMessage {kind, path}) = do
-  contents <- getSource path
+  _contents <- getSource path
   rope <- getSourceRope path
   case kind of
     AutoImportActionMessage toImport -> do
       tree <- getHaskell path
       insertPoint <- getImportsInsertPoint rope tree & isRightOrThrowT
-      let change = Edit.insert insertPoint $ "\nimport " <> toImport <> "\n"
+      let change = Edit.insert insertPoint $ "\n" <> toImport <> "\n"
       logInfo $ T.pack $ "Inserting import: " <> show change
       pure $ SourceEdit.single path change
     NoMessage -> do

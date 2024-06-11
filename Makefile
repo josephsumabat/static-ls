@@ -6,7 +6,7 @@ hpack:
 	hpack package.yaml
 
 ci:
-	haskell-ci regenerate
+	haskell-ci regenerate --distribution jammy
 	
 format:
 	fourmolu . -i

@@ -27,7 +27,7 @@ data GlobalCodeAction = GlobalCodeAction
   { name :: !Text
   , run :: Context -> StaticLsM (Maybe ())
   }
-
+  
 $(deriveJSON defaultOptions ''CodeActionMessageKind)
 $(deriveJSON defaultOptions ''CodeActionMessage)
 

@@ -254,7 +254,6 @@ test-suite static-ls-test
       BlockArguments
       ViewPatterns
   ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
-  build-tool-depends: hspec-discover:hspec-discover == 2.*
   build-depends:
       Diff
     , QuickCheck
@@ -302,3 +301,4 @@ test-suite static-ls-test
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+  build-tool-depends: hspec-discover:hspec-discover == 2.*

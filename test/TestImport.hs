@@ -1,24 +1,22 @@
 module TestImport where
 
+import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.RWS
 import Data.Path (AbsPath)
-import Data.Rope (Rope)
+import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text.IO qualified as T
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger
 import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
 import StaticLS.StaticLsEnv as StaticLsEnv
-
-import Data.Path qualified as Path
-import TestImport.Assert
+import System.Directory
 
 initStaticLsEnv :: IO StaticLsEnv
 initStaticLsEnv = do
-  wsRoot <- Path.filePathToAbs "."
-  StaticLsEnv.initStaticLsEnv wsRoot defaultTestStaticEnvOptions noOpLogger
+  initStaticLsEnvOpts defaultTestStaticEnvOptions
 
 -- updates the file state by reading it from the file system
 updateTestFileState :: AbsPath -> StaticLsM ()
@@ -62,4 +60,11 @@ initStaticEnvOpts options = do
 initStaticLsEnvOpts :: StaticEnvOptions -> IO StaticLsEnv
 initStaticLsEnvOpts options = do
   wsRoot <- Path.filePathToAbs "."
-  StaticLsEnv.initStaticLsEnv wsRoot options noOpLogger
+  staticLsEnv <- StaticLsEnv.initStaticLsEnv wsRoot options noOpLogger
+  runStaticLsM staticLsEnv $ do
+    let testDataPath = "./test/TestData/"
+    testDataFiles <- liftIO $ listDirectory testDataPath
+    testDataFilePaths <- filterM (liftIO . doesFileExist) $ (testDataPath <>) <$> testDataFiles
+    liftIO $ print testDataFilePaths
+    forM_ testDataFilePaths $ Path.filePathToAbs >=> updateTestFileState
+    ask

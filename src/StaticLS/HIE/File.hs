@@ -11,6 +11,7 @@ module StaticLS.HIE.File (
   getHieFileMap,
   hieFileMapToSrcMap,
   getHieFileFromPath,
+  getHieSource,
 )
 where
 
@@ -24,6 +25,8 @@ import Data.Bifunctor (first, second)
 import Data.Map qualified as Map
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
+import Data.Text qualified as T
+import Data.Text.Encoding qualified as T.Encoding
 import GHC qualified
 import GHC.Iface.Ext.Binary qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
@@ -44,6 +47,9 @@ import System.FilePath ((</>))
 -- Most functions that get the file text will throw if the file text is not found
 getHieFileFromPath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m GHC.HieFile
 getHieFileFromPath = (exceptToMaybeT . getHieFile) <=< srcFilePathToHieFilePath
+
+getHieSource :: GHC.HieFile -> T.Text
+getHieSource hieFile = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
 
 -- | Retrieve an hie file from a module name
 modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile

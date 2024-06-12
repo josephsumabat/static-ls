@@ -42,10 +42,8 @@ parseAnnTokens lineWithoutPrefix =
  where
   go line =
     if "^" `T.isPrefixOf` caretStart
-      then
-        TextAnn beforeCaret : RangeAnn (T.length carets) : go afterCarets
-      else
-        [TextAnn beforeCaret]
+      then TextAnn beforeCaret : RangeAnn (T.length carets) : go afterCarets
+      else [TextAnn beforeCaret]
    where
     (beforeCaret, caretStart) = T.breakOn "^" line
     (carets, afterCarets) = T.span (== '^') caretStart

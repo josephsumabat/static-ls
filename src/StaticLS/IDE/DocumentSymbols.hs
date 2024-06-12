@@ -152,8 +152,6 @@ nodeToText = AST.nodeText . AST.getDynNode
 
 getDocumentSymbols :: AbsPath -> StaticLsM [SymbolTree]
 getDocumentSymbols path = do
-  logInfo "get document symbols"
-  logInfo $ T.pack $ "uri: " ++ show path
   haskell <- getHaskell path
   let documentSymbolsRes = do
         decls <- queryDeclarations haskell

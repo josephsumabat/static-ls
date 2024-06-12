@@ -153,21 +153,20 @@ codeAction path lineCol = do
 getImportsInsertPoint :: Rope -> Haskell.Haskell -> AST.Err Pos
 getImportsInsertPoint rope hs = do
   imports <- Tree.getImports hs
+  header <- Tree.getHeader hs
+  let headerPos =
+        case header of
+          Nothing -> Pos 0
+          Just header -> Tree.byteToPos rope $ (AST.nodeToRange header).endByte
   case imports of
     Nothing -> do
-      header <- Tree.getHeader hs
-      case header of
-        Nothing -> do
-          pure $ Pos 0
-        Just header -> do
-          let end = (AST.nodeToRange header).endByte
-          pure $ Tree.byteToPos rope end
+      pure headerPos
     Just imports -> do
       let lastImport = NE.last <$> NE.nonEmpty imports.imports
       case lastImport of
-        Nothing -> undefined
+        Nothing -> pure headerPos
         Just lastImport -> do
-          let end = lastImport.dynNode.unDynNode.nodeRange.endByte
+          let end = (AST.nodeToRange lastImport).endByte
           pure $ Tree.byteToPos rope end
 
 resolveLazy :: AbsPath -> Text -> StaticLsM SourceEdit

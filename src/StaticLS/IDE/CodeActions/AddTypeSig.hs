@@ -31,26 +31,23 @@ getDeclarationNameAtPos haskell pos lineCol = do
     Just bind
       | let dynNode = AST.getDynNode bind,
         (Just parent) <- dynNode.nodeParent,
-        Nothing <- AST.cast @Haskell.LocalBinds parent -> do
-          let bindName = Monad.join $ Either.Extra.eitherToMaybe do
-                case bind of
-                  Inj (function :: Haskell.Function) -> do
-                    name <- AST.collapseErr function.name
-                    pure name
-                  Inj @Haskell.Bind bind -> do
-                    name <- AST.collapseErr bind.name
-                    pure name
-                  _ -> Left "No Name found"
-          case bindName of
-            Nothing -> pure Nothing
-            Just name -> do
-              let nameRange = astRangeToRange $ AST.nodeToRange name
-              if (nameRange `Range.contains` pos)
-                then
-                  pure $ Just name
-                else
-                  pure Nothing
+        Nothing <- AST.cast @Haskell.LocalBinds parent,
+        let bindName = Monad.join $ Either.Extra.eitherToMaybe do
+              case bind of
+                Inj (function :: Haskell.Function) -> do
+                  name <- AST.collapseErr function.name
+                  pure name
+                Inj @Haskell.Bind bind -> do
+                  name <- AST.collapseErr bind.name
+                  pure name
+                _ -> Left "No Name found",
+        Just name <- bindName,
+        let nameRange = astRangeToRange $ AST.nodeToRange name,
+        nameRange `Range.contains` pos ->
+          pure $ Just name
     _ -> pure Nothing
+
+-- codeActionWith :: AbsPath -> Pos -> LineCol -> 
 
 codeAction :: AbsPath -> Pos -> LineCol -> StaticLsM [Assist]
 codeAction path pos lineCol = do

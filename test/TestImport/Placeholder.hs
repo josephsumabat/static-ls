@@ -2,7 +2,7 @@ module TestImport.Placeholder where
 
 import Control.Exception (SomeException)
 import Control.Monad qualified as Monad
-import Control.Monad.Catch (throwM, MonadThrow)
+import Control.Monad.Catch (MonadThrow, throwM)
 import Data.Either.Extra (mapLeft)
 import Data.IntMap (IntMap)
 import Data.IntMap qualified as IntMap
@@ -12,7 +12,7 @@ import Data.Text qualified as T
 import Data.Text.Read qualified as T.Read
 import UnliftIO.Exception qualified as Exception
 
-parseM :: MonadThrow m => Text -> m (Text, IntMap Pos)
+parseM :: (MonadThrow m) => Text -> m (Text, IntMap Pos)
 parseM = either throwM pure . parsePlaceholders
 
 parsePlaceholders :: Text -> Either SomeException (Text, IntMap Pos)

@@ -3,13 +3,10 @@
 module StaticLS.HI.File (
   readHiFile,
   srcFilePathToHiFilePath,
-  getModIfaceFromTdi,
-  tdiToHiFilePath,
   modToHiFile,
 ) where
 
 import Control.Exception
-import Control.Monad
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
@@ -21,9 +18,7 @@ import GHC.Iface.Binary qualified as GHC
 import GHC.Platform qualified as GHC
 import GHC.Platform.Profile qualified as GHC
 import GHC.Types.Name.Cache qualified as GHC
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FilePath
-import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 
 data HiException
@@ -33,12 +28,6 @@ data HiException
   deriving (Show)
 
 instance Exception HiException
-
-getModIfaceFromTdi :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m GHC.ModIface
-getModIfaceFromTdi = readHiFile <=< (fmap Path.toFilePath . tdiToHiFilePath)
-
-tdiToHiFilePath :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m AbsPath
-tdiToHiFilePath = srcFilePathToHiFilePath <=< (MaybeT . pure . ProtoLSP.uriToAbsPath . (._uri))
 
 modToHiFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m AbsPath
 modToHiFile modName = do

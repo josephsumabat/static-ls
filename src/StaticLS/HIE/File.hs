@@ -45,9 +45,6 @@ import System.FilePath ((</>))
 getHieFileFromPath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m GHC.HieFile
 getHieFileFromPath = (exceptToMaybeT . getHieFile) <=< srcFilePathToHieFilePath
 
--- uriToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.Uri -> MaybeT m AbsPath
--- uriToHieFilePath = srcFilePathToHieFilePath <=< (MaybeT . pure . LSPProto.uriToAbsPath)
-
 -- | Retrieve an hie file from a module name
 modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile
 modToHieFile = exceptToMaybeT . getHieFile <=< modToHieFilePath

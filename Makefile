@@ -10,3 +10,6 @@ ci:
 	
 format:
 	fourmolu . -i
+
+clean:
+	rm -r .test_builds

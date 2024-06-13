@@ -3,36 +3,31 @@ module StaticLS.IDE.CodeActions.TestUtils where
 import Control.Monad.IO.Class
 import Data.Function ((&))
 import Data.HashMap.Strict qualified as HashMap
-import Data.IntMap qualified as IntMap
-import Data.Path qualified as Path
+import Data.Path (AbsPath)
+import Data.Pos (Pos)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import StaticLS.IDE.CodeActions qualified as CodeActions
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
-import StaticLS.Server qualified as Server
 import StaticLS.StaticLsEnv
-import StaticLS.Utils (isJustOrThrowS, isRightOrThrow)
+import StaticLS.StaticLsEnv qualified as StaticLsEnv
+import StaticLS.Utils (isJustOrThrowS)
 import Test.Hspec
-import TestImport.Placeholder qualified as Placeholder
 
 checkCodeAction ::
   (HasCallStack) =>
-  Text ->
+  AbsPath ->
+  Pos ->
   (CodeActionContext -> StaticLsM [Assist]) ->
-  (forall a. StaticLsM a -> IO a) ->
   -- set the below to Nothing to make sure there are no assists
   Maybe (Text, [Assist] -> Maybe Assist) ->
-  IO ()
-checkCodeAction before codeAction run findAssist = do
-  (source, places) <- Placeholder.parsePlaceholders before & isRightOrThrow
-  let rope = Rope.fromText source
-  pos <- places IntMap.!? 0 & isJustOrThrowS "couldn't find placeholder 0"
+  StaticLsM ()
+checkCodeAction path pos codeAction findAssist = do
+  rope <- StaticLsEnv.getSourceRope path
   let lineCol = Rope.posToLineCol rope pos
-  path <- Path.filePathToAbs "CodeActionTest.hs"
   let cx = CodeActionContext {path, pos, lineCol}
-  sourceEdit <- run do
-    Server.updateFileState path rope
+  sourceEdit <- do
     assists <- codeAction cx
     case findAssist of
       Nothing -> do
@@ -51,6 +46,6 @@ checkCodeAction before codeAction run findAssist = do
     Just (expected, sourceEdit) -> do
       edit <- sourceEdit.fileEdits & HashMap.lookup path & isJustOrThrowS "couldn't find edit for path"
       let rope' = Rope.edit edit rope
-      Rope.toText rope' `shouldBe` expected
+      liftIO $ Rope.toText rope' `shouldBe` expected
       pure ()
   pure ()

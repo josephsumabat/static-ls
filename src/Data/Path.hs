@@ -20,10 +20,13 @@ import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Data.Aeson qualified as Aeson
 import Data.Hashable (Hashable)
+import Data.String (IsString (..))
 import GHC.Stack (HasCallStack)
 import System.Directory qualified as Dir
 import System.FilePath qualified as FilePath
+import UnliftIO (stringException)
 
+-- | Rel means may be relative or absolute, absolute means must be absolute
 data PathKind = Rel | Abs
 
 data SPathKind p where
@@ -41,6 +44,9 @@ instance KnownPathKind Rel where
 
 newtype Path p = UncheckedPath {path :: FilePath}
   deriving (Show, Eq, Ord, Hashable, Aeson.FromJSON, Aeson.ToJSON)
+
+instance IsString (Path Rel) where
+  fromString = UncheckedPath
 
 pattern Path :: FilePath -> Path p
 pattern Path p <- UncheckedPath p
@@ -61,13 +67,14 @@ filePathToAbs p = do
   pure $ UncheckedPath absPath
 
 unsafeFilePathToAbs :: (HasCallStack) => FilePath -> AbsPath
-unsafeFilePathToAbs p =
-  if FilePath.isAbsolute p
-    then UncheckedPath p
-    else error "unsafeOsPathToAbs: path is not absolute"
+unsafeFilePathToAbs p
+  | FilePath.isAbsolute p = UncheckedPath p
+  | otherwise = error "unsafeOsPathToAbs: path is not absolute"
 
 filePathToAbsThrow :: (MonadThrow m, HasCallStack) => FilePath -> m AbsPath
-filePathToAbsThrow p = pure $ UncheckedPath p
+filePathToAbsThrow p
+  | FilePath.isAbsolute p = pure $ UncheckedPath p
+  | otherwise = throwM (stringException "")
 
 (</>) :: Path p -> Path Rel -> Path p
 (UncheckedPath p) </> (UncheckedPath p') = UncheckedPath (p FilePath.</> p')

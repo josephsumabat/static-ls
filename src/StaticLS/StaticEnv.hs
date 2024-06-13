@@ -75,22 +75,20 @@ runStaticEnv :: StaticEnv -> ReaderT StaticEnv IO a -> IO a
 runStaticEnv = flip runReaderT
 
 initStaticEnv :: AbsPath -> StaticEnvOptions -> IO StaticEnv
-initStaticEnv wsRoot staticEnvOptions =
-  do
-    let databasePath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieDbPath)
-        hieFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieFilesPath)
-        srcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionSrcDirs)
-        hiFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHiFilesPath)
-    let serverStaticEnv =
-          StaticEnv
-            { hieDbPath = databasePath
-            , hieFilesPath = hieFilesPath
-            , hiFilesPath = hiFilesPath
-            , wsRoot = wsRoot
-            , srcDirs = srcDirs
-            }
-
-    pure serverStaticEnv
+initStaticEnv wsRoot staticEnvOptions = do
+  let databasePath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieDbPath)
+      hieFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieFilesPath)
+      srcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionSrcDirs)
+      hiFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHiFilesPath)
+  let serverStaticEnv =
+        StaticEnv
+          { hieDbPath = databasePath
+          , hieFilesPath = hieFilesPath
+          , hiFilesPath = hiFilesPath
+          , wsRoot = wsRoot
+          , srcDirs = srcDirs
+          }
+  pure serverStaticEnv
 
 -- | Run an hiedb action in an exceptT
 runHieDbExceptT :: (HasStaticEnv m, MonadIO m) => (HieDb.HieDb -> IO a) -> ExceptT HieDbException m a

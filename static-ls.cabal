@@ -232,6 +232,7 @@ test-suite static-ls-test
       TestImport.Annotation
       TestImport.AnnotationSpec
       TestImport.Assert
+      TestImport.Compilation
       TestImport.HieDb
       TestImport.Placeholder
       TestImport.PlaceholderSpec

@@ -88,7 +88,8 @@ change Change {insert, delete} (Rope rope) =
   _ = undefined
 
 edit :: Edit -> Rope -> Rope
-edit (Edit.getChanges -> changes) rope = Foldable.foldl' (flip change) rope changes
+-- apply changes in reverse order
+edit (reverse . Edit.getChanges -> changes) rope = Foldable.foldl' (flip change) rope changes
 
 -- TODO: return a maybe
 splitAt :: LineCol -> Rope -> (Rope, Rope)

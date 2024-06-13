@@ -11,12 +11,18 @@ import StaticLS.Logger
 import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
-import StaticLS.StaticLsEnv as StaticLsEnv
-import System.Directory
+import StaticLS.StaticLsEnv (StaticLsEnv (..), StaticLsM)
+import StaticLS.StaticLsEnv qualified as StaticLsEnv
+import System.Directory (doesFileExist, listDirectory)
 
 initStaticLsEnv :: IO StaticLsEnv
 initStaticLsEnv = do
   initStaticLsEnvOpts defaultTestStaticEnvOptions
+
+runStaticLsSimple :: StaticLsM a -> IO a
+runStaticLsSimple action = do
+  env <- initStaticLsEnv
+  StaticLsEnv.runStaticLsM env action
 
 -- updates the file state by reading it from the file system
 updateTestFileState :: AbsPath -> StaticLsM ()
@@ -64,7 +70,7 @@ initStaticLsEnvOpts options = do
 
 initTotalVfs :: StaticLsEnv -> IO StaticLsEnv
 initTotalVfs staticLsEnv = do
-  runStaticLsM staticLsEnv $ do
+  StaticLsEnv.runStaticLsM staticLsEnv $ do
     let testDataPath = "./test/TestData/"
     testDataFiles <- liftIO $ listDirectory testDataPath
     testDataFilePaths <- filterM (liftIO . doesFileExist) $ (testDataPath <>) <$> testDataFiles

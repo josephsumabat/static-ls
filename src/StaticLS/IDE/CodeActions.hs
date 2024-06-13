@@ -19,8 +19,9 @@ getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]
 getCodeActions path lineCol = do
   rope <- getSourceRope path
   let pos = Rope.lineColToPos rope lineCol
-  typesCodeActions <- AddTypeSig.codeAction path pos lineCol
-  importCodeActions <- AutoImport.codeAction path lineCol
+  let cx = CodeActionContext {path, pos, lineCol}
+  typesCodeActions <- AddTypeSig.codeAction cx
+  importCodeActions <- AutoImport.codeAction cx
   let codeActions = typesCodeActions ++ importCodeActions
   pure codeActions
 

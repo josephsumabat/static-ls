@@ -8,11 +8,12 @@ import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
 import Data.IORef qualified as IORef
 import Data.LineColRange
-import Data.Path (AbsPath)
+import Data.Path (AbsPath, toFilePath)
 import Data.Pos (LineCol, Pos)
 import Data.Pos qualified as Position
 import Data.Rope (Rope)
 import Data.Text (Text)
+import Data.Text.IO qualified as T
 import StaticLS.FileEnv
 import StaticLS.HIE.File qualified as Hie
 import StaticLS.IDE.FileWith
@@ -75,12 +76,14 @@ getHaskell uri = do
 getSourceRope :: (HasFileEnv m, MonadThrow m) => AbsPath -> m Rope
 getSourceRope uri = do
   fileState <- getFileStateThrow uri
-  pure $ fileState.contentsRope
+  pure fileState.contentsRope
 
-getSource :: (HasFileEnv m, MonadThrow m) => AbsPath -> m Text
+getSource :: (HasFileEnv m, MonadIO m) => AbsPath -> m Text
 getSource uri = do
-  fileState <- getFileStateThrow uri
-  pure fileState.contentsText
+  mFileState <- getFileState uri
+  case mFileState of
+    Just fileState -> pure fileState.contentsText
+    Nothing -> liftIO $ T.readFile $ toFilePath uri
 
 getFileState :: (HasFileEnv m) => AbsPath -> m (Maybe FileState)
 getFileState path = do

@@ -16,6 +16,26 @@ indexHieFiles =
     doIndex conn testOpts stderr files
     pure ()
 
+indexHieFilesIn :: FilePath -> FilePath -> FilePath -> IO ()
+indexHieFilesIn hieDir hieDbDir srcBaseDir = do
+  let opts =
+        Options
+          { database = hieDbDir
+          , trace = False
+          , quiet = True
+          , colour = False
+          , context = Nothing
+          , reindex = False
+          , keepMissing = False
+          , srcBaseDir = Just srcBaseDir
+          , skipIndexingOptions = defaultSkipOptions
+          }
+  withHieDbAndFlags (LibDir GHC.libdir) (database opts) $ \_ conn -> do
+    initConn conn
+    files <- concat <$> mapM getHieFilesIn [hieDir]
+    doIndex conn opts stderr files
+    pure ()
+
 testOpts :: Options
 testOpts =
   Options

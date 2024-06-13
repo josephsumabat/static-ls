@@ -32,3 +32,4 @@ errors.txt
 *.swp
 .direnv/
 .hiedb*
+.test_builds/

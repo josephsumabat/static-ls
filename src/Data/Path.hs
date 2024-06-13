@@ -23,6 +23,7 @@ import Data.Hashable (Hashable)
 import GHC.Stack (HasCallStack)
 import System.Directory qualified as Dir
 import System.FilePath qualified as FilePath
+import UnliftIO (stringException)
 
 data PathKind = Rel | Abs
 
@@ -61,13 +62,14 @@ filePathToAbs p = do
   pure $ UncheckedPath absPath
 
 unsafeFilePathToAbs :: (HasCallStack) => FilePath -> AbsPath
-unsafeFilePathToAbs p =
-  if FilePath.isAbsolute p
-    then UncheckedPath p
-    else error "unsafeOsPathToAbs: path is not absolute"
+unsafeFilePathToAbs p
+  | FilePath.isAbsolute p = UncheckedPath p
+  | otherwise = error "unsafeOsPathToAbs: path is not absolute"
 
 filePathToAbsThrow :: (MonadThrow m, HasCallStack) => FilePath -> m AbsPath
-filePathToAbsThrow p = pure $ UncheckedPath p
+filePathToAbsThrow p
+  | FilePath.isAbsolute p = pure $ UncheckedPath p
+  | otherwise = throwM (stringException "")
 
 (</>) :: Path p -> Path Rel -> Path p
 (UncheckedPath p) </> (UncheckedPath p') = UncheckedPath (p FilePath.</> p')

@@ -57,6 +57,8 @@ dependencies:
   - lens
   - hashable
   - neat-interpolation
+  - typed-process
+  - cryptohash-md5
 language: GHC2021
 
 default-extensions:

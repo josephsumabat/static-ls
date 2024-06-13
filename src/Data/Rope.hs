@@ -84,8 +84,7 @@ change Change {insert, delete} (Rope rope) =
   Rope (beforeStart <> Rope.fromText insert <> afterEnd)
  where
   (beforeStart, afterStart) = Rope.charSplitAt (fromIntegral delete.start.pos) rope
-  (_, afterEnd) = Rope.charSplitAt (fromIntegral delete.end.pos) afterStart
-  _ = undefined
+  (_, afterEnd) = Rope.charSplitAt (fromIntegral (delete.end.pos - delete.start.pos)) afterStart
 
 edit :: Edit -> Rope -> Rope
 -- apply changes in reverse order

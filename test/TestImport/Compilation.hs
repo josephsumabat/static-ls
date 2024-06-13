@@ -66,7 +66,15 @@ setupCompilation prefix sourceFiles act = do
     T.IO.writeFile (Path.toFilePath absPath) contents
     pure (absPath, t)
   let paths = map fst absSources
-  let args = (map Path.toFilePath paths) ++ ["-fwrite-ide-info", "-hiedir", ".hiefiles", "-hidir", ".hifiles"]
+  let args =
+        (map Path.toFilePath paths)
+          ++ [ "-fwrite-ide-info"
+             , "-fdefer-type-errors"
+             , "-hiedir"
+             , ".hiefiles"
+             , "-hidir"
+             , ".hifiles"
+             ]
   let proc = Process.proc "ghc" args & Process.setWorkingDir (Path.toFilePath dir)
   Process.runProcess_ proc
   TestImport.HieDb.indexHieFilesIn

@@ -57,7 +57,6 @@ checkCodeAction path pos codeAction findAssist = do
   -- let rope = Rope.fromText source
   -- pos <- places IntMap.!? 0 & isJustOrThrowS "couldn't find placeholder 0"
   let lineCol = Rope.posToLineCol rope pos
-  path <- Path.filePathToAbs "CodeActionTest.hs"
   let cx = CodeActionContext {path, pos, lineCol}
   sourceEdit <- do
     -- Server.updateFileState path rope
@@ -74,6 +73,7 @@ checkCodeAction path pos codeAction findAssist = do
           Right msg -> do
             sourceEdit <- CodeActions.resolveLazyAssist msg
             pure $ Just (expected, sourceEdit)
+  liftIO $ putStrLn $ "sourceEdit: " ++ show sourceEdit
   case sourceEdit of
     Nothing -> pure ()
     Just (expected, sourceEdit) -> do

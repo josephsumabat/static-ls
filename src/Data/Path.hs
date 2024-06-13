@@ -20,6 +20,7 @@ import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Data.Aeson qualified as Aeson
 import Data.Hashable (Hashable)
+import Data.String (IsString (..))
 import GHC.Stack (HasCallStack)
 import System.Directory qualified as Dir
 import System.FilePath qualified as FilePath
@@ -42,6 +43,9 @@ instance KnownPathKind Rel where
 
 newtype Path p = UncheckedPath {path :: FilePath}
   deriving (Show, Eq, Ord, Hashable, Aeson.FromJSON, Aeson.ToJSON)
+
+instance IsString (Path Rel) where
+  fromString = UncheckedPath
 
 pattern Path :: FilePath -> Path p
 pattern Path p <- UncheckedPath p

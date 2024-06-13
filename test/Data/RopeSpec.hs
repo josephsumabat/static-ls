@@ -1,5 +1,6 @@
 module Data.RopeSpec (spec) where
 
+import Data.Edit qualified as Edit
 import Data.LineColRange (LineColRange (..))
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Range (Range (..))
@@ -9,6 +10,16 @@ import Test.Hspec
 
 spec :: Spec
 spec = do
+  describe "edit" do
+    let check name start edit end = it name do
+          let r = Rope.fromText start
+          let r' = Rope.edit edit r
+          Rope.toText r' `shouldBe` end
+          pure @IO ()
+
+    check "" "first" (Edit.insert (Pos 0) "wowow\n") "wowow\nfirst"
+    check "" "first" (Edit.insert (Pos 3) "x") "firxst"
+    
   describe "line col split at" do
     let check name t lineCol (before, after) = it name do
           let r = Rope.fromText t

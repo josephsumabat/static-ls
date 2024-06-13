@@ -75,7 +75,7 @@ setupCompilation prefix sourceFiles act = do
              , "-hidir"
              , ".hifiles"
              ]
-  let proc = Process.proc "ghc" args & Process.setWorkingDir (Path.toFilePath dir)
+  let proc = Process.proc "cabal" (["exec", "ghc", "--"] ++ args) & Process.setWorkingDir (Path.toFilePath dir)
   Process.runProcess_ proc
   TestImport.HieDb.indexHieFilesIn
     (Path.toFilePath dir </> ".hiefiles")

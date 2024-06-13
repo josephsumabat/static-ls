@@ -41,7 +41,6 @@ checkCodeAction path pos codeAction findAssist = do
           Right msg -> do
             sourceEdit <- CodeActions.resolveLazyAssist msg
             pure $ Just (expected, sourceEdit)
-  liftIO $ putStrLn $ "sourceEdit: " ++ show sourceEdit
   case sourceEdit of
     Nothing -> pure ()
     Just (expected, sourceEdit) -> do

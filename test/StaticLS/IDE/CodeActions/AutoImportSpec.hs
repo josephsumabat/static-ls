@@ -15,7 +15,7 @@ import TestImport.Compilation qualified
 
 spec :: Spec
 spec = do
-  xit "" do
+  it "" do
     TestImport.Compilation.setupCompilation
       "AutoImportSpec"
       ( [

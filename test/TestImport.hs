@@ -60,7 +60,10 @@ initStaticEnvOpts options = do
 initStaticLsEnvOpts :: StaticEnvOptions -> IO StaticLsEnv
 initStaticLsEnvOpts options = do
   wsRoot <- Path.filePathToAbs "."
-  staticLsEnv <- StaticLsEnv.initStaticLsEnv wsRoot options noOpLogger
+  StaticLsEnv.initStaticLsEnv wsRoot options noOpLogger
+
+initTotalVfs :: StaticLsEnv -> IO StaticLsEnv
+initTotalVfs staticLsEnv = do
   runStaticLsM staticLsEnv $ do
     let testDataPath = "./test/TestData/"
     testDataFiles <- liftIO $ listDirectory testDataPath

@@ -19,7 +19,7 @@ spec = do
 
     check "" "first" (Edit.insert (Pos 0) "wowow\n") "wowow\nfirst"
     check "" "first" (Edit.insert (Pos 3) "x") "firxst"
-    
+
   describe "line col split at" do
     let check name t lineCol (before, after) = it name do
           let r = Rope.fromText t

@@ -60,13 +60,13 @@ spec = do
             first
             pure ()
           |]
-          
+
           CodeActions.TestUtils.checkCodeAction
             second
             pos
             CodeActions.AutoImport.codeAction
             (Just (expected, (\case (x : _) -> Just x; [] -> Nothing)))
-            
+
           pure ()
       )
     pure @IO ()

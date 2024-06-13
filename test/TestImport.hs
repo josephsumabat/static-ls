@@ -2,23 +2,25 @@ module TestImport where
 
 import Control.Monad.IO.Class
 import Data.Path (AbsPath)
-import Data.Rope (Rope)
+import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text.IO qualified as T
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.Logger
 import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
-import StaticLS.StaticLsEnv as StaticLsEnv
-
-import Data.Path qualified as Path
-import TestImport.Assert
+import StaticLS.StaticLsEnv (StaticLsEnv (..), StaticLsM)
+import StaticLS.StaticLsEnv qualified as StaticLsEnv
 
 initStaticLsEnv :: IO StaticLsEnv
 initStaticLsEnv = do
   wsRoot <- Path.filePathToAbs "."
   StaticLsEnv.initStaticLsEnv wsRoot defaultTestStaticEnvOptions noOpLogger
+
+runStaticLsSimple :: StaticLsM a -> IO a
+runStaticLsSimple action = do
+  env <- initStaticLsEnv
+  StaticLsEnv.runStaticLsM env action
 
 -- updates the file state by reading it from the file system
 updateTestFileState :: AbsPath -> StaticLsM ()

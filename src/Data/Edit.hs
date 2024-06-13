@@ -5,6 +5,7 @@ module Data.Edit (
   replace,
   changesToEdit,
   getChanges,
+  empty,
 )
 where
 
@@ -34,3 +35,6 @@ changesToEdit = Edit . List.sortOn (\c -> (c.delete.start, c.delete.end))
 
 getChanges :: Edit -> [Change]
 getChanges (Edit cs) = cs
+
+empty :: Edit
+empty = Edit []

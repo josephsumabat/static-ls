@@ -3,12 +3,16 @@ module StaticLS.IDE.CodeActions.AddTypeSig where
 import AST qualified
 import AST.Haskell qualified as Haskell
 import Control.Monad qualified as Monad
+import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
+import Data.Edit qualified as Edit
 import Data.Either.Extra qualified as Either.Extra
 import Data.Path (AbsPath)
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Range qualified as Range
+import Data.Rope qualified as Rope
 import Data.Sum (Nil, (:+), pattern Inj)
+import Data.Text (Text)
 import Data.Text qualified as T
 import StaticLS.HIE
 import StaticLS.HIE.File (getHieFileFromPath)
@@ -47,9 +51,10 @@ getDeclarationNameAtPos haskell pos lineCol = do
           pure $ Just name
     _ -> pure Nothing
 
-codeAction :: AbsPath -> Pos -> LineCol -> StaticLsM [Assist]
-codeAction path pos lineCol = do
+codeActionWith :: CodeActionContext -> (LineCol -> [Text]) -> StaticLsM [Assist]
+codeActionWith CodeActionContext {path, pos, lineCol} getTypes = do
   haskell <- getHaskell path
+  rope <- getSourceRope path
   let name = getDeclarationNameAtPos haskell pos lineCol
   name <- isRightOrThrowT name
   case name of
@@ -57,10 +62,20 @@ codeAction path pos lineCol = do
     Just name -> do
       let nameText = AST.nodeToText name
       logInfo $ T.pack $ "got name " <> show nameText
-      res <- runMaybeT do
-        hieFile <- getHieFileFromPath path
-        let types = getPrintedTypesAtPoint hieFile lineCol
-        pure ((flip mkAssist SourceEdit.empty . (\name -> nameText <> " :: " <> name)) <$> types)
-      case res of
-        Nothing -> pure []
-        Just types -> pure types
+      let types = getTypes lineCol
+      let mk tyName = do
+            let lineColStart = lineCol {col = 0}
+            let posStart = Rope.lineColToPos rope lineColStart
+            let sig = (nameText <> " :: " <> (T.replace "\n" " " tyName))
+            mkAssist sig (SourceEdit.single path (Edit.insert posStart (sig <> "\n")))
+      pure $ mk <$> types
+
+codeAction :: CodeActionContext -> StaticLsM [Assist]
+codeAction cx = do
+  res <- runMaybeT do
+    hieFile <- getHieFileFromPath cx.path
+    let getTypes lineCol = getPrintedTypesAtPoint hieFile lineCol
+    lift $ codeActionWith cx getTypes
+  case res of
+    Nothing -> pure []
+    Just types -> pure types

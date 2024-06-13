@@ -9,15 +9,90 @@ import Data.IntMap qualified as IntMap
 import Data.Rope qualified as Rope
 import NeatInterpolation (trimming)
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
+import StaticLS.IDE.CodeActions.TestUtils qualified as TestUtils
 import StaticLS.Utils (isRightOrThrowT)
 import Test.Hspec
+import TestImport qualified
 import TestImport.Placeholder qualified as Placeholder
 
 spec :: Spec
 spec = do
   -- TODO: complete this test
   describe "the code action works" do
+    let check name src expected = do
+          let tys = ["TY"]
+          it name $ do
+            TestUtils.checkCodeAction
+              src
+              (\cx -> AddTypeSig.codeActionWith cx (const tys))
+              TestImport.runStaticLsSimple
+              (Just (expected, \case (x : _) -> Just x; _ -> Nothing))
+            pure @IO ()
     pure ()
+
+    let checkNot name src = do
+          let tys = ["TY"]
+          it name $ do
+            TestUtils.checkCodeAction
+              src
+              (\cx -> AddTypeSig.codeActionWith cx (const tys))
+              TestImport.runStaticLsSimple
+              Nothing
+            pure @IO ()
+
+    check
+      ""
+      [trimming|
+      na@0me = pure ()
+      |]
+      [trimming|
+      name :: TY
+      name = pure ()
+      |]
+
+    checkNot
+      "shouldn't work for local lets yet"
+      [trimming|
+      name =
+        let tes@0ting = 112432
+          in testing
+      |]
+
+    checkNot
+      "should't work for random stuff"
+      [trimming|
+        name @0= @1na@2me + "ads@4fasdf"
+        @3|]
+
+    check
+      "works for functions"
+      [trimming|
+      @0fn x y z = x + y + z
+      |]
+      [trimming|
+      fn :: TY
+      fn x y z = x + y + z
+      |]
+
+    check
+      "works for operator in parenthesis"
+      [trimming|
+      (++++@0++++) x y z = x + y + z
+      |]
+      [trimming|
+      (++++++++) :: TY
+      (++++++++) x y z = x + y + z
+      |]
+
+    -- check
+    --   "works for operator in not in parenthesis"
+    --   [trimming|
+    --      x ++++@0++++ y = x + y + z
+    --     |]
+    --   [trimming|
+    --     (++++++++) :: TY
+    --     x ++++++++ y = x + y + z
+    --     |]
 
   describe "it queries properly" do
     let check name src ident =

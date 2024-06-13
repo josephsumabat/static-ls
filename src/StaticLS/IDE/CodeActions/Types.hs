@@ -4,28 +4,25 @@ module StaticLS.IDE.CodeActions.Types where
 
 import Data.Aeson.TH
 import Data.Path (AbsPath)
+import Data.Pos (LineCol, Pos)
 import Data.Text
-import Language.LSP.Protocol.Types (Range (..), TextDocumentIdentifier (..))
 import StaticLS.IDE.SourceEdit (SourceEdit)
-import StaticLS.StaticLsEnv
-
-data Context = Context
-  { textDocument :: !TextDocumentIdentifier
-  , range :: !Range
-  }
 
 data CodeActionMessageKind
   = AutoImportActionMessage !Text
   | NoMessage
+  deriving (Show, Eq)
 
 data CodeActionMessage = CodeActionMessage
   { kind :: !CodeActionMessageKind
   , path :: !AbsPath
   }
+  deriving (Show, Eq)
 
-data GlobalCodeAction = GlobalCodeAction
-  { name :: !Text
-  , run :: Context -> StaticLsM (Maybe ())
+data CodeActionContext = CodeActionContext
+  { path :: !AbsPath
+  , pos :: !Pos
+  , lineCol :: !LineCol
   }
 
 $(deriveJSON defaultOptions ''CodeActionMessageKind)
@@ -35,6 +32,7 @@ data Assist = Assist
   { label :: !Text
   , sourceEdit :: Either SourceEdit CodeActionMessage
   }
+  deriving (Show, Eq)
 
 mkAssist :: Text -> SourceEdit -> Assist
 mkAssist label sourceEdit =

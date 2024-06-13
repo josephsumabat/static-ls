@@ -15,6 +15,7 @@ data SourceEdit = SourceEdit
   { fileEdits :: !(HashMap AbsPath Edit)
   , fsEdits :: ![FsEdit]
   }
+  deriving (Show, Eq)
 
 empty :: SourceEdit
 empty =
@@ -34,3 +35,4 @@ data FsEdit = FsEditMoveFile
   { src :: !AbsPath
   , dst :: !AbsPath
   }
+  deriving (Show, Eq)

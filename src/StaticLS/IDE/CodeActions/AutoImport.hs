@@ -140,8 +140,8 @@ createAutoImportCodeActions path mQualifier toImport =
             (CodeActionMessage {kind = AutoImportActionMessage importText, path})
         ]
 
-codeAction :: AbsPath -> LineCol -> StaticLsM [Assist]
-codeAction path lineCol = do
+codeAction :: CodeActionContext -> StaticLsM [Assist]
+codeAction CodeActionContext {path, lineCol} = do
   modulesToImport <- getModulesToImport path lineCol
   let moduleNamesToImport = modulesToImport.moduleNames
       mModuleQualifier = modulesToImport.moduleQualifier

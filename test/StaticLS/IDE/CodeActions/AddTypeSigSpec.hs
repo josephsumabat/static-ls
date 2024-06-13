@@ -15,7 +15,6 @@ import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
 import StaticLS.IDE.CodeActions.TestUtils qualified as TestUtils
 import StaticLS.Utils (isJustOrThrowS, isRightOrThrowT)
 import Test.Hspec
-import TestImport qualified
 import TestImport.Compilation qualified
 import TestImport.Placeholder qualified as Placeholder
 
@@ -26,12 +25,12 @@ spec = do
     let check name src expected = do
           let tys = ["TY"]
           it name $ do
-            testFp <- Path.filePathToAbs "CodeActionTest.hs"
-            TestImport.Compilation.setupWithoutCompilation [(Path.toFilePath testFp, src)] \dir stuff -> do
-              (_, placeholders) <- Map.lookup testFp stuff & isJustOrThrowS "bruh"
+            let testFp = "CodeActionTest.hs"
+            TestImport.Compilation.setupWithoutCompilation [(testFp, src)] \dir stuff -> do
+              (_, placeholders) <- Map.lookup (dir Path.</> testFp) stuff & isJustOrThrowS "bruh"
               pos <- IntMap.lookup 0 placeholders & isJustOrThrowS "bruh"
               TestUtils.checkCodeAction
-                testFp
+                (dir Path.</> testFp)
                 pos
                 (\cx -> AddTypeSig.codeActionWith cx (const tys))
                 (Just (expected, \case (x : _) -> Just x; _ -> Nothing))
@@ -41,12 +40,12 @@ spec = do
     let checkNot name src = do
           let tys = ["TY"]
           it name $ do
-            testFp <- Path.filePathToAbs "CodeActionTest.hs"
-            TestImport.Compilation.setupWithoutCompilation [(Path.toFilePath testFp, src)] \dir stuff -> do
-              (_, placeholders) <- Map.lookup testFp stuff & isJustOrThrowS "bruh"
+            let testFp = "CodeActionTest.hs"
+            TestImport.Compilation.setupWithoutCompilation [(testFp, src)] \dir stuff -> do
+              (_, placeholders) <- Map.lookup (dir Path.</> testFp) stuff & isJustOrThrowS "bruh"
               pos <- IntMap.lookup 0 placeholders & isJustOrThrowS "bruh"
               TestUtils.checkCodeAction
-                testFp
+                (dir Path.</> testFp)
                 pos
                 (\cx -> AddTypeSig.codeActionWith cx (const tys))
                 Nothing

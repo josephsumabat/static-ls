@@ -7,7 +7,7 @@ import Data.Function ((&))
 import Data.IntMap (IntMap)
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Path (AbsPath)
+import Data.Path (AbsPath, RelPath)
 import Data.Path qualified as Path
 import Data.Pos (Pos)
 import Data.Rope qualified as Rope
@@ -28,12 +28,12 @@ import TestImport.HieDb qualified
 import TestImport.Placeholder qualified as Placeholder
 
 setupWithoutCompilation ::
-  [(FilePath, Text)] ->
+  [(RelPath, Text)] ->
   (AbsPath -> Map AbsPath (Text, IntMap Pos) -> StaticLsM a) ->
   IO a
 setupWithoutCompilation sourceFiles act = do
   dir <- Path.filePathToAbs "."
-  sourceFiles <- pure $ Map.fromList $ map (\(p, t) -> (Path.filePathToRel p, t)) sourceFiles
+  sourceFiles <- pure $ Map.fromList $ map (\(p, t) -> (p, t)) sourceFiles
   ppSources <- traverse Placeholder.parseM sourceFiles
   absSources <- for (Map.toList ppSources) \(path, t@(contents, _)) -> do
     let absPath = dir Path.</> path
@@ -48,16 +48,16 @@ setupWithoutCompilation sourceFiles act = do
 
 setupCompilation ::
   Text ->
-  [(FilePath, Text)] ->
+  [(RelPath, Text)] ->
   (AbsPath -> Map AbsPath (Text, IntMap Pos) -> StaticLsM a) ->
   IO a
 setupCompilation prefix sourceFiles act = do
-  let stringHash = prefix <> "\n\n" <> T.concat (map (\(p, t) -> T.pack p <> "\n\n" <> t <> "\n\n") sourceFiles)
+  let stringHash = prefix <> "\n\n" <> T.concat (map (\(p, t) -> T.pack (Path.toFilePath p) <> "\n\n" <> t <> "\n\n") sourceFiles)
   let md5Hash = MD5.hash (T.Encoding.encodeUtf8 stringHash)
   let md5Path = T.unpack $ "test_" <> T.concat ((T.pack . show) <$> B.unpack md5Hash)
   let dir = (".test_builds" </> md5Path)
   Dir.createDirectoryIfMissing True dir
-  sourceFiles <- pure $ Map.fromList $ map (\(p, t) -> (Path.filePathToRel p, t)) sourceFiles
+  sourceFiles <- pure $ Map.fromList $ map (\(p, t) -> (p, t)) sourceFiles
   dir <- Path.filePathToAbs dir
   ppSources <- traverse Placeholder.parseM sourceFiles
   T.IO.writeFile (Path.toFilePath dir </> ".string_hash") stringHash

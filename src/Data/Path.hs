@@ -26,6 +26,7 @@ import System.Directory qualified as Dir
 import System.FilePath qualified as FilePath
 import UnliftIO (stringException)
 
+-- | Rel means may be relative or absolute, absolute means must be absolute
 data PathKind = Rel | Abs
 
 data SPathKind p where

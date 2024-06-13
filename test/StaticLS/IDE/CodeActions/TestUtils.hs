@@ -3,21 +3,17 @@ module StaticLS.IDE.CodeActions.TestUtils where
 import Control.Monad.IO.Class
 import Data.Function ((&))
 import Data.HashMap.Strict qualified as HashMap
-import Data.IntMap qualified as IntMap
 import Data.Path (AbsPath)
-import Data.Path qualified as Path
 import Data.Pos (Pos)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import StaticLS.IDE.CodeActions qualified as CodeActions
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
-import StaticLS.Server qualified as Server
 import StaticLS.StaticLsEnv
 import StaticLS.StaticLsEnv qualified as StaticLsEnv
-import StaticLS.Utils (isJustOrThrowS, isRightOrThrow)
+import StaticLS.Utils (isJustOrThrowS)
 import Test.Hspec
-import TestImport.Placeholder qualified as Placeholder
 
 -- checkSingleCodeAction ::
 --   (HasCallStack) =>

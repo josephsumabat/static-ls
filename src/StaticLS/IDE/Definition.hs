@@ -11,7 +11,7 @@ import Data.LineColRange (LineColRange (..))
 import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
 import Data.List.Extra (nubOrd)
-import Data.Maybe (fromMaybe, maybeToList)
+import Data.Maybe (catMaybes, fromMaybe, maybeToList)
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
@@ -47,7 +47,7 @@ getDefinition ::
 getDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieFile <- getHieFileFromPath path
-    let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
+    let hieSource = getHieSource hieFile
     lineCol' <- lineColToHieLineCol path hieSource lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
     let identifiersAtPoint =
@@ -57,14 +57,18 @@ getDefinition path lineCol = do
               (lineColToHieDbCoords lineCol')
               Nothing
               hieAstNodeToIdentifiers
-    join <$> mapM (lift . identifierToLocation) identifiersAtPoint
+    join <$> mapM identifierToLocation identifiersAtPoint
   pure $ fromMaybe [] mLocationLinks
  where
-  identifierToLocation :: (HasStaticEnv m, MonadIO m) => GHC.Identifier -> m [FileLcRange]
-  identifierToLocation =
-    either
-      (fmap maybeToList . modToLocation)
-      nameToLocation
+  identifierToLocation :: (HasStaticEnv m, MonadIO m, HasFileEnv m, MonadThrow m) => GHC.Identifier -> m [FileLcRange]
+  identifierToLocation ident = do
+    hieLcRanges <-
+      either
+        (fmap maybeToList . modToLocation)
+        nameToLocation
+        ident
+    fileRanges <- mapM (runMaybeT . (hieFileLcToFileLc)) hieLcRanges
+    pure $ catMaybes fileRanges
 
   modToLocation :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe FileLcRange)
   modToLocation modName = runMaybeT $ do

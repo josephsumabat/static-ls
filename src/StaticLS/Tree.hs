@@ -15,7 +15,7 @@ import Data.Pos (Pos (..))
 import Data.Rope (Rope)
 
 byteToPos :: Rope -> Int -> Pos
-byteToPos rope byte = Pos byte
+byteToPos _rope byte = Pos byte
 
 getHeader :: Haskell.Haskell -> AST.Err (Maybe Haskell.Header)
 getHeader haskell = do

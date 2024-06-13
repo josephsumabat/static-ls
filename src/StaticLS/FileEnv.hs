@@ -1,6 +1,8 @@
 module StaticLS.FileEnv where
 
 import AST.Haskell qualified as Haskell
+import Control.Error (MaybeT (..))
+import Control.Monad.Trans.Class
 import Data.HashMap.Strict (HashMap)
 import Data.Path (AbsPath)
 import Data.Rope (Rope)
@@ -21,6 +23,9 @@ data FileState = FileState
 
 class (Monad m) => HasFileEnv m where
   getFileEnv :: m FileEnv
+
+instance (HasFileEnv m) => HasFileEnv (MaybeT m) where
+  getFileEnv = lift getFileEnv
 
 class (HasFileEnv m) => SetFileEnv m where
   setFileEnv :: FileEnv -> m ()

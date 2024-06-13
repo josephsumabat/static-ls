@@ -13,6 +13,8 @@ import StaticLS.IDE.CodeActions.TestUtils qualified as TestUtils
 import StaticLS.Utils (isRightOrThrowT)
 import Test.Hspec
 import TestImport qualified
+import StaticLS.Utils (isRightOrThrowT)
+import Test.Hspec
 import TestImport.Placeholder qualified as Placeholder
 
 spec :: Spec

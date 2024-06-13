@@ -10,7 +10,6 @@ import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Sum
 import Data.Text (Text)
-import Data.Text qualified as T
 import StaticLS.HIE (astRangeToLineColRange)
 import StaticLS.IDE.SymbolKind (SymbolKind)
 import StaticLS.IDE.SymbolKind qualified as SymbolKind

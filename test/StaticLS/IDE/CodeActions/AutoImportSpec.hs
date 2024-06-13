@@ -20,6 +20,12 @@ spec = do
             first :: IO ()
             first = do
               putStrLn "first"
+              putStrLn "first"
+              putStrLn "first"
+              putStrLn "first"
+              putStrLn "first"
+              putStrLn "first"
+              putStrLn "first"
               pure ()
             |]
           )
@@ -39,7 +45,7 @@ spec = do
           )
         ]
       )
-      ( \sources ->
+      ( \dir sources ->
           pure ()
       )
     pure @IO ()

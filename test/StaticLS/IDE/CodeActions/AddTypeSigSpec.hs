@@ -5,14 +5,18 @@ module StaticLS.IDE.CodeActions.AddTypeSigSpec (spec) where
 import AST qualified
 import AST.Haskell qualified as Haskell
 import Data.Foldable (for_)
+import Data.Function ((&))
 import Data.IntMap qualified as IntMap
+import Data.Map.Strict qualified as Map
+import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import NeatInterpolation (trimming)
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
 import StaticLS.IDE.CodeActions.TestUtils qualified as TestUtils
-import StaticLS.Utils (isRightOrThrowT)
+import StaticLS.Utils (isJustOrThrowS, isRightOrThrowT)
 import Test.Hspec
 import TestImport qualified
+import TestImport.Compilation qualified
 import TestImport.Placeholder qualified as Placeholder
 
 spec :: Spec
@@ -22,22 +26,30 @@ spec = do
     let check name src expected = do
           let tys = ["TY"]
           it name $ do
-            TestUtils.checkCodeAction
-              src
-              (\cx -> AddTypeSig.codeActionWith cx (const tys))
-              TestImport.runStaticLsSimple
-              (Just (expected, \case (x : _) -> Just x; _ -> Nothing))
+            testFp <- Path.filePathToAbs "CodeActionTest.hs"
+            TestImport.Compilation.setupWithoutCompilation [(Path.toFilePath testFp, src)] \dir stuff -> do
+              (_, placeholders) <- Map.lookup testFp stuff & isJustOrThrowS "bruh"
+              pos <- IntMap.lookup 0 placeholders & isJustOrThrowS "bruh"
+              TestUtils.checkCodeAction
+                testFp
+                pos
+                (\cx -> AddTypeSig.codeActionWith cx (const tys))
+                (Just (expected, \case (x : _) -> Just x; _ -> Nothing))
             pure @IO ()
     pure ()
 
     let checkNot name src = do
           let tys = ["TY"]
           it name $ do
-            TestUtils.checkCodeAction
-              src
-              (\cx -> AddTypeSig.codeActionWith cx (const tys))
-              TestImport.runStaticLsSimple
-              Nothing
+            testFp <- Path.filePathToAbs "CodeActionTest.hs"
+            TestImport.Compilation.setupWithoutCompilation [(Path.toFilePath testFp, src)] \dir stuff -> do
+              (_, placeholders) <- Map.lookup testFp stuff & isJustOrThrowS "bruh"
+              pos <- IntMap.lookup 0 placeholders & isJustOrThrowS "bruh"
+              TestUtils.checkCodeAction
+                testFp
+                pos
+                (\cx -> AddTypeSig.codeActionWith cx (const tys))
+                Nothing
             pure @IO ()
 
     check

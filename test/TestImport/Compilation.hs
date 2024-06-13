@@ -2,22 +2,22 @@ module TestImport.Compilation where
 
 import Crypto.Hash.MD5 qualified as MD5
 import Data.ByteString qualified as B
+import Data.Foldable (for_)
 import Data.Function ((&))
-import Data.HashMap.Strict (HashMap)
 import Data.IntMap (IntMap)
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Path (AbsPath, RelPath)
+import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (Pos)
+import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
-import Data.Text.Encoding qualified as T.Enocding
 import Data.Text.IO qualified as T.IO
 import Data.Traversable (for)
-import HieDb.Run qualified as HieDb
 import StaticLS.Logger qualified as Logger
+import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv.Options qualified as StaticEnv.Options
 import StaticLS.StaticLsEnv (StaticLsM)
 import StaticLS.StaticLsEnv qualified as StaticLsEnv
@@ -26,14 +26,30 @@ import System.FilePath ((</>))
 import System.Process.Typed qualified as Process
 import TestImport.HieDb qualified
 import TestImport.Placeholder qualified as Placeholder
-import UnliftIO.Temporary qualified as Temporary
 
-type SourceFiles = HashMap AbsPath Text
+setupWithoutCompilation ::
+  [(FilePath, Text)] ->
+  (AbsPath -> Map AbsPath (Text, IntMap Pos) -> StaticLsM a) ->
+  IO a
+setupWithoutCompilation sourceFiles act = do
+  dir <- Path.filePathToAbs "."
+  sourceFiles <- pure $ Map.fromList $ map (\(p, t) -> (Path.filePathToRel p, t)) sourceFiles
+  ppSources <- traverse Placeholder.parseM sourceFiles
+  absSources <- for (Map.toList ppSources) \(path, t@(contents, _)) -> do
+    let absPath = dir Path.</> path
+    T.IO.writeFile (Path.toFilePath absPath) contents
+    pure (absPath, t)
+  staticEnv <- StaticLsEnv.initStaticLsEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
+  res <- StaticLsEnv.runStaticLsM staticEnv do
+    for_ absSources \(absPath, (contents, _)) -> do
+      Server.updateFileState absPath (Rope.fromText contents)
+    act dir (Map.fromList absSources)
+  pure res
 
 setupCompilation ::
   Text ->
   [(FilePath, Text)] ->
-  (Map AbsPath (Text, IntMap Pos) -> StaticLsM a) ->
+  (AbsPath -> Map AbsPath (Text, IntMap Pos) -> StaticLsM a) ->
   IO a
 setupCompilation prefix sourceFiles act = do
   let stringHash = prefix <> "\n\n" <> T.concat (map (\(p, t) -> T.pack p <> "\n\n" <> t <> "\n\n") sourceFiles)
@@ -58,5 +74,8 @@ setupCompilation prefix sourceFiles act = do
     (Path.toFilePath dir </> ".hiedb")
     (Path.toFilePath dir)
   staticEnv <- StaticLsEnv.initStaticLsEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
-  res <- StaticLsEnv.runStaticLsM staticEnv (act (Map.fromList absSources))
+  res <- StaticLsEnv.runStaticLsM staticEnv do
+    for_ absSources \(absPath, (contents, _)) -> do
+      Server.updateFileState absPath (Rope.fromText contents)
+    act dir (Map.fromList absSources)
   pure res

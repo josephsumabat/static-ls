@@ -12,9 +12,13 @@ import Data.Path (AbsPath, toFilePath)
 import Data.Pos (LineCol, Pos)
 import Data.Pos qualified as Position
 import Data.Rope (Rope)
+import Data.Rope qualified as Rope
 import Data.Text (Text)
+import Data.Text.Encoding qualified as T.Encoding
 import Data.Text.IO qualified as T
+import GHC.Iface.Ext.Types qualified as GHC
 import StaticLS.FileEnv
+import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HIE.File qualified as Hie
 import StaticLS.IDE.FileWith
 import StaticLS.Logger
@@ -85,6 +89,27 @@ getSource uri = do
     Just fileState -> pure fileState.contentsText
     Nothing -> liftIO $ T.readFile $ toFilePath uri
 
+getHieSource :: (HasStaticEnv m, HasFileEnv m, MonadThrow m, MonadIO m) => AbsPath -> MaybeT m (Text)
+getHieSource path = do
+  hieFile <- HIE.File.getHieFileFromPath path
+  let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
+  pure $ hieSource
+
+getHieSourceRope :: (HasStaticEnv m, HasFileEnv m, MonadThrow m, MonadIO m) => AbsPath -> MaybeT m Rope
+getHieSourceRope path = Rope.fromText <$> getHieSource path
+
+getHieToSrcDiffMap :: (HasStaticEnv m, HasFileEnv m, MonadThrow m, MonadIO m) => AbsPath -> MaybeT m PositionDiff.DiffMap
+getHieToSrcDiffMap path = do
+  hieSource <- getHieSource path
+  source <- getSource path
+  pure $ PositionDiff.getDiffMap hieSource source
+
+getSrcToHieDiffMap :: (HasStaticEnv m, HasFileEnv m, MonadThrow m, MonadIO m) => AbsPath -> MaybeT m PositionDiff.DiffMap
+getSrcToHieDiffMap path = do
+  hieSource <- getHieSource path
+  source <- getSource path
+  pure $ PositionDiff.getDiffMap source hieSource
+
 getFileState :: (HasFileEnv m) => AbsPath -> m (Maybe FileState)
 getFileState path = do
   fileStates <- getFileEnv
@@ -125,6 +150,12 @@ lineColToHieLineCol path hieSource lineCol = do
   pos' <- posToHiePos path hieSource pos
   let lineCol' = Position.posToLineCol hieSource pos'
   pure lineCol'
+
+hieLineColRangeToSrc :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> LineColRange -> MaybeT m LineColRange
+hieLineColRangeToSrc path hieSource lineColRange = do
+  start <- hieLineColToLineCol path hieSource lineColRange.start
+  end <- hieLineColToLineCol path hieSource lineColRange.end
+  pure $ LineColRange start end
 
 hieFileLcToFileLc :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => FileLcRange -> MaybeT m FileLcRange
 hieFileLcToFileLc fileLineCol = do

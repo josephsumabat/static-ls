@@ -7,17 +7,24 @@ module StaticLS.PositionDiff
     diffText,
     updatePositionUsingDiff,
     DiffMap,
-    updatePositionMap,
+    diffPos,
+    diffLineCol,
+    diffLineColRange,
+    diffRange,
+    getDiffMap,
   )
 where
 
 import Data.Diff qualified as Diff
+import Data.LineColRange (LineColRange (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
 import Data.Pos
 import Data.Range (Range (..))
 import Data.RangeMap (RangeMap)
 import Data.RangeMap qualified as RangeMap
+import Data.Rope (Rope)
+import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Language.Haskell.Lexer qualified as Lexer
@@ -50,8 +57,8 @@ diffText x y =
 -- staged with diff
 updatePositionUsingDiff :: TokenDiff -> Pos -> Pos
 updatePositionUsingDiff diff =
-  let dm = getDiffMap diff
-   in \pos -> updatePositionMap pos dm
+  let dm = getDiffMapFromDiff diff
+   in \pos -> diffPos pos dm
 
 data Delta
   = -- | Any position in the range gets the same delta applied
@@ -90,8 +97,11 @@ getDeltaList diff = go diff 0 0
         -- See 'Delta' documentation
         Diff.Delete t -> (Range (Pos pos) (Pos (pos + t.len)), DeleteDelta delta) : go ds (delta - t.len) (pos + t.len)
 
-getDiffMap :: TokenDiff -> DiffMap
-getDiffMap diff =
+getDiffMap :: Text -> Text -> DiffMap
+getDiffMap x y = getDiffMapFromDiff (diffText x y)
+
+getDiffMapFromDiff :: TokenDiff -> DiffMap
+getDiffMapFromDiff diff =
   DiffMap
     { map = RangeMap.fromList deltaList,
       last = NE.last <$> NE.nonEmpty deltaList
@@ -104,8 +114,8 @@ data DiffMap = DiffMap
     last :: (Maybe (Range, Delta))
   }
 
-updatePositionMap :: Pos -> DiffMap -> Pos
-updatePositionMap pos DiffMap {map, last} =
+diffPos :: Pos -> DiffMap -> Pos
+diffPos pos DiffMap {map, last} =
   case last of
     Nothing -> pos
     Just (finalRange, finalDelta) ->
@@ -118,3 +128,19 @@ updatePositionMap pos DiffMap {map, last} =
             apply $ Maybe.fromJust $ RangeMap.lookupWith pos map
   where
     apply (r, d) = applyDelta pos r d
+
+diffLineCol :: Rope -> DiffMap -> Rope -> LineCol -> LineCol
+diffLineCol old diffMap new (LineCol line col) =
+  newLineCol
+  where
+    pos = Rope.lineColToPos old (LineCol line col)
+    newPos = diffPos pos diffMap
+    newLineCol = Rope.posToLineCol new newPos
+
+diffLineColRange :: Rope -> DiffMap -> Rope -> LineColRange -> LineColRange
+diffLineColRange old diffMap new (LineColRange start end) =
+  LineColRange (diffLineCol old diffMap new start) (diffLineCol old diffMap new end)
+
+diffRange :: DiffMap -> Range -> Range
+diffRange diffMap (Range start end) =
+  Range (diffPos start diffMap) (diffPos end diffMap)

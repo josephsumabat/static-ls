@@ -8,12 +8,12 @@ import Control.Monad.Trans.Maybe (MaybeT (..), hoistMaybe, runMaybeT)
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Text qualified as T
 import Data.Pos (LineCol (..))
-import StaticLS.Logger
 import Data.Rope qualified as Rope
+import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
 import Data.Traversable (for)
 import GHC.Iface.Ext.Types qualified as GHC
@@ -22,13 +22,14 @@ import HieDb qualified
 import StaticLS.FileEnv
 import StaticLS.HIE
 import StaticLS.HIE.File hiding (getHieSource)
-import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith (..))
+import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 
-hieFileLcRangesToSrc :: (MonadThrow m, HasStaticEnv m, HasFileEnv m, MonadIO m) => [FileLcRange] -> m [FileLcRange]
+hieFileLcRangesToSrc :: (MonadThrow m, HasStaticEnv m, HasFileEnv m, MonadIO m) => [FileLcRange] -> m [FileRange]
 hieFileLcRangesToSrc ranges = do
   let rangesForFile =
         HashMap.fromListWith (++) $
@@ -36,19 +37,24 @@ hieFileLcRangesToSrc ranges = do
   infoForFile <- for (HashMap.keys rangesForFile) \path -> runMaybeT do
     source <- getSource path
     sourceRope <- getSourceRope path
-    hieSource <- getHieSource path
-    let hieSourceRope = Rope.fromText hieSource
-    diffMap <- pure $ PositionDiff.getDiffMap hieSource source
-    pure (path, (hieSource, hieSourceRope, diffMap, source, sourceRope))
+    hieInfo <- runMaybeT do
+      hieSource <- getHieSource path
+      let hieSourceRope = Rope.fromText hieSource
+      diffMap <- pure $ PositionDiff.getDiffMap hieSource source
+      pure (hieSource, hieSourceRope, diffMap)
+    pure (path, (hieInfo, source, sourceRope))
   infoForFile <- pure $ HashMap.fromList $ catMaybes infoForFile
-  srcRanges <- for ranges \fr@FileWith {path, loc = hieLineCol} ->
-    fromMaybe fr <$> runMaybeT do
-      (_hieSource, hieSourceRope, diffMap, _source, sourceRope) <- hoistMaybe $ HashMap.lookup path infoForFile
-      let srcLineCol = PositionDiff.diffLineColRange hieSourceRope diffMap sourceRope hieLineCol
-      pure FileWith {path, loc = srcLineCol}
+  srcRanges <- for ranges \FileWith {path, loc = hieLineCol} -> do
+    (hieInfo, _source, sourceRope) <- pure $ Maybe.fromJust $ HashMap.lookup path infoForFile
+    let fakeSourceRange = Rope.lineColRangeToRange sourceRope hieLineCol
+    fromMaybe (FileWith {path, loc = fakeSourceRange}) <$> runMaybeT do
+      (_hieSource, hieSourceRope, diffMap) <- hoistMaybe hieInfo
+      let hieRange = Rope.lineColRangeToRange hieSourceRope hieLineCol
+      let srcRange = PositionDiff.diffRange diffMap hieRange
+      pure FileWith {path, loc = srcRange}
   pure srcRanges
 
-findRefs :: (HasLogger m, HasStaticEnv m, MonadThrow m, HasFileEnv m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
+findRefs :: (HasLogger m, HasStaticEnv m, MonadThrow m, HasFileEnv m, MonadIO m) => AbsPath -> LineCol -> m [FileRange]
 findRefs path lineCol = do
   mLocList <- runMaybeT $ do
     hieFile <- getHieFileFromPath path

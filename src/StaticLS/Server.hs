@@ -103,6 +103,7 @@ handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \r
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   refs <- lift $ findRefs path (ProtoLSP.lineColFromProto params._position)
+  refs <- lift $ traverse fileRangeToLc refs
   let locations = fmap ProtoLSP.fileLcRangeToLocation refs
   res $ Right . InL $ locations
 
@@ -319,6 +320,7 @@ serverDef argOptions logger =
     Exception.catchAny m $ \e ->
       LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
 
+  -- TODO: actually respond to the client with an error
   goReq f = \msg k -> catchAndLog $ f msg k
 
   goNot f = \msg -> do

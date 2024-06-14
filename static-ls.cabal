@@ -65,6 +65,7 @@ library
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.References
+      StaticLS.IDE.Rename
       StaticLS.IDE.SourceEdit
       StaticLS.IDE.SymbolKind
       StaticLS.IDE.Workspace.Symbol

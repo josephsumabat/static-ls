@@ -31,9 +31,9 @@ import StaticLS.Utils (isJustOrThrowS)
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data StaticLsEnv = StaticLsEnv
-  { fileEnv :: IORef.IORef FileEnv,
-    staticEnv :: StaticEnv,
-    logger :: Logger
+  { fileEnv :: IORef.IORef FileEnv
+  , staticEnv :: StaticEnv
+  , logger :: Logger
   }
 
 type StaticLsM = ReaderT StaticLsEnv IO
@@ -64,9 +64,9 @@ initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
   let logger = Colog.liftLogIO loggerToUse
   pure $
     StaticLsEnv
-      { staticEnv = staticEnv,
-        fileEnv = fileEnv,
-        logger = logger
+      { staticEnv = staticEnv
+      , fileEnv = fileEnv
+      , logger = logger
       }
 
 runStaticLsM :: StaticLsEnv -> StaticLsM a -> IO a
@@ -77,10 +77,12 @@ getHaskell uri = do
   fileState <- getFileStateThrow uri
   pure fileState.tree
 
-getSourceRope :: (HasFileEnv m, MonadThrow m) => AbsPath -> m Rope
+getSourceRope :: (MonadIO m, HasFileEnv m, MonadThrow m) => AbsPath -> m Rope
 getSourceRope uri = do
-  fileState <- getFileStateThrow uri
-  pure fileState.contentsRope
+  mFileState <- getFileState uri
+  case mFileState of
+    Just fileState -> pure $ Rope.fromText fileState.contentsText
+    Nothing -> fmap Rope.fromText $ liftIO $ T.readFile $ toFilePath uri
 
 getSource :: (HasFileEnv m, MonadIO m) => AbsPath -> m Text
 getSource uri = do
@@ -156,6 +158,12 @@ hieLineColRangeToSrc path hieSource lineColRange = do
   start <- hieLineColToLineCol path hieSource lineColRange.start
   end <- hieLineColToLineCol path hieSource lineColRange.end
   pure $ LineColRange start end
+
+fileRangeToLc :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => FileRange -> m FileLcRange
+fileRangeToLc FileWith {path, loc} = do
+  source <- getSourceRope path
+  range <- pure $ Rope.rangeToLineColRange source loc
+  pure $ FileWith {path, loc = range}
 
 hieFileLcToFileLc :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => FileLcRange -> MaybeT m FileLcRange
 hieFileLcToFileLc fileLineCol = do

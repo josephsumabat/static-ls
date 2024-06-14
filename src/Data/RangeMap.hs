@@ -2,6 +2,7 @@ module Data.RangeMap (
   RangeMap (map),
   fromList,
   lookup,
+  lookupWith,
 )
 where
 
@@ -28,8 +29,11 @@ fromList ranges =
     & RangeMap
 
 lookup :: Pos -> RangeMap a -> Maybe a
-lookup (Pos pos) (RangeMap rm)
-  | Just (_start, (P end x)) <- IntMap.lookupLE pos rm
+lookup pos rm = snd <$> lookupWith pos rm
+
+lookupWith :: Pos -> RangeMap a -> Maybe (Range, a)
+lookupWith (Pos pos) (RangeMap rm)
+  | Just (start, (P end x)) <- IntMap.lookupLE pos rm
   , pos < end =
-      Just x
+      Just (Range (Pos start) (Pos end), x)
   | otherwise = Nothing

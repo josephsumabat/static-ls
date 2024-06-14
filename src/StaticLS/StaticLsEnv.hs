@@ -27,9 +27,9 @@ import StaticLS.Utils (isJustOrThrowS)
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data StaticLsEnv = StaticLsEnv
-  { fileEnv :: IORef.IORef FileEnv
-  , staticEnv :: StaticEnv
-  , logger :: Logger
+  { fileEnv :: IORef.IORef FileEnv,
+    staticEnv :: StaticEnv,
+    logger :: Logger
   }
 
 type StaticLsM = ReaderT StaticLsEnv IO
@@ -60,9 +60,9 @@ initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
   let logger = Colog.liftLogIO loggerToUse
   pure $
     StaticLsEnv
-      { staticEnv = staticEnv
-      , fileEnv = fileEnv
-      , logger = logger
+      { staticEnv = staticEnv,
+        fileEnv = fileEnv,
+        logger = logger
       }
 
 runStaticLsM :: StaticLsEnv -> StaticLsM a -> IO a
@@ -100,14 +100,14 @@ posToHiePos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPat
 posToHiePos uri hieSource pos = do
   source <- lift $ getSource uri
   let diff = PositionDiff.diffText source hieSource
-  let pos' = PositionDiff.updatePositionUsingDiff pos diff
+  let pos' = PositionDiff.updatePositionUsingDiff diff pos
   pure pos'
 
 hiePosToPos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> Pos -> MaybeT m Pos
 hiePosToPos path hieSource hiePos = do
   source <- lift $ getSource path
   let diff = PositionDiff.diffText hieSource source
-  let pos' = PositionDiff.updatePositionUsingDiff hiePos diff
+  let pos' = PositionDiff.updatePositionUsingDiff diff hiePos
   pure pos'
 
 hieLineColToLineCol :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPath -> Text -> LineCol -> MaybeT m LineCol

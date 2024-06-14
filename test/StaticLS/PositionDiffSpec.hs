@@ -10,7 +10,7 @@ import Test.Hspec
 spec :: Spec
 spec = do
   let check diff name pos pos' = it name do
-        updatePositionUsingDiff pos diff `shouldBe` pos'
+        updatePositionUsingDiff diff pos `shouldBe` pos'
 
   describe "simple diff" do
     let diff =

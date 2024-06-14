@@ -71,7 +71,7 @@ absPathToUri :: AbsPath -> LSP.Uri
 absPathToUri = LSP.filePathToUri . Path.toFilePath
 
 locationToLocationLink :: LSP.Location -> LSP.LocationLink
-locationToLocationLink LSP.Location {..} =
+locationToLocationLink LSP.Location {_uri, _range} =
   LSP.LocationLink
     { _originSelectionRange = Nothing
     , _targetUri = _uri

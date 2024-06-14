@@ -35,12 +35,14 @@ flag dev
 library
   exposed-modules:
       Data.Change
+      Data.Diff
       Data.Edit
       Data.LineColRange
       Data.ListUtils
       Data.Path
       Data.Pos
       Data.Range
+      Data.RangeMap
       Data.Rope
       Data.TextUtils
       StaticLS.Except
@@ -85,14 +87,11 @@ library
   hs-source-dirs:
       src
   default-extensions:
+      LambdaCase
       ExplicitNamespaces
-      FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-      LambdaCase
-      RecordWildCards
-      TypeApplications
       DuplicateRecordFields
       DataKinds
       PatternSynonyms
@@ -153,14 +152,11 @@ executable static-ls
   hs-source-dirs:
       app
   default-extensions:
+      LambdaCase
       ExplicitNamespaces
-      FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-      LambdaCase
-      RecordWildCards
-      TypeApplications
       DuplicateRecordFields
       DataKinds
       PatternSynonyms
@@ -247,14 +243,11 @@ test-suite static-ls-test
   hs-source-dirs:
       test
   default-extensions:
+      LambdaCase
       ExplicitNamespaces
-      FlexibleContexts
       OverloadedRecordDot
       OverloadedStrings
       NoFieldSelectors
-      LambdaCase
-      RecordWildCards
-      TypeApplications
       DuplicateRecordFields
       DataKinds
       PatternSynonyms

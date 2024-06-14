@@ -6,4 +6,8 @@ import Control.Monad.Trans.Except
 exceptToMaybe :: Except a b -> Maybe b
 exceptToMaybe = hush . runExcept
 
+
+
+
+
 testing = show (124 :: Int)

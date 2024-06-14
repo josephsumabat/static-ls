@@ -1,18 +1,20 @@
 {-# LANGUAGE MultiWayIf #-}
 
-module StaticLS.PositionDiff
-  ( Token (..),
-    mkToken,
-    lex,
-    diffText,
-    updatePositionUsingDiff,
-    DiffMap,
-    diffPos,
-    diffLineCol,
-    diffLineColRange,
-    diffRange,
-    getDiffMap,
-  )
+module StaticLS.PositionDiff (
+  Token (..),
+  mkToken,
+  lex,
+  diffText,
+  updatePositionUsingDiff,
+  DiffMap,
+  diffPos,
+  diffLineCol,
+  diffLineColRange,
+  diffRange,
+  getDiffMap,
+  printDiffSummary,
+  lexWithErrors,
+)
 where
 
 import Data.Diff qualified as Diff
@@ -31,13 +33,32 @@ import Language.Haskell.Lexer qualified as Lexer
 import Prelude hiding (lex)
 
 data Token = Token
-  { text :: !Text,
-    len :: !Int
+  { text :: !Text
+  , len :: !Int
   }
   deriving (Eq, Show)
 
 mkToken :: Text -> Token
 mkToken text = Token {text, len = T.length text}
+
+lexWithErrors :: String -> ([Token], [Text])
+lexWithErrors s = (res, es)
+ where
+  es =
+    Maybe.mapMaybe
+      ( \(tok, (_, s)) -> case tok of
+          Lexer.ErrorToken -> Just (T.pack s)
+          _ -> Nothing
+      )
+      ts
+  res =
+    fmap
+      ( \(_tok, (_pos, s)) ->
+          let text = T.pack s
+           in Token {text, len = T.length text}
+      )
+      ts
+  ts = (Lexer.lexerPass1 s)
 
 lex :: String -> [Token]
 lex source =
@@ -46,13 +67,23 @@ lex source =
         let text = T.pack s
          in Token {text, len = T.length text}
     )
-    (Lexer.lexerPass0 source)
+    ts
+ where
+  ts = (Lexer.lexerPass1 source)
 
 type TokenDiff = [Diff.Elem Token]
 
+printDiffSummary :: TokenDiff -> String
+printDiffSummary diff = show $ (fmap . fmap) (.len) diff
+
+concatTokens :: [Token] -> Token
+concatTokens ts = Token {text = t, len = T.length t}
+ where
+  t = T.concat $ map (.text) ts
+
 diffText :: Text -> Text -> TokenDiff
 diffText x y =
-  Diff.diff (lex (T.unpack x)) (lex (T.unpack y))
+  (fmap . fmap) concatTokens $ Diff.diffMerged (lex (T.unpack x)) (lex (T.unpack y))
 
 -- staged with diff
 updatePositionUsingDiff :: TokenDiff -> Pos -> Pos
@@ -86,16 +117,16 @@ applyDelta (Pos pos) range delta = case delta of
 -- invariant: returns ranges that are contiguous
 getDeltaList :: TokenDiff -> [(Range, Delta)]
 getDeltaList diff = go diff 0 0
-  where
-    go diff !delta !pos = case diff of
-      [] -> []
-      (d : ds) -> case d of
-        -- insertions are not part of the original text
-        Diff.Insert t -> go ds (delta + t.len) pos
-        -- keeps are part of the original text
-        Diff.Keep t -> (Range (Pos pos) (Pos (pos + t.len)), SimpleDelta delta) : go ds delta (pos + t.len)
-        -- See 'Delta' documentation
-        Diff.Delete t -> (Range (Pos pos) (Pos (pos + t.len)), DeleteDelta delta) : go ds (delta - t.len) (pos + t.len)
+ where
+  go diff !delta !pos = case diff of
+    [] -> []
+    (d : ds) -> case d of
+      -- insertions are not part of the original text
+      Diff.Insert t -> go ds (delta + t.len) pos
+      -- keeps are part of the original text
+      Diff.Keep t -> (Range (Pos pos) (Pos (pos + t.len)), SimpleDelta delta) : go ds delta (pos + t.len)
+      -- See 'Delta' documentation
+      Diff.Delete t -> (Range (Pos pos) (Pos (pos + t.len)), DeleteDelta delta) : go ds (delta - t.len) (pos + t.len)
 
 getDiffMap :: Text -> Text -> DiffMap
 getDiffMap x y = getDiffMapFromDiff (diffText x y)
@@ -103,15 +134,15 @@ getDiffMap x y = getDiffMapFromDiff (diffText x y)
 getDiffMapFromDiff :: TokenDiff -> DiffMap
 getDiffMapFromDiff diff =
   DiffMap
-    { map = RangeMap.fromList deltaList,
-      last = NE.last <$> NE.nonEmpty deltaList
+    { map = RangeMap.fromList deltaList
+    , last = NE.last <$> NE.nonEmpty deltaList
     }
-  where
-    deltaList = (getDeltaList diff)
+ where
+  deltaList = (getDeltaList diff)
 
 data DiffMap = DiffMap
-  { map :: !(RangeMap Delta),
-    last :: (Maybe (Range, Delta))
+  { map :: !(RangeMap Delta)
+  , last :: (Maybe (Range, Delta))
   }
 
 diffPos :: Pos -> DiffMap -> Pos
@@ -126,16 +157,16 @@ diffPos pos DiffMap {map, last} =
             -- since the ranges are contiguous, there must be a range that contains the position
             -- we need to do the min incase the position was on a delete that was the last diff element
             apply $ Maybe.fromJust $ RangeMap.lookupWith pos map
-  where
-    apply (r, d) = applyDelta pos r d
+ where
+  apply (r, d) = applyDelta pos r d
 
 diffLineCol :: Rope -> DiffMap -> Rope -> LineCol -> LineCol
 diffLineCol old diffMap new (LineCol line col) =
   newLineCol
-  where
-    pos = Rope.lineColToPos old (LineCol line col)
-    newPos = diffPos pos diffMap
-    newLineCol = Rope.posToLineCol new newPos
+ where
+  pos = Rope.lineColToPos old (LineCol line col)
+  newPos = diffPos pos diffMap
+  newLineCol = Rope.posToLineCol new newPos
 
 diffLineColRange :: Rope -> DiffMap -> Rope -> LineColRange -> LineColRange
 diffLineColRange old diffMap new (LineColRange start end) =

@@ -6,6 +6,7 @@ import Data.Diff qualified as Diff
 import Data.Pos
 import StaticLS.PositionDiff
 import Test.Hspec
+import qualified StaticLS.PositionDiff as PositionDiff
 
 spec :: Spec
 spec = do
@@ -49,4 +50,10 @@ spec = do
     check' "" (Pos 8) (Pos 6)
     check' "" (Pos 12) (Pos 12)
     pure ()
+    
+  xit "smoke" do
+    let x = "first second third fourth"
+    let y = "third second third fourth"
+    let diff = PositionDiff.diffText x y
+    diff `shouldBe` []
   pure ()

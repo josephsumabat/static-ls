@@ -26,6 +26,8 @@ import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import StaticLS.Utils (isJustOrThrowS)
+import System.IO
+import qualified Data.Text as T
 
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information
@@ -127,6 +129,10 @@ posToHiePos :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => AbsPat
 posToHiePos uri hieSource pos = do
   source <- lift $ getSource uri
   let diff = PositionDiff.diffText source hieSource
+  let (ts, errs) = PositionDiff.lexWithErrors (T.unpack source)
+  liftIO $ hPutStrLn stderr $ "diff: " ++ PositionDiff.printDiffSummary diff
+  liftIO $ hPutStrLn stderr $ "ts: " ++ show ts
+  liftIO $ hPutStrLn stderr $ "errs: " ++ show errs
   let pos' = PositionDiff.updatePositionUsingDiff diff pos
   pure pos'
 

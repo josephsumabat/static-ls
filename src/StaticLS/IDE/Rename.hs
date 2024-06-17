@@ -31,5 +31,4 @@ import StaticLS.IDE.SourceEdit (SourceEdit)
 
 rename :: AbsPath -> LineCol -> StaticLsM SourceEdit
 rename path lineCol = do
-
   pure undefined

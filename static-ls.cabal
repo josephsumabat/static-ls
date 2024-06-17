@@ -45,6 +45,7 @@ library
       Data.RangeMap
       Data.Rope
       Data.TextUtils
+      StaticLS.Env
       StaticLS.Except
       StaticLS.FileEnv
       StaticLS.FilePath
@@ -53,6 +54,7 @@ library
       StaticLS.HIE
       StaticLS.HIE.File
       StaticLS.HIE.File.Except
+      StaticLS.HIE.Types
       StaticLS.HieDb
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AddTypeSig
@@ -62,23 +64,25 @@ library
       StaticLS.IDE.Definition
       StaticLS.IDE.DocumentSymbols
       StaticLS.IDE.FileWith
+      StaticLS.IDE.HiePos
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.References
       StaticLS.IDE.Rename
       StaticLS.IDE.SourceEdit
       StaticLS.IDE.SymbolKind
+      StaticLS.IDE.Utils
       StaticLS.IDE.Workspace.Symbol
       StaticLS.Logger
       StaticLS.Maybe
       StaticLS.PositionDiff
       StaticLS.ProtoLSP
       StaticLS.SDoc
+      StaticLS.Semantic.Types
       StaticLS.Server
       StaticLS.SrcFiles
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
-      StaticLS.StaticLsEnv
       StaticLS.Tree
       StaticLS.Utils
   other-modules:

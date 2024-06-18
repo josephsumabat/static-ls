@@ -22,8 +22,12 @@ posToHiePos uri hieSource pos = do
   source <- lift $ getSource uri
   let diff = PositionDiff.diffText source hieSource
   let (ts, errs) = PositionDiff.lexWithErrors (T.unpack source)
+  let (ts', errs) = PositionDiff.lexWithErrors (T.unpack hieSource)
+  -- let diff' = (fmap . fmap) PositionDiff.concatTokens $ Diff.diffMerged ts ts'
+  -- liftIO $ hPutStrLn stderr $ "diff': " ++ PositionDiff.printDiffSummary diff'
   -- liftIO $ hPutStrLn stderr $ "diff: " ++ PositionDiff.printDiffSummary diff
   -- liftIO $ hPutStrLn stderr $ "ts: " ++ show ts
+  -- liftIO $ hPutStrLn stderr $ "ts': " ++ show ts'
   -- liftIO $ hPutStrLn stderr $ "errs: " ++ show errs
   let pos' = PositionDiff.updatePositionUsingDiff diff pos
   pure pos'

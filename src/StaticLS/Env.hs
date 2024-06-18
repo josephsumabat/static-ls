@@ -1,4 +1,4 @@
-module StaticLS.StaticLsEnv where
+module StaticLS.Env where
 
 import Colog.Core.IO qualified as Colog
 import Control.Monad.Reader

@@ -1,6 +1,5 @@
 module StaticLS.IDE.HiePos where
 
-
 import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
@@ -10,13 +9,13 @@ import Data.Pos (LineCol, Pos)
 import Data.Pos qualified as Position
 import Data.Rope qualified as Rope
 import Data.Text (Text)
+import Data.Text qualified as T
 import StaticLS.HIE.File qualified as Hie
 import StaticLS.IDE.FileWith
-import StaticLS.PositionDiff qualified as PositionDiff
-import StaticLS.StaticEnv
-import qualified Data.Text as T
-import StaticLS.Semantic
 import StaticLS.IDE.Utils
+import StaticLS.PositionDiff qualified as PositionDiff
+import StaticLS.Semantic
+import StaticLS.StaticEnv
 
 posToHiePos :: (MonadIO m, HasStaticEnv m, HasSemantic m, MonadThrow m) => AbsPath -> Text -> Pos -> MaybeT m Pos
 posToHiePos uri hieSource pos = do
@@ -61,7 +60,7 @@ hieLineColRangeToSrc path hieSource lineColRange = do
 fileRangeToLc :: (MonadIO m, HasStaticEnv m, HasSemantic m, MonadThrow m) => FileRange -> m FileLcRange
 fileRangeToLc FileWith {path, loc} = do
   source <- getSourceRope path
-  range <- pure $ Rope.rangeToLineColRange source loc
+  let range = Rope.rangeToLineColRange source loc
   pure $ FileWith {path, loc = range}
 
 hieFileLcToFileLc :: (MonadIO m, HasStaticEnv m, HasSemantic m, MonadThrow m) => FileLcRange -> MaybeT m FileLcRange

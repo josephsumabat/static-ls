@@ -17,8 +17,8 @@ import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
 import HieDb (pointCommand)
 import Language.LSP.Protocol.Types qualified as LSP
-import StaticLS.SDoc (showGhc)
 import StaticLS.HIE.Position
+import StaticLS.SDoc (showGhc)
 
 getPrintedTypesAtPoint :: GHC.HieFile -> LineCol -> [Text]
 getPrintedTypesAtPoint hieFile lineCol =

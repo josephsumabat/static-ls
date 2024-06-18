@@ -1,6 +1,6 @@
-module StaticLS.IDE.Hover
-  ( retrieveHover,
-  )
+module StaticLS.IDE.Hover (
+  retrieveHover,
+)
 where
 
 import Control.Monad.Catch
@@ -18,18 +18,20 @@ import Data.Text.Encoding qualified as T.Encoding
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins as GHC hiding ((<>))
 import HieDb (pointCommand)
-import Language.LSP.Protocol.Types
-  ( Hover (..),
-    MarkupContent (..),
-    MarkupKind (..),
-    Range (..),
-    sectionSeparator,
-    type (|?) (..),
-  )
+import Language.LSP.Protocol.Types (
+  Hover (..),
+  MarkupContent (..),
+  MarkupKind (..),
+  Range (..),
+  sectionSeparator,
+  type (|?) (..),
+ )
 import StaticLS.HI
 import StaticLS.HI.File
 
 import StaticLS.HIE.File
+import StaticLS.HIE.Position
+import StaticLS.HIE.Queries
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
 import StaticLS.Logger (HasLogger, logInfo)
@@ -37,17 +39,15 @@ import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
-import StaticLS.HIE.Position
-import StaticLS.HIE.Queries
 
 -- | Retrieve hover information.
 retrieveHover ::
   forall m.
-  ( HasLogger m,
-    HasStaticEnv m,
-    MonadIO m,
-    HasSemantic m,
-    MonadThrow m
+  ( HasLogger m
+  , HasStaticEnv m
+  , MonadIO m
+  , HasSemantic m
+  , MonadThrow m
   ) =>
   AbsPath ->
   LineCol ->
@@ -78,20 +78,20 @@ retrieveHover path lineCol = do
           )
           mHieInfo
     pure $ hoverInfoToHover srcInfo
-  where
-    hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
-    hoverInfoToHover (mRange, contents) =
-      Hover
-        { _range = mRange,
-          _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
-        }
+ where
+  hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
+  hoverInfoToHover (mRange, contents) =
+    Hover
+      { _range = mRange
+      , _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
+      }
 
-    hieRangeToSrcRange :: AbsPath -> Text -> Maybe LineColRange -> MaybeT m Range
-    hieRangeToSrcRange path hieSource mLineColRange = do
-      lineColRange <- toAlt mLineColRange
-      srcStart <- hieLineColToLineCol path hieSource lineColRange.start
-      srcEnd <- hieLineColToLineCol path hieSource lineColRange.end
-      pure $ ProtoLSP.lineColRangeToProto (LineColRange srcStart srcEnd)
+  hieRangeToSrcRange :: AbsPath -> Text -> Maybe LineColRange -> MaybeT m Range
+  hieRangeToSrcRange path hieSource mLineColRange = do
+    lineColRange <- toAlt mLineColRange
+    srcStart <- hieLineColToLineCol path hieSource lineColRange.start
+    srcEnd <- hieLineColToLineCol path hieSource lineColRange.end
+    pure $ ProtoLSP.lineColRangeToProto (LineColRange srcStart srcEnd)
 
 docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.HieFile -> LineCol -> m [NameDocs]
 docsAtPoint hieFile position = do

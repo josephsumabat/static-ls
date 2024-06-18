@@ -29,8 +29,8 @@ astRangeToLineColRange range =
 lineColToAstPoint :: LineCol -> AST.Point
 lineColToAstPoint (LineCol line col) =
   AST.Point
-    { row = fromIntegral line,
-      col = fromIntegral col
+    { row = fromIntegral line
+    , col = fromIntegral col
     }
 
 -- -- TODO: this is wrong, ast positions can hit the end of the line exclusive

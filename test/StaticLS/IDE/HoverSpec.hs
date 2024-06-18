@@ -2,11 +2,11 @@ module StaticLS.IDE.HoverSpec where
 
 import StaticLS.IDE.Hover
 
+import StaticLS.Monad
 import Test.Hspec
 import TestImport qualified as Test
 import TestImport.Assert qualified as Test
 import TestImport.TestData qualified as Test
-import StaticLS.Monad
 
 spec :: Spec
 spec =

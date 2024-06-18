@@ -15,9 +15,9 @@ import StaticLS.StaticEnv.Options
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data Env = Env
-  { fileEnv :: IORef.IORef Semantic,
-    staticEnv :: StaticEnv,
-    logger :: Logger
+  { fileEnv :: IORef.IORef Semantic
+  , staticEnv :: StaticEnv
+  , logger :: Logger
   }
 
 type StaticLsM = ReaderT Env IO
@@ -51,9 +51,9 @@ initEnv wsRoot staticEnvOptions loggerToUse = do
   let logger = Colog.liftLogIO loggerToUse
   pure $
     Env
-      { staticEnv = staticEnv,
-        fileEnv = fileEnv,
-        logger = logger
+      { staticEnv = staticEnv
+      , fileEnv = fileEnv
+      , logger = logger
       }
 
 runStaticLsM :: Env -> StaticLsM a -> IO a

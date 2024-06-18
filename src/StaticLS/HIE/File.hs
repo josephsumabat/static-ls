@@ -1,20 +1,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module StaticLS.HIE.File
-  ( modToHieFile,
-    modToSrcFile,
-    srcFilePathToHieFilePath,
-    hieFilePathToSrcFilePath,
-    -- | An alternate way of getting file information by pre-indexing hie files -
-    -- far slower on startup and currently unused
-    getHieFileMap,
-    hieFileMapToSrcMap,
-    getHieFileFromHiePath,
-    getHieFileFromPath,
-    getHieSource,
-    MonadHieFile (..),
-    HieFile,
-  )
+module StaticLS.HIE.File (
+  modToHieFile,
+  modToSrcFile,
+  srcFilePathToHieFilePath,
+  hieFilePathToSrcFilePath,
+  -- | An alternate way of getting file information by pre-indexing hie files -
+  -- far slower on startup and currently unused
+  getHieFileMap,
+  hieFileMapToSrcMap,
+  getHieFileFromHiePath,
+  getHieFileFromPath,
+  getHieSource,
+  MonadHieFile (..),
+  HieFile,
+)
 where
 
 import Control.Applicative ((<|>))
@@ -152,8 +152,8 @@ srcFilePathToHieFilePathFromFile srcPath = do
 -- finding references for functions that are used a lot much faster
 -----------------------------------------------------------------------------------
 data HieInfo = HieInfo
-  { hieFilePath :: HieFilePath,
-    hieFile :: GHC.HieFile
+  { hieFilePath :: HieFilePath
+  , hieFile :: GHC.HieFile
   }
 
 getHieFileMap :: FilePath -> HieFilePath -> IO (Map.Map SrcFilePath HieInfo)
@@ -164,18 +164,18 @@ getHieFileMap wsroot hieDir = do
   srcPathHieInfoPairs <- mapM (srcFileToHieFileInfo nameCache) hieFilePaths
 
   pure $ Map.fromList srcPathHieInfoPairs
-  where
-    srcFileToHieFileInfo :: GHC.NameCache -> HieFilePath -> IO (SrcFilePath, HieInfo)
-    srcFileToHieFileInfo nameCache hieFilePath = do
-      hieFileResult <- GHC.readHieFile nameCache hieFilePath
-      absSrcFilePath <- Dir.makeAbsolute hieFileResult.hie_file_result.hie_hs_file
-      absHieFilePath <- Dir.makeAbsolute hieFilePath
-      let hieInfo =
-            HieInfo
-              { hieFilePath = absHieFilePath,
-                hieFile = hieFileResult.hie_file_result
-              }
-      pure (absSrcFilePath, hieInfo)
+ where
+  srcFileToHieFileInfo :: GHC.NameCache -> HieFilePath -> IO (SrcFilePath, HieInfo)
+  srcFileToHieFileInfo nameCache hieFilePath = do
+    hieFileResult <- GHC.readHieFile nameCache hieFilePath
+    absSrcFilePath <- Dir.makeAbsolute hieFileResult.hie_file_result.hie_hs_file
+    absHieFilePath <- Dir.makeAbsolute hieFilePath
+    let hieInfo =
+          HieInfo
+            { hieFilePath = absHieFilePath
+            , hieFile = hieFileResult.hie_file_result
+            }
+    pure (absSrcFilePath, hieInfo)
 
 hieFileMapToSrcMap :: Map.Map SrcFilePath HieInfo -> Map.Map HieFilePath SrcFilePath
 hieFileMapToSrcMap =

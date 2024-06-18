@@ -41,7 +41,7 @@ getHieSource :: (HasStaticEnv m, HasSemantic m, MonadThrow m, MonadIO m) => AbsP
 getHieSource path = do
   hieFile <- HIE.File.getHieFileFromPath path
   let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-  pure $ hieSource
+  pure hieSource
 
 getHieSourceRope :: (HasStaticEnv m, HasSemantic m, MonadThrow m, MonadIO m) => AbsPath -> MaybeT m Rope
 getHieSourceRope path = Rope.fromText <$> getHieSource path

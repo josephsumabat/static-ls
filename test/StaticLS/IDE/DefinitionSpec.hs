@@ -41,10 +41,10 @@ spec = do
       check
         "empty hiedb"
         StaticEnvOptions
-          { optionHieDbPath = "./TestData/not-a-real-hiedb-file",
-            optionHieFilesPath = "test/TestData/.hiefiles",
-            optionSrcDirs = defaultSrcDirs,
-            optionHiFilesPath = "test/TestData/.hifiles"
+          { optionHieDbPath = "./TestData/not-a-real-hiedb-file"
+          , optionHieFilesPath = "test/TestData/.hiefiles"
+          , optionSrcDirs = defaultSrcDirs
+          , optionHiFilesPath = "test/TestData/.hifiles"
           }
         Test.myFunRef1TdiAndPosition
         (pure @[] <$> Test.myFunDefLocation)
@@ -52,10 +52,10 @@ spec = do
       check
         "it does not crash when missing all sources"
         StaticEnvOptions
-          { optionHieDbPath = "",
-            optionHieFilesPath = "",
-            optionSrcDirs = [],
-            optionHiFilesPath = ""
+          { optionHieDbPath = ""
+          , optionHieFilesPath = ""
+          , optionSrcDirs = []
+          , optionHiFilesPath = ""
           }
         Test.myFunRef1TdiAndPosition
         (pure [])

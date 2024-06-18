@@ -17,9 +17,9 @@ import Data.Text.Encoding qualified as T.Encoding
 import Data.Text.IO qualified as T.IO
 import Data.Traversable (for)
 import StaticLS.Logger qualified as Logger
+import StaticLS.Monad
 import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv.Options qualified as StaticEnv.Options
-import StaticLS.Monad
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
 import System.Process.Typed qualified as Process

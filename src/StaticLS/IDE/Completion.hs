@@ -16,11 +16,11 @@ import Data.Text qualified as T
 import StaticLS.Logger (logInfo)
 import StaticLS.StaticEnv
 
+import StaticLS.IDE.Utils
+import StaticLS.Monad
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath
-import StaticLS.Monad
-import StaticLS.IDE.Utils
 
 makeRelativeMaybe :: FilePath -> FilePath -> Maybe FilePath
 makeRelativeMaybe base path = do

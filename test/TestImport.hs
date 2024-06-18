@@ -8,11 +8,11 @@ import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text.IO qualified as T
 import StaticLS.Logger
+import StaticLS.Monad
 import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
 import System.Directory (doesFileExist, listDirectory)
-import StaticLS.Monad
 
 initTestEnv :: IO Env
 initTestEnv = do

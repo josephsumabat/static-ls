@@ -16,10 +16,10 @@ import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
-import Development.IDE.GHC.Error
-  ( srcSpanToFilename,
-    srcSpanToRange,
-  )
+import Development.IDE.GHC.Error (
+  srcSpanToFilename,
+  srcSpanToRange,
+ )
 import GHC.Data.FastString qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
@@ -30,16 +30,16 @@ import HieDb qualified
 
 import StaticLS.HIE.File
 import StaticLS.HIE.File qualified as HIE.File
+import StaticLS.HIE.Position
+import StaticLS.HIE.Queries
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.HiePos
 import StaticLS.Logger
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
-import StaticLS.IDE.HiePos
-import StaticLS.HIE.Position
-import StaticLS.HIE.Queries
 
 getDefinition ::
   (HasCallStack, HasLogger m, HasStaticEnv m, HasSemantic m, MonadIO m, MonadThrow m) =>
@@ -61,21 +61,21 @@ getDefinition path lineCol = do
               hieAstNodeToIdentifiers
     join <$> mapM identifierToLocation identifiersAtPoint
   pure $ fromMaybe [] mLocationLinks
-  where
-    identifierToLocation :: (HasStaticEnv m, MonadIO m, HasSemantic m, MonadThrow m) => GHC.Identifier -> m [FileLcRange]
-    identifierToLocation ident = do
-      hieLcRanges <-
-        either
-          (fmap maybeToList . modToLocation)
-          nameToLocation
-          ident
-      fileRanges <- mapM (runMaybeT . (hieFileLcToFileLc)) hieLcRanges
-      pure $ catMaybes fileRanges
+ where
+  identifierToLocation :: (HasStaticEnv m, MonadIO m, HasSemantic m, MonadThrow m) => GHC.Identifier -> m [FileLcRange]
+  identifierToLocation ident = do
+    hieLcRanges <-
+      either
+        (fmap maybeToList . modToLocation)
+        nameToLocation
+        ident
+    fileRanges <- mapM (runMaybeT . (hieFileLcToFileLc)) hieLcRanges
+    pure $ catMaybes fileRanges
 
-    modToLocation :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe FileLcRange)
-    modToLocation modName = runMaybeT $ do
-      srcFile <- modToSrcFile modName
-      pure $ FileWith srcFile (LineColRange.empty (LineCol 0 0))
+  modToLocation :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe FileLcRange)
+  modToLocation modName = runMaybeT $ do
+    srcFile <- modToSrcFile modName
+    pure $ FileWith srcFile (LineColRange.empty (LineCol 0 0))
 
 getTypeDefinition ::
   (HasCallStack, HasStaticEnv m, HasSemantic m, MonadIO m, MonadThrow m) =>
@@ -91,16 +91,16 @@ getTypeDefinition path lineCol = do
     let types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
     join <$> mapM (lift . nameToLocation) (typeToName =<< types)
   pure $ fromMaybe [] mLocationLinks
-  where
-    typeToName = goTypeToName []
+ where
+  typeToName = goTypeToName []
 
-    goTypeToName :: [GHC.Name] -> GHC.HieTypeFix -> [GHC.Name]
-    goTypeToName acc (GHC.Roll tyFix) =
-      Foldable.foldl' goTypeToName (name ++ acc) tyFix
-      where
-        name = case tyFix of
-          (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
-          _ -> []
+  goTypeToName :: [GHC.Name] -> GHC.HieTypeFix -> [GHC.Name]
+  goTypeToName acc (GHC.Roll tyFix) =
+    Foldable.foldl' goTypeToName (name ++ acc) tyFix
+   where
+    name = case tyFix of
+      (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
+      _ -> []
 
 ---------------------------------------------------------------------
 -- The following code is largely taken from ghcide with slight modifications
@@ -117,8 +117,8 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
   case GHC.nameSrcSpan name of
     sp@(GHC.RealSrcSpan rsp _)
       -- Lookup in the db if we got a location in a boot file
-      | fs <- GHC.unpackFS (GHC.srcSpanFile rsp),
-        not $ "boot" `isSuffixOf` fs ->
+      | fs <- GHC.unpackFS (GHC.srcSpanFile rsp)
+      , not $ "boot" `isSuffixOf` fs ->
           do
             itExists <- liftIO $ doesFileExist fs
             if itExists
@@ -128,26 +128,26 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
               -- Let's fall back to the hiedb in case it contains local paths
                 fallbackToDb sp
     sp -> fallbackToDb sp
-  where
-    fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.SrcSpan -> MaybeT m [FileLcRange]
-    fallbackToDb sp = do
-      guard (sp /= GHC.wiredInSrcSpan)
-      -- This case usually arises when the definition is in an external package.
-      -- In this case the interface files contain garbage source spans
-      -- so we instead read the .hie files to get useful source spans.
-      mod' <- MaybeT $ return $ GHC.nameModule_maybe name
-      erow <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (GHC.nameOccName name) (Just $ GHC.moduleName mod') (Just $ GHC.moduleUnit mod'))
-      case erow of
-        [] -> do
-          -- If the lookup failed, try again without specifying a unit-id.
-          -- This is a hack to make find definition work better with ghcide's nascent multi-component support,
-          -- where names from a component that has been indexed in a previous session but not loaded in this
-          -- session may end up with different unit ids
-          erow' <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (GHC.nameOccName name) (Just $ GHC.moduleName mod') Nothing)
-          case erow' of
-            [] -> MaybeT $ pure Nothing
-            xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
-        xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
+ where
+  fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.SrcSpan -> MaybeT m [FileLcRange]
+  fallbackToDb sp = do
+    guard (sp /= GHC.wiredInSrcSpan)
+    -- This case usually arises when the definition is in an external package.
+    -- In this case the interface files contain garbage source spans
+    -- so we instead read the .hie files to get useful source spans.
+    mod' <- MaybeT $ return $ GHC.nameModule_maybe name
+    erow <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (GHC.nameOccName name) (Just $ GHC.moduleName mod') (Just $ GHC.moduleUnit mod'))
+    case erow of
+      [] -> do
+        -- If the lookup failed, try again without specifying a unit-id.
+        -- This is a hack to make find definition work better with ghcide's nascent multi-component support,
+        -- where names from a component that has been indexed in a previous session but not loaded in this
+        -- session may end up with different unit ids
+        erow' <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (GHC.nameOccName name) (Just $ GHC.moduleName mod') Nothing)
+        case erow' of
+          [] -> MaybeT $ pure Nothing
+          xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
+      xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
 
 srcSpanToLocation :: (HasCallStack, HasStaticEnv m) => GHC.SrcSpan -> MaybeT m FileLcRange
 srcSpanToLocation src = do

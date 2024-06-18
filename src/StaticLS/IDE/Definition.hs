@@ -1,5 +1,4 @@
-module StaticLS.IDE.Definition (getDefinition, getTypeDefinition)
-where
+module StaticLS.IDE.Definition (getDefinition, getTypeDefinition) where
 
 import Control.Monad (guard, join)
 import Control.Monad.Catch
@@ -28,20 +27,22 @@ import GHC.Iface.Type qualified as GHC
 import GHC.Plugins qualified as GHC
 import GHC.Utils.Monad (mapMaybeM)
 import HieDb qualified
-import StaticLS.FileEnv
-import StaticLS.HIE
+
 import StaticLS.HIE.File
 import StaticLS.HIE.File qualified as HIE.File
+import StaticLS.HIE.Position
+import StaticLS.HIE.Queries
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.HiePos
 import StaticLS.Logger
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
+import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
-import StaticLS.StaticLsEnv
 import System.Directory (doesFileExist)
 
 getDefinition ::
-  (HasCallStack, HasLogger m, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
+  (HasCallStack, HasLogger m, HasStaticEnv m, HasSemantic m, MonadIO m, MonadThrow m) =>
   AbsPath ->
   LineCol ->
   m [FileLcRange]
@@ -61,7 +62,7 @@ getDefinition path lineCol = do
     join <$> mapM identifierToLocation identifiersAtPoint
   pure $ fromMaybe [] mLocationLinks
  where
-  identifierToLocation :: (HasStaticEnv m, MonadIO m, HasFileEnv m, MonadThrow m) => GHC.Identifier -> m [FileLcRange]
+  identifierToLocation :: (HasStaticEnv m, MonadIO m, HasSemantic m, MonadThrow m) => GHC.Identifier -> m [FileLcRange]
   identifierToLocation ident = do
     hieLcRanges <-
       either
@@ -77,7 +78,7 @@ getDefinition path lineCol = do
     pure $ FileWith srcFile (LineColRange.empty (LineCol 0 0))
 
 getTypeDefinition ::
-  (HasCallStack, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>
+  (HasCallStack, HasStaticEnv m, HasSemantic m, MonadIO m, MonadThrow m) =>
   AbsPath ->
   LineCol ->
   m [FileLcRange]

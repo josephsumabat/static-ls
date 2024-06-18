@@ -6,8 +6,9 @@ import Data.LineColRange (LineColRange (..))
 import Data.Path qualified as Path
 import StaticLS.HI
 import StaticLS.HI.File
-import StaticLS.HIE
 import StaticLS.HIE.File
+import StaticLS.HIE.Position
+import StaticLS.HIE.Queries
 import StaticLS.IDE.FileWith (FileWith (..))
 import Test.Hspec
 import TestImport.Assert qualified as Test
@@ -19,7 +20,7 @@ spec = do
     it "Returns expected docs" $ do
       hiFile <- runMaybeT $ readHiFile "test/TestData/.hifiles/TestData/Mod2.hi"
       hiePath <- Path.filePathToAbs "test/TestData/.hiefiles/TestData/Mod2.hie"
-      eHieFile <- runExceptT $ getHieFile hiePath
+      eHieFile <- runExceptT $ getHieFileFromHiePath hiePath
       hieFile <- Test.assertRight "expected hie file" eHieFile
       modiface <- Test.assertJust "expected succesful read" hiFile
       fnLocation <- myFunDefLocation

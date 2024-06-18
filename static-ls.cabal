@@ -46,13 +46,13 @@ library
       Data.Rope
       Data.TextUtils
       StaticLS.Except
-      StaticLS.FileEnv
       StaticLS.FilePath
       StaticLS.HI
       StaticLS.HI.File
-      StaticLS.HIE
       StaticLS.HIE.File
       StaticLS.HIE.File.Except
+      StaticLS.HIE.Position
+      StaticLS.HIE.Queries
       StaticLS.HieDb
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AddTypeSig
@@ -62,23 +62,28 @@ library
       StaticLS.IDE.Definition
       StaticLS.IDE.DocumentSymbols
       StaticLS.IDE.FileWith
+      StaticLS.IDE.HiePos
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.References
       StaticLS.IDE.Rename
       StaticLS.IDE.SourceEdit
       StaticLS.IDE.SymbolKind
+      StaticLS.IDE.Utils
       StaticLS.IDE.Workspace.Symbol
       StaticLS.Logger
       StaticLS.Maybe
+      StaticLS.Monad
       StaticLS.PositionDiff
       StaticLS.ProtoLSP
       StaticLS.SDoc
+      StaticLS.Semantic
+      StaticLS.Semantic.Position
+      StaticLS.Semantic.Types
       StaticLS.Server
       StaticLS.SrcFiles
       StaticLS.StaticEnv
       StaticLS.StaticEnv.Options
-      StaticLS.StaticLsEnv
       StaticLS.Tree
       StaticLS.Utils
   other-modules:

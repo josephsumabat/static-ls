@@ -10,11 +10,12 @@ import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Sum
 import Data.Text (Text)
-import StaticLS.HIE (astRangeToLineColRange)
 import StaticLS.IDE.SymbolKind (SymbolKind)
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
+import StaticLS.IDE.Utils
 import StaticLS.Logger
-import StaticLS.StaticLsEnv
+import StaticLS.Monad
+import StaticLS.Semantic.Position
 
 data SymbolTree = SymbolTree
   { name :: !Text

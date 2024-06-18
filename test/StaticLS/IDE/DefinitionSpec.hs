@@ -2,25 +2,24 @@ module StaticLS.IDE.DefinitionSpec (spec) where
 
 import Control.Monad.IO.Class (liftIO)
 import StaticLS.IDE.Definition
+import StaticLS.Monad
 import StaticLS.StaticEnv.Options
-import StaticLS.StaticLsEnv
 import Test.Hspec
 import TestImport qualified as Test
 import TestImport.TestData qualified as Test
 
 spec :: Spec
 spec = do
-  let
-    check name initOpts mkPathAndPos expected = do
-      it name $ do
-        staticEnv <- Test.initStaticLsEnvOpts initOpts
-        defnLinks <- runStaticLsM staticEnv $ do
-          pathAndPos@(path, _) <- liftIO mkPathAndPos
-          _ <- Test.updateTestFileState path
-          uncurry getDefinition pathAndPos
-        expectedDefnLinks <- expected
-        defnLinks `shouldBe` expectedDefnLinks
-        pure ()
+  let check name initOpts mkPathAndPos expected = do
+        it name $ do
+          staticEnv <- Test.initEnvOpts initOpts
+          defnLinks <- runStaticLsM staticEnv $ do
+            pathAndPos@(path, _) <- liftIO mkPathAndPos
+            _ <- Test.updateTestFileState path
+            uncurry getDefinition pathAndPos
+          expectedDefnLinks <- expected
+          defnLinks `shouldBe` expectedDefnLinks
+          pure ()
   pure ()
 
   describe "Correctly retrieves definitions" $ do

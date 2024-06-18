@@ -10,8 +10,8 @@ import Data.Text (Text)
 import StaticLS.IDE.CodeActions qualified as CodeActions
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
-import StaticLS.StaticLsEnv
-import StaticLS.StaticLsEnv qualified as StaticLsEnv
+import StaticLS.IDE.Utils
+import StaticLS.Monad
 import StaticLS.Utils (isJustOrThrowS)
 import Test.Hspec
 
@@ -24,7 +24,7 @@ checkCodeAction ::
   Maybe (Text, [Assist] -> Maybe Assist) ->
   StaticLsM ()
 checkCodeAction path pos codeAction findAssist = do
-  rope <- StaticLsEnv.getSourceRope path
+  rope <- getSourceRope path
   let lineCol = Rope.posToLineCol rope pos
   let cx = CodeActionContext {path, pos, lineCol}
   sourceEdit <- do

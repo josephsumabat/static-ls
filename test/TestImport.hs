@@ -8,21 +8,20 @@ import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text.IO qualified as T
 import StaticLS.Logger
+import StaticLS.Monad
 import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
-import StaticLS.StaticLsEnv (StaticLsEnv (..), StaticLsM)
-import StaticLS.StaticLsEnv qualified as StaticLsEnv
 import System.Directory (doesFileExist, listDirectory)
 
-initStaticLsEnv :: IO StaticLsEnv
-initStaticLsEnv = do
-  initStaticLsEnvOpts defaultTestStaticEnvOptions
+initTestEnv :: IO Env
+initTestEnv = do
+  initEnvOpts defaultTestStaticEnvOptions
 
 runStaticLsSimple :: StaticLsM a -> IO a
 runStaticLsSimple action = do
-  env <- initStaticLsEnv
-  StaticLsEnv.runStaticLsM env action
+  env <- initTestEnv
+  runStaticLsM env action
 
 -- updates the file state by reading it from the file system
 updateTestFileState :: AbsPath -> StaticLsM ()
@@ -63,14 +62,14 @@ initStaticEnvOpts options = do
   wsRoot <- Path.filePathToAbs "."
   StaticEnv.initStaticEnv wsRoot options
 
-initStaticLsEnvOpts :: StaticEnvOptions -> IO StaticLsEnv
-initStaticLsEnvOpts options = do
+initEnvOpts :: StaticEnvOptions -> IO Env
+initEnvOpts options = do
   wsRoot <- Path.filePathToAbs "."
-  StaticLsEnv.initStaticLsEnv wsRoot options noOpLogger
+  initEnv wsRoot options noOpLogger
 
-initTotalVfs :: StaticLsEnv -> IO StaticLsEnv
+initTotalVfs :: Env -> IO Env
 initTotalVfs staticLsEnv = do
-  StaticLsEnv.runStaticLsM staticLsEnv $ do
+  runStaticLsM staticLsEnv $ do
     let testDataPath = "./test/TestData/"
     testDataFiles <- liftIO $ listDirectory testDataPath
     testDataFilePaths <- filterM (liftIO . doesFileExist) $ (testDataPath <>) <$> testDataFiles

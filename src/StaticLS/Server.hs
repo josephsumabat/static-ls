@@ -10,13 +10,11 @@ module StaticLS.Server (
 )
 where
 
-import AST.Haskell qualified as Haskell
 import Colog.Core qualified as Colog
 import Control.Lens.Operators
 import Control.Monad.Reader
 import Control.Monad.Trans.Except
 import Data.Aeson qualified as Aeson
-import Data.HashMap.Strict qualified as HashMap
 import Data.List as X
 import Data.Maybe as X (fromMaybe)
 import Data.Path (AbsPath)
@@ -45,24 +43,24 @@ import Language.LSP.Server (
  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
-import StaticLS.FileEnv
 import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
 import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
 import StaticLS.IDE.Completion (Completion (..), getCompletion)
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
+import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
+import StaticLS.IDE.Utils
 import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
-import StaticLS.PositionDiff qualified as PositionDiff
+import StaticLS.Monad
 import StaticLS.ProtoLSP qualified as ProtoLSP
+import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv.Options
-import StaticLS.StaticLsEnv
 import StaticLS.Utils
 import UnliftIO.Exception qualified as Exception
-import UnliftIO.IORef qualified as IORef
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -117,22 +115,7 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   updateFileStateForUri params._textDocument._uri
 
 updateFileState :: AbsPath -> Rope.Rope -> StaticLsM ()
-updateFileState path contentsRope = do
-  let contentsText = Rope.toText contentsRope
-  let tree = Haskell.parse contentsText
-  let tokens = PositionDiff.lex $ T.unpack contentsText
-  fileStates <- asks (.fileEnv)
-  IORef.modifyIORef' fileStates $ \fileStates ->
-    HashMap.insert
-      path
-      FileState
-        { contentsRope
-        , contentsText
-        , tree
-        , tokens
-        }
-      fileStates
-  pure ()
+updateFileState path contentsRope = Semantic.updateSemantic path contentsRope
 
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
@@ -259,7 +242,7 @@ handleDocumentSymbols = LSP.requestHandler SMethod_TextDocumentDocumentSymbol $ 
 -----------------------------------------------------------------
 
 data LspEnv config = LspEnv
-  { staticLsEnv :: StaticLsEnv
+  { staticLsEnv :: Env
   , config :: LanguageContextEnv config
   }
 
@@ -268,7 +251,7 @@ initServer staticEnvOptions logger serverConfig _ = do
   runExceptT $ do
     wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
     wsRoot <- Path.filePathToAbs wsRoot
-    serverStaticEnv <- ExceptT $ Right <$> initStaticLsEnv wsRoot staticEnvOptions logger
+    serverStaticEnv <- ExceptT $ Right <$> initEnv wsRoot staticEnvOptions logger
     pure $
       LspEnv
         { staticLsEnv = serverStaticEnv

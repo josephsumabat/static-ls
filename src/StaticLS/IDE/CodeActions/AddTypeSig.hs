@@ -7,19 +7,20 @@ import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
 import Data.Edit qualified as Edit
 import Data.Either.Extra qualified as Either.Extra
-import Data.Path (AbsPath)
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Range qualified as Range
 import Data.Rope qualified as Rope
 import Data.Sum (Nil, (:+), pattern Inj)
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.HIE
 import StaticLS.HIE.File (getHieFileFromPath)
+import StaticLS.HIE.Queries
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
+import StaticLS.IDE.Utils
 import StaticLS.Logger
-import StaticLS.StaticLsEnv
+import StaticLS.Monad
+import StaticLS.Semantic.Position
 import StaticLS.Utils (isRightOrThrowT)
 
 type AddTypeContext = Haskell.Bind :+ Haskell.Function :+ Nil

@@ -24,13 +24,15 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
-import StaticLS.HIE
+
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
+import StaticLS.IDE.Utils
 import StaticLS.Logger
+import StaticLS.Monad
+import StaticLS.Semantic.Position
 import StaticLS.StaticEnv (runHieDbExceptT)
-import StaticLS.StaticLsEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils
 

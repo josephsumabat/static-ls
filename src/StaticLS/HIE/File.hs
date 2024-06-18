@@ -1,32 +1,34 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module StaticLS.HIE.File (
-  modToHieFile,
-  modToSrcFile,
-  srcFilePathToHieFilePath,
-  hieFilePathToSrcFilePath,
-  -- | An alternate way of getting file information by pre-indexing hie files -
-  -- far slower on startup and currently unused
-  getHieFileMap,
-  hieFileMapToSrcMap,
-  getHieFileFromHiePath,
-  getHieFileFromPath,
-  getHieSource,
-  MonadHieFile (..),
-  HieFile,
-)
+module StaticLS.HIE.File
+  ( modToHieFile,
+    modToSrcFile,
+    srcFilePathToHieFilePath,
+    hieFilePathToSrcFilePath,
+    -- | An alternate way of getting file information by pre-indexing hie files -
+    -- far slower on startup and currently unused
+    getHieFileMap,
+    hieFileMapToSrcMap,
+    getHieFileFromHiePath,
+    getHieFileFromPath,
+    getHieSource,
+    MonadHieFile (..),
+    HieFile (..),
+  )
 where
 
 import Control.Applicative ((<|>))
 import Control.Exception (SomeException, catch)
 import Control.Monad ((<=<))
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
+import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
 import Data.Bifunctor (first, second)
 import Data.Map qualified as Map
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
+import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
 import GHC qualified
@@ -43,17 +45,28 @@ import StaticLS.StaticEnv
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
 
-type HieFile = GHC.HieFile
+data HieFile = HieFile
+  { src :: !Text,
+    file :: !GHC.HieFile
+  }
 
 class MonadHieFile m where
   getHieFile :: AbsPath -> MaybeT m HieFile
+
+instance (Monad m, MonadHieFile m) => MonadHieFile (MaybeT m) where
+  getHieFile p = do
+    let res = getHieFile @m p
+    lift res
 
 -- | Retrieve a hie info from a lsp text document identifier
 -- Returns a Maybe instead of throwing because we want to handle
 -- the case when there is no hie file and do something reasonable
 -- Most functions that get the file text will throw if the file text is not found
-getHieFileFromPath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m GHC.HieFile
-getHieFileFromPath = (exceptToMaybeT . getHieFileFromHiePath) <=< srcFilePathToHieFilePath
+getHieFileFromPath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m HieFile
+getHieFileFromPath path = do
+  file <- ((exceptToMaybeT . getHieFileFromHiePath) <=< srcFilePathToHieFilePath) path
+  let src = T.Encoding.decodeUtf8 $ GHC.hie_hs_src file
+  pure HieFile {src, file}
 
 getHieSource :: GHC.HieFile -> T.Text
 getHieSource hieFile = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
@@ -152,8 +165,8 @@ srcFilePathToHieFilePathFromFile srcPath = do
 -- finding references for functions that are used a lot much faster
 -----------------------------------------------------------------------------------
 data HieInfo = HieInfo
-  { hieFilePath :: HieFilePath
-  , hieFile :: GHC.HieFile
+  { hieFilePath :: HieFilePath,
+    hieFile :: GHC.HieFile
   }
 
 getHieFileMap :: FilePath -> HieFilePath -> IO (Map.Map SrcFilePath HieInfo)
@@ -164,18 +177,18 @@ getHieFileMap wsroot hieDir = do
   srcPathHieInfoPairs <- mapM (srcFileToHieFileInfo nameCache) hieFilePaths
 
   pure $ Map.fromList srcPathHieInfoPairs
- where
-  srcFileToHieFileInfo :: GHC.NameCache -> HieFilePath -> IO (SrcFilePath, HieInfo)
-  srcFileToHieFileInfo nameCache hieFilePath = do
-    hieFileResult <- GHC.readHieFile nameCache hieFilePath
-    absSrcFilePath <- Dir.makeAbsolute hieFileResult.hie_file_result.hie_hs_file
-    absHieFilePath <- Dir.makeAbsolute hieFilePath
-    let hieInfo =
-          HieInfo
-            { hieFilePath = absHieFilePath
-            , hieFile = hieFileResult.hie_file_result
-            }
-    pure (absSrcFilePath, hieInfo)
+  where
+    srcFileToHieFileInfo :: GHC.NameCache -> HieFilePath -> IO (SrcFilePath, HieInfo)
+    srcFileToHieFileInfo nameCache hieFilePath = do
+      hieFileResult <- GHC.readHieFile nameCache hieFilePath
+      absSrcFilePath <- Dir.makeAbsolute hieFileResult.hie_file_result.hie_hs_file
+      absHieFilePath <- Dir.makeAbsolute hieFilePath
+      let hieInfo =
+            HieInfo
+              { hieFilePath = absHieFilePath,
+                hieFile = hieFileResult.hie_file_result
+              }
+      pure (absSrcFilePath, hieInfo)
 
 hieFileMapToSrcMap :: Map.Map SrcFilePath HieInfo -> Map.Map HieFilePath SrcFilePath
 hieFileMapToSrcMap =

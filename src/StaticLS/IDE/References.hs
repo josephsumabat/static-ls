@@ -2,7 +2,6 @@ module StaticLS.IDE.References (findRefs) where
 
 import Control.Error.Util (hoistMaybe)
 import Control.Monad (join)
-import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
@@ -15,9 +14,7 @@ import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
-import Data.Text.Encoding qualified as T.Encoding
 import Data.Traversable (for)
-import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins qualified as GHC
 import HieDb qualified
 import StaticLS.HIE.File hiding (getHieSource)
@@ -28,10 +25,12 @@ import StaticLS.IDE.HiePos
 import StaticLS.IDE.Utils
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
-import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
 
-hieFileLcRangesToSrc :: (MonadThrow m, HasStaticEnv m, HasSemantic m, MonadIO m) => [FileLcRange] -> m [FileRange]
+hieFileLcRangesToSrc ::
+  (MonadIde m, MonadIO m) =>
+  [FileLcRange] ->
+  m [FileRange]
 hieFileLcRangesToSrc ranges = do
   let rangesForFile =
         HashMap.fromListWith (++) $
@@ -56,14 +55,13 @@ hieFileLcRangesToSrc ranges = do
       pure FileWith {path, loc = srcRange}
   pure srcRanges
 
-findRefs :: (HasLogger m, HasStaticEnv m, MonadThrow m, HasSemantic m, MonadIO m) => AbsPath -> LineCol -> m [FileRange]
+findRefs :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileRange]
 findRefs path lineCol = do
   mLocList <- runMaybeT $ do
-    hieFile <- getHieFileFromPath path
-    let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-    lineCol' <- lineColToHieLineCol path hieSource lineCol
+    hieFile <- getHieFile path
+    lineCol' <- lineColToHieLineCol path lineCol
     let hiedbPosition = lineColToHieDbCoords lineCol'
-        names = namesAtPoint hieFile hiedbPosition
+        names = namesAtPoint hieFile.file hiedbPosition
         occNamesAndModNamesAtPoint =
           (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
             <$> names

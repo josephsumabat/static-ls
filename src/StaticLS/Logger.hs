@@ -1,23 +1,25 @@
-module StaticLS.Logger (
-  Msg (..),
-  Logger,
-  LoggerM,
-  HasLogger,
-  setupLogger,
-  noOpLogger,
-  HasCallStack,
-  CallStack,
-  callStack,
-  logWith,
-  logInfo,
-  logError,
-  logWarn,
-  getLogger,
-)
+module StaticLS.Logger
+  ( Msg (..),
+    Logger,
+    LoggerM,
+    HasLogger,
+    setupLogger,
+    noOpLogger,
+    HasCallStack,
+    CallStack,
+    callStack,
+    logWith,
+    logInfo,
+    logError,
+    logWarn,
+    getLogger,
+  )
 where
 
 import Colog.Core qualified as Colog
 import Control.Monad.IO.Class (MonadIO (..))
+import Control.Monad.Trans (lift)
+import Control.Monad.Trans.Maybe (MaybeT)
 import Data.ByteString qualified as B
 import Data.Text (Text)
 import Data.Text.Encoding qualified as T.Encoding
@@ -28,6 +30,9 @@ type Logger = LoggerM IO
 
 class HasLogger m where
   getLogger :: m Logger
+
+instance (Monad m, HasLogger m) => HasLogger (MaybeT m) where
+  getLogger = lift getLogger
 
 logWith :: (HasCallStack, HasLogger m, MonadIO m) => Colog.Severity -> Text -> CallStack -> m ()
 logWith severity text stack = do
@@ -56,9 +61,9 @@ logger = Colog.cmap msgToText textStderrLogger
 type LoggerM m = Colog.LogAction m Msg
 
 data Msg = Msg
-  { severity :: !Colog.Severity
-  , stack :: !CallStack
-  , text :: !Text
+  { severity :: !Colog.Severity,
+    stack :: !CallStack,
+    text :: !Text
   }
   deriving (Show)
 

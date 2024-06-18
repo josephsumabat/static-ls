@@ -25,10 +25,10 @@ instance (SetSemantic m) => SetSemantic (MaybeT m) where
   setSemantic sema = lift (setSemantic sema)
 
 data FileState = FileState
-  { contentsRope :: Rope
-  , contentsText :: Text
-  , tree :: Haskell.Haskell
-  , tokens :: [PositionDiff.Token]
+  { contentsRope :: Rope,
+    contentsText :: Text,
+    tree :: Haskell.Haskell,
+    tokens :: [PositionDiff.Token]
   }
   deriving (Show)
 
@@ -42,18 +42,35 @@ mkSemantic =
     { fileStates = mempty
     }
 
-updateSemantic :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> Rope.Rope -> m ()
-updateSemantic path contentsRope = do
-  let contentsText = Rope.toText contentsRope
-  let tree = Haskell.parse contentsText
-  let tokens = PositionDiff.lex $ T.unpack contentsText
+mkFileState :: Text -> Rope -> FileState
+mkFileState contentsText contentsRope =
+  FileState
+    { contentsRope,
+      contentsText,
+      tree = Haskell.parse contentsText,
+      tokens = PositionDiff.lex $ T.unpack contentsText
+    }
+
+removePath :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> m ()
+removePath path = do
   sema <- getSemantic
   setSemantic $
     sema
-      { fileStates =
-          HashMap.insert
-            path
-            FileState {contentsRope, contentsText, tree, tokens}
-            sema.fileStates
+      { fileStates = HashMap.delete path sema.fileStates
       }
   pure ()
+
+setFileState :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> FileState -> m ()
+setFileState path fileState = do
+  sema <- getSemantic
+  setSemantic $
+    sema
+      { fileStates = HashMap.insert path fileState sema.fileStates
+      }
+  pure ()
+
+updateSemantic :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> Rope.Rope -> m ()
+updateSemantic path contentsRope = do
+  let contentsText = Rope.toText contentsRope
+  let fileState = mkFileState contentsText contentsRope
+  setFileState path fileState

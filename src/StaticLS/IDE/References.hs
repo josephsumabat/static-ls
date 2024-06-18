@@ -20,7 +20,6 @@ import Data.Traversable (for)
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins qualified as GHC
 import HieDb qualified
-
 import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
@@ -29,7 +28,6 @@ import StaticLS.IDE.HiePos
 import StaticLS.IDE.Utils
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
-import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
 

@@ -13,11 +13,10 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.Logger (logInfo)
-import StaticLS.StaticEnv
-
 import StaticLS.IDE.Utils
+import StaticLS.Logger (logInfo)
 import StaticLS.Monad
+import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath

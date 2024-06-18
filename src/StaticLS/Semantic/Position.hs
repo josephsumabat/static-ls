@@ -32,25 +32,3 @@ lineColToAstPoint (LineCol line col) =
     { row = fromIntegral line
     , col = fromIntegral col
     }
-
--- -- TODO: this is wrong, ast positions can hit the end of the line exclusive
--- -- but if lsp positions want to hit include the newline, it must start at the next line
--- astRangeToLspRange :: AST.Range -> LSP.Range
--- astRangeToLspRange range =
---   LSP.Range
---     { _start =
---         LSP.Position
---           { _line =
---               fromIntegral $
---                 AST.row $
---                   AST.startPoint range
---           , _character = fromIntegral $ AST.col $ AST.startPoint range
---           }
---     , _end =
---         LSP.Position
---           { _line =
---               fromIntegral $ AST.row $ AST.endPoint range
---           , _character =
---               fromIntegral (AST.col (AST.endPoint range))
---           }
---     }

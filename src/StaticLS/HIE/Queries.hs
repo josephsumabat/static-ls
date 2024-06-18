@@ -1,22 +1,16 @@
 module StaticLS.HIE.Queries where
 
-import AST qualified
 import Control.Error.Util (hush)
 import Control.Monad (join, (<=<))
-import Control.Monad.Catch
-import Control.Monad.Trans.Except (ExceptT, throwE)
-import Data.LineColRange (LineColRange (..))
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
-import Data.Pos (LineCol (..), Pos (..))
-import Data.Range (Range (..))
+import Data.Pos (LineCol (..))
 import Data.Set qualified as Set
 import Data.Text (Text)
 import GHC qualified
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
 import HieDb (pointCommand)
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.HIE.Position
 import StaticLS.SDoc (showGhc)
 

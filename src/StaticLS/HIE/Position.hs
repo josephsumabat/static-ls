@@ -1,7 +1,6 @@
 module StaticLS.HIE.Position where
 
 import Control.Exception (Exception)
-import Control.Monad.Except
 import Data.Pos (LineCol (..))
 
 -- | LSP Position is 0 indexed

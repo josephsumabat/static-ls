@@ -59,6 +59,8 @@ dependencies:
   - neat-interpolation
   - typed-process
   - cryptohash-md5
+  - async
+  - fsnotify
 language: GHC2021
 default-extensions:
 - LambdaCase
@@ -92,6 +94,11 @@ executable:
   - optparse-applicative >= 0.17.0.0 && < 0.19
   generated-other-modules:
     - Paths_static_ls
+  ghc-options:
+    # rtsopts
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
 
 tests:
   static-ls-test:
@@ -113,6 +120,10 @@ tests:
       - -hiedir test/TestData/.hiefiles
       - -hidir test/TestData/.hifiles
       - -haddock
+      # rtsopts
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
 
 flags:
   dev:

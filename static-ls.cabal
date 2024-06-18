@@ -47,6 +47,7 @@ library
       Data.TextUtils
       StaticLS.Except
       StaticLS.FilePath
+      StaticLS.Handlers
       StaticLS.HI
       StaticLS.HI.File
       StaticLS.HIE.File
@@ -108,6 +109,7 @@ library
       Diff
     , aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
+    , async
     , base >=4.17.0 && <4.19
     , bytestring >=0.10 && <0.13
     , co-log-core ==0.3.*
@@ -118,6 +120,7 @@ library
     , exceptions
     , extra >=1.7.12 && <1.8
     , filepath
+    , fsnotify
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
@@ -168,11 +171,12 @@ executable static-ls
       PatternSynonyms
       BlockArguments
       ViewPatterns
-  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Diff
     , aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
+    , async
     , base >=4.17.0 && <4.19
     , bytestring >=0.10 && <0.13
     , co-log-core ==0.3.*
@@ -183,6 +187,7 @@ executable static-ls
     , exceptions
     , extra >=1.7.12 && <1.8
     , filepath
+    , fsnotify
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0
@@ -259,12 +264,13 @@ test-suite static-ls-test
       PatternSynonyms
       BlockArguments
       ViewPatterns
-  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -fwrite-ide-info -fwrite-interface -hiedir test/TestData/.hiefiles -hidir test/TestData/.hifiles -haddock -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Diff
     , QuickCheck
     , aeson >=2 && <2.3
     , array >=0.5.4 && <0.6
+    , async
     , base >=4.17.0 && <4.19
     , bytestring >=0.10 && <0.13
     , co-log-core ==0.3.*
@@ -275,6 +281,7 @@ test-suite static-ls-test
     , exceptions
     , extra >=1.7.12 && <1.8
     , filepath
+    , fsnotify
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , ghcide >=2.5.0 && <2.8.0

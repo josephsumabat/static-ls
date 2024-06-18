@@ -14,6 +14,7 @@ module StaticLS.PositionDiff (
   getDiffMap,
   printDiffSummary,
   lexWithErrors,
+  concatTokens,
 )
 where
 
@@ -58,7 +59,7 @@ lexWithErrors s = (res, es)
            in Token {text, len = T.length text}
       )
       ts
-  ts = (Lexer.lexerPass1 s)
+  ts = (Lexer.lexerPass0 s)
 
 lex :: String -> [Token]
 lex source =
@@ -69,7 +70,7 @@ lex source =
     )
     ts
  where
-  ts = (Lexer.lexerPass1 source)
+  ts = (Lexer.lexerPass0 source)
 
 type TokenDiff = [Diff.Elem Token]
 

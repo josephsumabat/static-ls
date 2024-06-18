@@ -31,6 +31,7 @@ import HieDb qualified
 import StaticLS.FileEnv
 import StaticLS.HIE
 import StaticLS.HIE.File
+import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.Logger
 import StaticLS.Maybe
@@ -47,7 +48,7 @@ getDefinition ::
 getDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieFile <- getHieFileFromPath path
-    let hieSource = getHieSource hieFile
+    let hieSource = HIE.File.getHieSource hieFile
     lineCol' <- lineColToHieLineCol path hieSource lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
     let identifiersAtPoint =

@@ -2,50 +2,58 @@
 
 module StaticLS.PositionDiffSpec where
 
-import Data.Algorithm.Diff qualified as Diff
+import Data.Diff qualified as Diff
 import Data.Pos
 import StaticLS.PositionDiff
+import StaticLS.PositionDiff qualified as PositionDiff
 import Test.Hspec
 
 spec :: Spec
 spec = do
-  it "tokens before pos" do
-    let ts = [mkToken "module", mkToken "da"]
-    let ts' = [mkToken "module", mkToken "ca", mkToken "da"]
-    let diff = Diff.getDiff ts ts'
-    getDiffBeforePos 0 diff
-      `shouldBe` [ Diff.Both
-                    (mkToken "module")
-                    (mkToken "module")
-                 ]
-    getDiffBeforePos 0 (flipDiff diff)
-      `shouldBe` [ Diff.Both
-                    (mkToken "module")
-                    (mkToken "module")
-                 ]
-    getDiffBeforePos 5 (flipDiff diff)
-      `shouldBe` [ Diff.Both
-                    (mkToken "module")
-                    (mkToken "module")
-                 ]
-    updatePositionUsingDiff (Pos 0) (flipDiff diff) `shouldBe` Pos 0
-    updatePositionUsingDiff (Pos 6) (Diff.getDiff ts' ts) `shouldBe` Pos 5
-    updatePositionUsingDiff (Pos 1) [Delete (mkToken "hello")] `shouldBe` Pos 0
-    pure @IO ()
-  it "delete clip" do
-    let ts = [mkToken "module", mkToken "da"]
-    let ts' = [mkToken "module", mkToken "ca", mkToken "da"]
-    getDiffBeforePos 6 (Diff.getDiff ts' ts)
-      `shouldBe` [ Keep
-                    (mkToken "module")
-                    (mkToken "module")
-                 , Delete
-                    (mkToken "c")
-                 ]
-    pure @IO ()
-  it "insert and delete clip" do
-    let ts = [mkToken "module"]
-    let ts' = [mkToken "another"]
-    let _diff = Diff.getDiff ts ts'
-    pure @IO ()
+  let check diff name pos pos' = it name do
+        updatePositionUsingDiff diff pos `shouldBe` pos'
+
+  describe "simple diff" do
+    let diff =
+          [ Diff.Keep (mkToken "module")
+          , Diff.Delete (mkToken "ca")
+          , Diff.Keep (mkToken "da")
+          ]
+
+    let check' = check diff
+
+    check' "" (Pos 0) (Pos 0)
+    check' "" (Pos 1) (Pos 1)
+    check' "clipped 1" (Pos 6) (Pos 6)
+    check' "clipped 2" (Pos 7) (Pos 6)
+
+  describe "last diff is delete" do
+    let diff =
+          [ Diff.Keep (mkToken "module")
+          , Diff.Delete (mkToken "ca")
+          ]
+    let check' = check diff
+    check' "" (Pos 6) (Pos 5)
+    check' "" (Pos 7) (Pos 5)
+    check' "out of bounds" (Pos 8) (Pos 8)
+    pure ()
+
+  describe "more complex diff" do
+    let diff =
+          [ Diff.Keep (mkToken "module")
+          , Diff.Delete (mkToken "ca")
+          , Diff.Keep (mkToken "da")
+          , Diff.Insert (mkToken "hello")
+          , Diff.Delete (mkToken "hela")
+          ]
+    let check' = check diff
+    check' "" (Pos 8) (Pos 6)
+    check' "" (Pos 12) (Pos 12)
+    pure ()
+
+  xit "smoke" do
+    let x = "first second third fourth"
+    let y = "third second third fourth"
+    let diff = PositionDiff.diffText x y
+    diff `shouldBe` []
   pure ()

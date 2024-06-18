@@ -60,16 +60,12 @@ dependencies:
   - typed-process
   - cryptohash-md5
 language: GHC2021
-
 default-extensions:
+- LambdaCase
 - ExplicitNamespaces
-- FlexibleContexts
 - OverloadedRecordDot
 - OverloadedStrings
 - NoFieldSelectors
-- LambdaCase
-- RecordWildCards
-- TypeApplications
 - DuplicateRecordFields
 - DataKinds
 - PatternSynonyms

@@ -1,24 +1,36 @@
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE MultiWayIf #-}
 
-module StaticLS.PositionDiff where
+module StaticLS.PositionDiff (
+  Token (..),
+  mkToken,
+  lex,
+  diffText,
+  updatePositionUsingDiff,
+  DiffMap,
+  diffPos,
+  diffLineCol,
+  diffLineColRange,
+  diffRange,
+  getDiffMap,
+  printDiffSummary,
+  lexWithErrors,
+)
+where
 
-import Data.Algorithm.Diff qualified as Diff
+import Data.Diff qualified as Diff
+import Data.LineColRange (LineColRange (..))
+import Data.List.NonEmpty qualified as NE
+import Data.Maybe qualified as Maybe
 import Data.Pos
+import Data.Range (Range (..))
+import Data.RangeMap (RangeMap)
+import Data.RangeMap qualified as RangeMap
+import Data.Rope (Rope)
+import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Language.Haskell.Lexer qualified as Lexer
 import Prelude hiding (lex)
-
-pattern Insert :: b -> Diff.PolyDiff a b
-pattern Insert x = Diff.Second x
-
-pattern Delete :: a -> Diff.PolyDiff a b
-pattern Delete x = Diff.First x
-
-pattern Keep :: a -> b -> Diff.PolyDiff a b
-pattern Keep a b = Diff.Both a b
-
-{-# COMPLETE Insert, Delete, Keep #-}
 
 data Token = Token
   { text :: !Text
@@ -29,6 +41,25 @@ data Token = Token
 mkToken :: Text -> Token
 mkToken text = Token {text, len = T.length text}
 
+lexWithErrors :: String -> ([Token], [Text])
+lexWithErrors s = (res, es)
+ where
+  es =
+    Maybe.mapMaybe
+      ( \(tok, (_, s)) -> case tok of
+          Lexer.ErrorToken -> Just (T.pack s)
+          _ -> Nothing
+      )
+      ts
+  res =
+    fmap
+      ( \(_tok, (_pos, s)) ->
+          let text = T.pack s
+           in Token {text, len = T.length text}
+      )
+      ts
+  ts = (Lexer.lexerPass1 s)
+
 lex :: String -> [Token]
 lex source =
   fmap
@@ -36,60 +67,111 @@ lex source =
         let text = T.pack s
          in Token {text, len = T.length text}
     )
-    (Lexer.lexerPass0 source)
+    ts
+ where
+  ts = (Lexer.lexerPass1 source)
 
-type TokenDiff = [Diff.PolyDiff Token Token]
+type TokenDiff = [Diff.Elem Token]
+
+printDiffSummary :: TokenDiff -> String
+printDiffSummary diff = show $ (fmap . fmap) (.len) diff
+
+concatTokens :: [Token] -> Token
+concatTokens ts = Token {text = t, len = T.length t}
+ where
+  t = T.concat $ map (.text) ts
 
 diffText :: Text -> Text -> TokenDiff
 diffText x y =
-  Diff.getDiff (lex (T.unpack x)) (lex (T.unpack y))
+  (fmap . fmap) concatTokens $ Diff.diffMerged (lex (T.unpack x)) (lex (T.unpack y))
 
-flipDiff :: TokenDiff -> TokenDiff
-flipDiff = fmap $ \case
-  Diff.First a -> Diff.Second a
-  Diff.Second a -> Diff.First a
-  Diff.Both a b -> Diff.Both b a
+-- staged with diff
+updatePositionUsingDiff :: TokenDiff -> Pos -> Pos
+updatePositionUsingDiff diff =
+  let dm = getDiffMapFromDiff diff
+   in \pos -> diffPos pos dm
 
-updatePositionUsingDiff :: Pos -> TokenDiff -> Pos
-updatePositionUsingDiff (Pos pos) diff =
-  -- say the cursor was on the first deletion
-  -- then in the new text the cursor would have a negative position
-  -- so we clamp it to 0
-  Pos (max (pos + delta) 0)
+data Delta
+  = -- | Any position in the range gets the same delta applied
+    SimpleDelta !Int
+  | -- | Positions in the range get moved to the start of the range
+    -- and then get the delta applied
+    DeleteDelta !Int
+  deriving (Show, Eq)
+
+getDelta :: Delta -> Int
+getDelta (SimpleDelta d) = d
+getDelta (DeleteDelta d) = d
+
+applyLastDelta :: Pos -> Range -> Delta -> Pos
+applyLastDelta (Pos pos) range delta = case delta of
+  SimpleDelta d -> Pos (pos + d)
+  DeleteDelta d -> Pos (range.start.pos - 1 + d)
+
+-- invariant: range must contain pos
+applyDelta :: Pos -> Range -> Delta -> Pos
+applyDelta (Pos pos) range delta = case delta of
+  SimpleDelta d -> Pos (pos + d)
+  DeleteDelta d -> Pos (range.start.pos + d)
+
+-- invariant: returns ranges that are contiguous
+getDeltaList :: TokenDiff -> [(Range, Delta)]
+getDeltaList diff = go diff 0 0
  where
-  diffBeforePos = getDiffBeforePos pos diff
-  delta =
-    sum $
-      fmap
-        ( \case
-            Delete t -> negate t.len
-            Insert t -> t.len
-            Keep _ _ -> 0
-        )
-        diffBeforePos
-
--- pos comes from the original text
--- diff is a diff between the original text and the new text
--- get the diff before the pos that will actually affect pos in the new text
-getDiffBeforePos :: Int -> TokenDiff -> TokenDiff
-getDiffBeforePos pos diff = go diff 0
- where
-  -- use the original tokens to decide when to stop
-  -- pos is part of the original text
-
-  -- if we are past the position, the nothing can affect the position
-  go _ at | at > pos = []
-  -- no diffs left
-  go [] _ = []
-  go (d : ds) at =
-    case d of
-      Delete t ->
-        -- position might be contained inside of the diff,
-        -- so the deletion goes up to the position
-        if at + t.len > pos
-          then [Delete (mkToken (T.take (pos - at + 1) t.text))]
-          else d : go ds (at + t.len)
+  go diff !delta !pos = case diff of
+    [] -> []
+    (d : ds) -> case d of
       -- insertions are not part of the original text
-      Insert _ -> d : go ds at
+      Diff.Insert t -> go ds (delta + t.len) pos
       -- keeps are part of the original text
-      Keep t _ -> d : go ds (at + t.len)
+      Diff.Keep t -> (Range (Pos pos) (Pos (pos + t.len)), SimpleDelta delta) : go ds delta (pos + t.len)
+      -- See 'Delta' documentation
+      Diff.Delete t -> (Range (Pos pos) (Pos (pos + t.len)), DeleteDelta delta) : go ds (delta - t.len) (pos + t.len)
+
+getDiffMap :: Text -> Text -> DiffMap
+getDiffMap x y = getDiffMapFromDiff (diffText x y)
+
+getDiffMapFromDiff :: TokenDiff -> DiffMap
+getDiffMapFromDiff diff =
+  DiffMap
+    { map = RangeMap.fromList deltaList
+    , last = NE.last <$> NE.nonEmpty deltaList
+    }
+ where
+  deltaList = (getDeltaList diff)
+
+data DiffMap = DiffMap
+  { map :: !(RangeMap Delta)
+  , last :: (Maybe (Range, Delta))
+  }
+
+diffPos :: Pos -> DiffMap -> Pos
+diffPos pos DiffMap {map, last} =
+  case last of
+    Nothing -> pos
+    Just (finalRange, finalDelta) ->
+      if
+        | finalRange.end <= pos -> Pos (pos.pos + getDelta finalDelta)
+        | finalRange.start <= pos -> applyLastDelta pos finalRange finalDelta
+        | otherwise ->
+            -- since the ranges are contiguous, there must be a range that contains the position
+            -- we need to do the min incase the position was on a delete that was the last diff element
+            apply $ Maybe.fromJust $ RangeMap.lookupWith pos map
+ where
+  apply (r, d) = applyDelta pos r d
+
+diffLineCol :: Rope -> DiffMap -> Rope -> LineCol -> LineCol
+diffLineCol old diffMap new (LineCol line col) =
+  newLineCol
+ where
+  pos = Rope.lineColToPos old (LineCol line col)
+  newPos = diffPos pos diffMap
+  newLineCol = Rope.posToLineCol new newPos
+
+diffLineColRange :: Rope -> DiffMap -> Rope -> LineColRange -> LineColRange
+diffLineColRange old diffMap new (LineColRange start end) =
+  LineColRange (diffLineCol old diffMap new start) (diffLineCol old diffMap new end)
+
+diffRange :: DiffMap -> Range -> Range
+diffRange diffMap (Range start end) =
+  Range (diffPos start diffMap) (diffPos end diffMap)

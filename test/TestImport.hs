@@ -9,10 +9,10 @@ import Data.Rope qualified as Rope
 import Data.Text.IO qualified as T
 import StaticLS.Logger
 import StaticLS.Monad
-import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
 import System.Directory (doesFileExist, listDirectory)
+import qualified StaticLS.Semantic as Semantic
 
 initTestEnv :: IO Env
 initTestEnv = do
@@ -28,7 +28,7 @@ updateTestFileState :: AbsPath -> StaticLsM ()
 updateTestFileState path = do
   contentsText <- liftIO $ T.readFile (Path.toFilePath path)
   let contents = Rope.fromText contentsText
-  _ <- Server.updateFileState path contents
+  _ <- Semantic.updateSemantic path contents
   pure ()
 
 initStaticEnv :: IO StaticEnv

@@ -4,7 +4,7 @@ import Control.Monad (join)
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), hoistMaybe, runMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes, fromMaybe)
@@ -22,14 +22,13 @@ import StaticLS.FileEnv
 import StaticLS.HIE
 import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
-import StaticLS.IDE.SourceEdit (SourceEdit)
 
 rename :: AbsPath -> LineCol -> StaticLsM SourceEdit
 rename path lineCol = do
-
   pure undefined

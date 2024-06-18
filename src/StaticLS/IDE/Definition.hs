@@ -31,6 +31,7 @@ import HieDb qualified
 import StaticLS.FileEnv
 import StaticLS.HIE
 import StaticLS.HIE.File
+import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.Logger
 import StaticLS.Maybe
@@ -38,7 +39,6 @@ import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv
 import StaticLS.StaticLsEnv
 import System.Directory (doesFileExist)
-import qualified StaticLS.HIE.File as HIE.File
 
 getDefinition ::
   (HasCallStack, HasLogger m, HasStaticEnv m, HasFileEnv m, MonadIO m, MonadThrow m) =>

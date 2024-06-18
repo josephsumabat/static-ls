@@ -1,10 +1,11 @@
 module StaticLS.IDE.References (findRefs) where
 
+import Control.Error.Util (hoistMaybe)
 import Control.Monad (join)
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe (MaybeT (..), hoistMaybe, runMaybeT)
+import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes, fromMaybe)
@@ -40,7 +41,7 @@ hieFileLcRangesToSrc ranges = do
     hieInfo <- runMaybeT do
       hieSource <- getHieSource path
       let hieSourceRope = Rope.fromText hieSource
-      diffMap <- pure $ PositionDiff.getDiffMap hieSource source
+      let diffMap = PositionDiff.getDiffMap hieSource source
       pure (hieSource, hieSourceRope, diffMap)
     pure (path, (hieInfo, source, sourceRope))
   infoForFile <- pure $ HashMap.fromList $ catMaybes infoForFile
@@ -74,7 +75,7 @@ findRefs path lineCol = do
             )
             occNamesAndModNamesAtPoint
     lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refResRows
-  res <- pure $ fromMaybe [] mLocList
+  let res = fromMaybe [] mLocList
   logInfo $ T.pack $ "res: " <> show res
   newRes <- hieFileLcRangesToSrc res
   logInfo $ T.pack $ "newRes: " <> show newRes

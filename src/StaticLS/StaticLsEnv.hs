@@ -14,6 +14,7 @@ import Data.Pos qualified as Position
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
 import Data.Text.IO qualified as T
 import GHC.Iface.Ext.Types qualified as GHC
@@ -27,7 +28,6 @@ import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 import StaticLS.Utils (isJustOrThrowS)
 import System.IO
-import qualified Data.Text as T
 
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information
@@ -97,7 +97,7 @@ getHieSource :: (HasStaticEnv m, HasFileEnv m, MonadThrow m, MonadIO m) => AbsPa
 getHieSource path = do
   hieFile <- HIE.File.getHieFileFromPath path
   let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-  pure $ hieSource
+  pure hieSource
 
 getHieSourceRope :: (HasStaticEnv m, HasFileEnv m, MonadThrow m, MonadIO m) => AbsPath -> MaybeT m Rope
 getHieSourceRope path = Rope.fromText <$> getHieSource path
@@ -168,7 +168,7 @@ hieLineColRangeToSrc path hieSource lineColRange = do
 fileRangeToLc :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => FileRange -> m FileLcRange
 fileRangeToLc FileWith {path, loc} = do
   source <- getSourceRope path
-  range <- pure $ Rope.rangeToLineColRange source loc
+  let range = Rope.rangeToLineColRange source loc
   pure $ FileWith {path, loc = range}
 
 hieFileLcToFileLc :: (MonadIO m, HasStaticEnv m, HasFileEnv m, MonadThrow m) => FileLcRange -> MaybeT m FileLcRange

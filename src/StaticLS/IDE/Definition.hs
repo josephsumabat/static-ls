@@ -27,7 +27,7 @@ import GHC.Iface.Type qualified as GHC
 import GHC.Plugins qualified as GHC
 import GHC.Utils.Monad (mapMaybeM)
 import HieDb qualified
-import StaticLS.HIE
+
 import StaticLS.HIE.File
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
@@ -38,6 +38,8 @@ import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import StaticLS.IDE.HiePos
+import StaticLS.HIE.Position
+import StaticLS.HIE.Queries
 
 getDefinition ::
   (HasCallStack, HasLogger m, HasStaticEnv m, HasSemantic m, MonadIO m, MonadThrow m) =>

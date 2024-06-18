@@ -6,8 +6,9 @@ import Data.LineColRange (LineColRange (..))
 import Data.Path qualified as Path
 import StaticLS.HI
 import StaticLS.HI.File
-import StaticLS.HIE
 import StaticLS.HIE.File
+import StaticLS.HIE.Queries
+import StaticLS.HIE.Position
 import StaticLS.IDE.FileWith (FileWith (..))
 import Test.Hspec
 import TestImport.Assert qualified as Test

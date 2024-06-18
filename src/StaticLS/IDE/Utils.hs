@@ -1,35 +1,22 @@
 module StaticLS.IDE.Utils where
 
 import AST.Haskell qualified as Haskell
-import Colog.Core.IO qualified as Colog
 import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
-import Data.IORef qualified as IORef
-import Data.LineColRange
 import Data.Path (AbsPath, toFilePath)
-import Data.Pos (LineCol, Pos)
-import Data.Pos qualified as Position
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
-import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
 import Data.Text.IO qualified as T
 import GHC.Iface.Ext.Types qualified as GHC
-import StaticLS.FileEnv
 import StaticLS.HIE.File qualified as HIE.File
-import StaticLS.HIE.File qualified as Hie
-import StaticLS.HIE.File (MonadHieFile (..))
-import StaticLS.IDE.FileWith
-import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic
 import StaticLS.StaticEnv
-import StaticLS.StaticEnv.Options
 import StaticLS.Utils (isJustOrThrowS)
-import System.IO
 
 getHaskell :: (HasSemantic m, MonadThrow m) => AbsPath -> m Haskell.Haskell
 getHaskell uri = do

@@ -14,7 +14,6 @@ import StaticLS.HIE.File qualified as Hie
 import StaticLS.IDE.FileWith
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
-import System.IO
 import qualified Data.Text as T
 import StaticLS.Semantic
 import StaticLS.IDE.Utils

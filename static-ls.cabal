@@ -46,13 +46,13 @@ library
       Data.Rope
       Data.TextUtils
       StaticLS.Except
-      StaticLS.FileEnv
       StaticLS.FilePath
       StaticLS.HI
       StaticLS.HI.File
-      StaticLS.HIE
       StaticLS.HIE.File
       StaticLS.HIE.File.Except
+      StaticLS.HIE.Position
+      StaticLS.HIE.Queries
       StaticLS.HieDb
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AddTypeSig
@@ -78,6 +78,7 @@ library
       StaticLS.ProtoLSP
       StaticLS.SDoc
       StaticLS.Semantic
+      StaticLS.Semantic.Position
       StaticLS.Semantic.Types
       StaticLS.Server
       StaticLS.SrcFiles

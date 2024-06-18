@@ -28,7 +28,7 @@ import Language.LSP.Protocol.Types
   )
 import StaticLS.HI
 import StaticLS.HI.File
-import StaticLS.HIE
+
 import StaticLS.HIE.File
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
@@ -37,6 +37,8 @@ import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
+import StaticLS.HIE.Position
+import StaticLS.HIE.Queries
 
 -- | Retrieve hover information.
 retrieveHover ::

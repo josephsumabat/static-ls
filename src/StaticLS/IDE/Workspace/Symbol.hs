@@ -16,7 +16,7 @@ import Data.Text qualified as T
 import Development.IDE.GHC.Util (printOutputable)
 import GHC.Plugins hiding ((<>))
 import HieDb qualified
-import StaticLS.HIE (hiedbCoordsToLineCol)
+import StaticLS.HIE.Position
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.IDE.SymbolKind (SymbolKind (..))

@@ -20,16 +20,18 @@ import Data.Traversable (for)
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins qualified as GHC
 import HieDb qualified
-import StaticLS.HIE
+
 import StaticLS.HIE.File hiding (getHieSource)
+import StaticLS.HIE.Position
+import StaticLS.HIE.Queries
 import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith (..))
+import StaticLS.IDE.HiePos
+import StaticLS.IDE.Utils
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
-import StaticLS.IDE.Utils
-import StaticLS.IDE.HiePos
 
 hieFileLcRangesToSrc :: (MonadThrow m, HasStaticEnv m, HasSemantic m, MonadIO m) => [FileLcRange] -> m [FileRange]
 hieFileLcRangesToSrc ranges = do
@@ -62,7 +64,7 @@ findRefs path lineCol = do
     hieFile <- getHieFileFromPath path
     let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
     lineCol' <- lineColToHieLineCol path hieSource lineCol
-    let hiedbPosition = lspPositionToHieDbCoords (ProtoLSP.lineColToProto lineCol')
+    let hiedbPosition = lineColToHieDbCoords lineCol'
         names = namesAtPoint hieFile hiedbPosition
         occNamesAndModNamesAtPoint =
           (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))

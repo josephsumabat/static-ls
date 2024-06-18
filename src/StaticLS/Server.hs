@@ -13,6 +13,7 @@ import Colog.Core qualified as Colog
 import Control.Monad qualified as Monad
 import Control.Monad.Reader
 import Control.Monad.Trans.Except
+import Data.Foldable qualified as Foldable
 import Data.List as X
 import Data.Maybe as X (fromMaybe)
 import Data.Path qualified as Path
@@ -36,7 +37,11 @@ import Language.LSP.Server qualified as LSP
 import StaticLS.Handlers
 import StaticLS.Logger
 import StaticLS.Monad
+import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
+import System.Directory qualified as Dir
+import System.FSNotify qualified as FSNotify
+import System.FilePath qualified as FilePath
 import UnliftIO.Concurrent qualified as Conc
 import UnliftIO.Exception qualified as Exception
 
@@ -49,6 +54,43 @@ reactor chan _logger = do
     case msg of
       ReactorMsgAct act -> act
 
+fileWatcher :: Conc.Chan ReactorMsg -> StaticEnv -> LoggerM IO -> IO ()
+fileWatcher chan staticEnv _logger = do
+  mgr <- FSNotify.startManager
+  _stop <-
+    FSNotify.watchTree
+      mgr
+      (Path.toFilePath staticEnv.hieFilesPath)
+      (\e -> FilePath.takeExtension e.eventPath == ".hie")
+      ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
+          logInfo $ "File changed: " <> T.pack (show e)
+      )
+
+  _stop <-
+    FSNotify.watchTree
+      mgr
+      (Path.toFilePath staticEnv.hiFilesPath)
+      (\e -> FilePath.takeExtension e.eventPath == ".hi")
+      ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
+          logInfo $ "File changed: " <> T.pack (show e)
+      )
+
+  Foldable.for_ staticEnv.srcDirs \srcDir -> do
+    srcDir <- pure $ Path.toFilePath srcDir
+    exists <- Dir.doesDirectoryExist srcDir
+    Monad.when exists do
+      _stop <-
+        FSNotify.watchTree
+          mgr
+          srcDir
+          (\e -> FilePath.takeExtension e.eventPath == ".hs")
+          ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
+              logInfo $ "File changed: " <> T.pack (show e)
+          )
+      pure ()
+
+    pure ()
+
 initServer ::
   Conc.Chan ReactorMsg ->
   StaticEnvOptions ->
@@ -60,8 +102,9 @@ initServer reactorChan staticEnvOptions logger serverConfig _ = do
   runExceptT $ do
     wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
     wsRoot <- Path.filePathToAbs wsRoot
-    serverStaticEnv <- ExceptT $ Right <$> initEnv wsRoot staticEnvOptions logger
-    _ <- liftIO $ Conc.forkIO $ runStaticLsM serverStaticEnv $ reactor reactorChan logger
+    env <- ExceptT $ Right <$> initEnv wsRoot staticEnvOptions logger
+    _ <- liftIO $ Conc.forkIO $ runStaticLsM env $ reactor reactorChan logger
+    _ <- liftIO $ Conc.forkIO $ fileWatcher reactorChan env.staticEnv logger
     pure serverConfig
  where
   getWsRoot :: LSP.LspM config (Either ResponseError FilePath)

@@ -18,13 +18,13 @@ import Data.Text.IO qualified as T.IO
 import Data.Traversable (for)
 import StaticLS.Logger qualified as Logger
 import StaticLS.Monad
+import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv.Options qualified as StaticEnv.Options
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
 import System.Process.Typed qualified as Process
 import TestImport.HieDb qualified
 import TestImport.Placeholder qualified as Placeholder
-import qualified StaticLS.Semantic as Semantic
 
 setupWithoutCompilation ::
   [(RelPath, Text)] ->

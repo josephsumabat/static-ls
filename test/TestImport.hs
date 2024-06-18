@@ -9,10 +9,10 @@ import Data.Rope qualified as Rope
 import Data.Text.IO qualified as T
 import StaticLS.Logger
 import StaticLS.Monad
+import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
 import System.Directory (doesFileExist, listDirectory)
-import qualified StaticLS.Semantic as Semantic
 
 initTestEnv :: IO Env
 initTestEnv = do

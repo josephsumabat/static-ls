@@ -1,13 +1,13 @@
-module StaticLS.Env where
+module StaticLS.Monad where
 
 import Colog.Core.IO qualified as Colog
 import Control.Monad.Reader
 import Data.IORef qualified as IORef
 import Data.Path (AbsPath)
+import StaticLS.HIE.File (MonadHieFile (..))
 import StaticLS.HIE.File qualified as HIE.File
-import StaticLS.HIE.Types (MonadHieFile (..))
 import StaticLS.Logger
-import StaticLS.Semantic.Types
+import StaticLS.Semantic
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 
@@ -15,9 +15,9 @@ import StaticLS.StaticEnv.Options
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data Env = Env
-  { fileEnv :: IORef.IORef Semantic
-  , staticEnv :: StaticEnv
-  , logger :: Logger
+  { fileEnv :: IORef.IORef Semantic,
+    staticEnv :: StaticEnv,
+    logger :: Logger
   }
 
 type StaticLsM = ReaderT Env IO
@@ -44,16 +44,16 @@ instance HasLogger StaticLsM where
 instance HasStaticEnv StaticLsM where
   getStaticEnv = asks (.staticEnv)
 
-initStaticLsEnv :: AbsPath -> StaticEnvOptions -> Logger -> IO Env
-initStaticLsEnv wsRoot staticEnvOptions loggerToUse = do
+initEnv :: AbsPath -> StaticEnvOptions -> Logger -> IO Env
+initEnv wsRoot staticEnvOptions loggerToUse = do
   staticEnv <- initStaticEnv wsRoot staticEnvOptions
   fileEnv <- IORef.newIORef mkSemantic
   let logger = Colog.liftLogIO loggerToUse
   pure $
     Env
-      { staticEnv = staticEnv
-      , fileEnv = fileEnv
-      , logger = logger
+      { staticEnv = staticEnv,
+        fileEnv = fileEnv,
+        logger = logger
       }
 
 runStaticLsM :: Env -> StaticLsM a -> IO a

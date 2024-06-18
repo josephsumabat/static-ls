@@ -7,7 +7,6 @@ import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
 import Data.Edit qualified as Edit
 import Data.Either.Extra qualified as Either.Extra
-import Data.Path (AbsPath)
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Range qualified as Range
 import Data.Rope qualified as Rope
@@ -19,8 +18,10 @@ import StaticLS.HIE.File (getHieFileFromPath)
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Logger
-import StaticLS.StaticLsEnv
+
 import StaticLS.Utils (isRightOrThrowT)
+import StaticLS.Monad
+import StaticLS.IDE.Utils
 
 type AddTypeContext = Haskell.Bind :+ Haskell.Function :+ Nil
 

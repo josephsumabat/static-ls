@@ -14,14 +14,15 @@ import StaticLS.HIE (astRangeToLineColRange)
 import StaticLS.IDE.SymbolKind (SymbolKind)
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.Logger
-import StaticLS.StaticLsEnv
+import StaticLS.Monad
+import StaticLS.IDE.Utils
 
 data SymbolTree = SymbolTree
-  { name :: !Text
-  , kind :: !SymbolKind
-  , range :: !LineColRange
-  , selectionRange :: !LineColRange
-  , children :: [SymbolTree]
+  { name :: !Text,
+    kind :: !SymbolKind,
+    range :: !LineColRange,
+    selectionRange :: !LineColRange,
+    children :: [SymbolTree]
   }
   deriving (Show)
 
@@ -139,11 +140,11 @@ declToSymbol decl =
 mkSymbolTree :: Text -> SymbolKind -> LineColRange -> LineColRange -> SymbolTree
 mkSymbolTree name kind range selectionRange =
   SymbolTree
-    { name = name
-    , kind = kind
-    , range = range
-    , selectionRange = selectionRange
-    , children = []
+    { name = name,
+      kind = kind,
+      range = range,
+      selectionRange = selectionRange,
+      children = []
     }
 
 nodeToText :: (AST.HasDynNode n) => n -> Text

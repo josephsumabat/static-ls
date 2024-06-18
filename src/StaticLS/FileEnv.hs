@@ -13,11 +13,11 @@ module StaticLS.FileEnv where
 -- type FileEnv = HashMap AbsPath FileState
 
 -- -- Important: Keep these fields lazy so that responding to edits happens instantly
--- class (Monad m) => HasFileEnv m where
---   getFileEnv :: m FileEnv
+-- class (Monad m) => HasSemantic m where
+--   getSemantic :: m FileEnv
 
--- instance (HasFileEnv m) => HasFileEnv (MaybeT m) where
---   getFileEnv = lift getFileEnv
+-- instance (HasSemantic m) => HasSemantic (MaybeT m) where
+--   getSemantic = lift getSemantic
 
--- class (HasFileEnv m) => SetFileEnv m where
+-- class (HasSemantic m) => SetFileEnv m where
 --   setFileEnv :: FileEnv -> m ()

@@ -48,7 +48,7 @@ spec = do
             hieFile <-
               runStaticEnv staticEnv $
                 runExceptT $
-                  getHieFile hiePath
+                  getHieFileFromHiePath hiePath
             _ <- assertEither hieFile
             pure ()
 

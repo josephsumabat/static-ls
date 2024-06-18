@@ -19,8 +19,7 @@ import Data.Traversable (for)
 import StaticLS.Logger qualified as Logger
 import StaticLS.Server qualified as Server
 import StaticLS.StaticEnv.Options qualified as StaticEnv.Options
-import StaticLS.StaticLsEnv (StaticLsM)
-import StaticLS.StaticLsEnv qualified as StaticLsEnv
+import StaticLS.Monad
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
 import System.Process.Typed qualified as Process
@@ -39,8 +38,8 @@ setupWithoutCompilation sourceFiles act = do
     let absPath = dir Path.</> path
     T.IO.writeFile (Path.toFilePath absPath) contents
     pure (absPath, t)
-  staticEnv <- StaticLsEnv.initStaticLsEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
-  res <- StaticLsEnv.runStaticLsM staticEnv do
+  staticEnv <- initEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
+  res <- runStaticLsM staticEnv do
     for_ absSources \(absPath, (contents, _)) -> do
       Server.updateFileState absPath (Rope.fromText contents)
     act dir (Map.fromList absSources)
@@ -81,8 +80,8 @@ setupCompilation prefix sourceFiles act = do
     (Path.toFilePath dir </> ".hiefiles")
     (Path.toFilePath dir </> ".hiedb")
     (Path.toFilePath dir)
-  staticEnv <- StaticLsEnv.initStaticLsEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
-  res <- StaticLsEnv.runStaticLsM staticEnv do
+  staticEnv <- initEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
+  res <- runStaticLsM staticEnv do
     for_ absSources \(absPath, (contents, _)) -> do
       Server.updateFileState absPath (Rope.fromText contents)
     act dir (Map.fromList absSources)

@@ -17,10 +17,10 @@ import UnliftIO.IORef qualified as IORef
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data Env = Env
-  { fileEnv :: IORef.IORef Semantic,
-    staticEnv :: StaticEnv,
-    logger :: Logger,
-    -- map from src path to cached hie file
+  { fileEnv :: IORef.IORef Semantic
+  , staticEnv :: StaticEnv
+  , logger :: Logger
+  , -- map from src path to cached hie file
     hieCache :: IORef.IORef (HashMap AbsPath HieFile)
   }
 
@@ -39,7 +39,7 @@ instance MonadHieFile StaticLsM where
         hieFile <- HIE.File.getHieFileFromPath path
         IORef.modifyIORef' hieCacheRef (HashMap.insert path hieFile)
         pure hieFile
-        
+
 -- getHieFileMaybeT :: AbsPath -> M (Maybe HieFile)
 
 instance HasSemantic StaticLsM where
@@ -66,10 +66,10 @@ initEnv wsRoot staticEnvOptions loggerToUse = do
   let logger = Colog.liftLogIO loggerToUse
   pure $
     Env
-      { staticEnv = staticEnv,
-        fileEnv = fileEnv,
-        hieCache,
-        logger = logger
+      { staticEnv = staticEnv
+      , fileEnv = fileEnv
+      , hieCache
+      , logger = logger
       }
 
 runStaticLsM :: Env -> StaticLsM a -> IO a

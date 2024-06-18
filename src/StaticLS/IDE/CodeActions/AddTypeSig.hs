@@ -13,7 +13,7 @@ import Data.Rope qualified as Rope
 import Data.Sum (Nil, (:+), pattern Inj)
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.HIE.File (HieFile(..), MonadHieFile(..))
+import StaticLS.HIE.File (HieFile (..), MonadHieFile (..))
 import StaticLS.HIE.Queries
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit qualified as SourceEdit

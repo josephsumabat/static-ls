@@ -25,10 +25,10 @@ instance (SetSemantic m) => SetSemantic (MaybeT m) where
   setSemantic sema = lift (setSemantic sema)
 
 data FileState = FileState
-  { contentsRope :: Rope,
-    contentsText :: Text,
-    tree :: Haskell.Haskell,
-    tokens :: [PositionDiff.Token]
+  { contentsRope :: Rope
+  , contentsText :: Text
+  , tree :: Haskell.Haskell
+  , tokens :: [PositionDiff.Token]
   }
   deriving (Show)
 
@@ -45,10 +45,10 @@ mkSemantic =
 mkFileState :: Text -> Rope -> FileState
 mkFileState contentsText contentsRope =
   FileState
-    { contentsRope,
-      contentsText,
-      tree = Haskell.parse contentsText,
-      tokens = PositionDiff.lex $ T.unpack contentsText
+    { contentsRope
+    , contentsText
+    , tree = Haskell.parse contentsText
+    , tokens = PositionDiff.lex $ T.unpack contentsText
     }
 
 removePath :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> m ()

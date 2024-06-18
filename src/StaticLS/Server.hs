@@ -3,10 +3,10 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module StaticLS.Server
-  ( runServer,
-    module X,
-  )
+module StaticLS.Server (
+  runServer,
+  module X,
+)
 where
 
 import Colog.Core qualified as Colog
@@ -19,20 +19,20 @@ import Data.Maybe as X (fromMaybe)
 import Data.Path qualified as Path
 import Data.Text qualified as T
 import Language.LSP.Logging qualified as LSP.Logging
-import Language.LSP.Protocol.Message
-  ( Method (..),
-    ResponseError (..),
-    TMessage,
-  )
+import Language.LSP.Protocol.Message (
+  Method (..),
+  ResponseError (..),
+  TMessage,
+ )
 import Language.LSP.Protocol.Message qualified as LSP
 import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
-import Language.LSP.Server
-  ( LanguageContextEnv,
-    ServerDefinition (..),
-    mapHandlers,
-    type (<~>) (Iso),
-  )
+import Language.LSP.Server (
+  LanguageContextEnv,
+  ServerDefinition (..),
+  mapHandlers,
+  type (<~>) (Iso),
+ )
 import Language.LSP.Server qualified as LSP
 import StaticLS.Handlers
 import StaticLS.Handlers qualified as Handlers
@@ -108,68 +108,69 @@ initServer reactorChan staticEnvOptions logger serverConfig _ = do
     _ <- liftIO $ Conc.forkIO $ runStaticLsM env $ reactor reactorChan logger
     _ <- liftIO $ Conc.forkIO $ fileWatcher reactorChan env.staticEnv logger
     pure serverConfig
-  where
-    getWsRoot :: LSP.LspM config (Either ResponseError FilePath)
-    getWsRoot = do
-      mRootPath <- LSP.getRootPath
-      pure $ case mRootPath of
-        Nothing -> Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
-        Just p -> Right p
+ where
+  getWsRoot :: LSP.LspM config (Either ResponseError FilePath)
+  getWsRoot = do
+    mRootPath <- LSP.getRootPath
+    pure $ case mRootPath of
+      Nothing -> Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
+      Just p -> Right p
 
 serverDef :: StaticEnvOptions -> LoggerM IO -> IO (ServerDefinition ())
 serverDef argOptions logger = do
   reactorChan <- liftIO Conc.newChan
-  let -- TODO: actually respond to the client with an error
-      goReq :: forall (a :: LSP.Method LSP.ClientToServer LSP.Request) c. LSP.Handler (LSP.LspT c StaticLsM) a -> LSP.Handler (LSP.LspM c) a
-      goReq f = \msg k -> do
-        env <- LSP.getLspEnv
-        let k' resp = do
-              liftIO $ LSP.runLspT env (k resp)
-        Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do
-          catchAndLog $ f msg k'
+  let
+    -- TODO: actually respond to the client with an error
+    goReq :: forall (a :: LSP.Method LSP.ClientToServer LSP.Request) c. LSP.Handler (LSP.LspT c StaticLsM) a -> LSP.Handler (LSP.LspM c) a
+    goReq f = \msg k -> do
+      env <- LSP.getLspEnv
+      let k' resp = do
+            liftIO $ LSP.runLspT env (k resp)
+      Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do
+        catchAndLog $ f msg k'
 
-      goNot :: forall (a :: LSP.Method LSP.ClientToServer LSP.Notification) c. LSP.Handler (LSP.LspT c StaticLsM) a -> LSP.Handler (LSP.LspM c) a
-      goNot f = \msg -> do
-        env <- LSP.getLspEnv
-        Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do
-          catchAndLog $ f msg
+    goNot :: forall (a :: LSP.Method LSP.ClientToServer LSP.Notification) c. LSP.Handler (LSP.LspT c StaticLsM) a -> LSP.Handler (LSP.LspM c) a
+    goNot f = \msg -> do
+      env <- LSP.getLspEnv
+      Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do
+        catchAndLog $ f msg
   pure
     ServerDefinition
-      { onConfigChange = \_conf -> pure (),
-        configSection = "",
-        parseConfig = \_conf _value -> Right (),
-        doInitialize = do
-          initServer reactorChan argOptions logger,
-        -- TODO: Do handlers need to inspect clientCapabilities?
+      { onConfigChange = \_conf -> pure ()
+      , configSection = ""
+      , parseConfig = \_conf _value -> Right ()
+      , doInitialize = do
+          initServer reactorChan argOptions logger
+      , -- TODO: Do handlers need to inspect clientCapabilities?
         staticHandlers = \_clientCapabilities ->
           mapHandlers goReq goNot $
             mconcat
-              [ handleInitialized,
-                handleChangeConfiguration,
-                handleTextDocumentHoverRequest,
-                handleDefinitionRequest,
-                handleTypeDefinitionRequest,
-                handleReferencesRequest,
-                handleCancelNotification,
-                handleDidOpen,
-                handleDidChange,
-                handleDidClose,
-                handleDidSave,
-                handleWorkspaceSymbol,
-                handleSetTrace,
-                handleCodeAction,
-                handleResolveCodeAction,
-                handleDocumentSymbols,
-                handleCompletion
-              ],
-        interpretHandler = \env -> Iso (LSP.runLspT env) liftIO,
-        options = lspOptions,
-        defaultConfig = ()
+              [ handleInitialized
+              , handleChangeConfiguration
+              , handleTextDocumentHoverRequest
+              , handleDefinitionRequest
+              , handleTypeDefinitionRequest
+              , handleReferencesRequest
+              , handleCancelNotification
+              , handleDidOpen
+              , handleDidChange
+              , handleDidClose
+              , handleDidSave
+              , handleWorkspaceSymbol
+              , handleSetTrace
+              , handleCodeAction
+              , handleResolveCodeAction
+              , handleDocumentSymbols
+              , handleCompletion
+              ]
+      , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO
+      , options = lspOptions
+      , defaultConfig = ()
       }
-  where
-    catchAndLog m = do
-      Exception.catchAny m $ \e ->
-        LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
+ where
+  catchAndLog m = do
+    Exception.catchAny m $ \e ->
+      LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
 
 lspOptions :: LSP.Options
 lspOptions =
@@ -177,18 +178,18 @@ lspOptions =
     { LSP.optTextDocumentSync =
         Just
           LSP.TextDocumentSyncOptions
-            { LSP._openClose = Just True,
-              LSP._change = Just LSP.TextDocumentSyncKind_Incremental,
-              LSP._willSave = Just False,
-              LSP._willSaveWaitUntil = Just False,
-              LSP._save =
+            { LSP._openClose = Just True
+            , LSP._change = Just LSP.TextDocumentSyncKind_Incremental
+            , LSP._willSave = Just False
+            , LSP._willSaveWaitUntil = Just False
+            , LSP._save =
                 Just $
                   InR $
                     LSP.SaveOptions
                       { LSP._includeText = Just False
                       }
-            },
-      LSP.optCompletionTriggerCharacters = Just ['.']
+            }
+    , LSP.optCompletionTriggerCharacters = Just ['.']
     }
 
 runServer :: StaticEnvOptions -> LoggerM IO -> IO Int

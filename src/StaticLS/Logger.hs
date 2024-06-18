@@ -1,19 +1,19 @@
-module StaticLS.Logger
-  ( Msg (..),
-    Logger,
-    LoggerM,
-    HasLogger,
-    setupLogger,
-    noOpLogger,
-    HasCallStack,
-    CallStack,
-    callStack,
-    logWith,
-    logInfo,
-    logError,
-    logWarn,
-    getLogger,
-  )
+module StaticLS.Logger (
+  Msg (..),
+  Logger,
+  LoggerM,
+  HasLogger,
+  setupLogger,
+  noOpLogger,
+  HasCallStack,
+  CallStack,
+  callStack,
+  logWith,
+  logInfo,
+  logError,
+  logWarn,
+  getLogger,
+)
 where
 
 import Colog.Core qualified as Colog
@@ -61,9 +61,9 @@ logger = Colog.cmap msgToText textStderrLogger
 type LoggerM m = Colog.LogAction m Msg
 
 data Msg = Msg
-  { severity :: !Colog.Severity,
-    stack :: !CallStack,
-    text :: !Text
+  { severity :: !Colog.Severity
+  , stack :: !CallStack
+  , text :: !Text
   }
   deriving (Show)
 

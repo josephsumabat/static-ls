@@ -33,12 +33,12 @@ import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
+import StaticLS.IDE.Utils
 import StaticLS.Logger (HasLogger, logInfo)
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
-import StaticLS.IDE.Utils
 
 -- | Retrieve hover information.
 retrieveHover ::

@@ -18,12 +18,12 @@ import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv
 
 type MonadIde m =
-  ( MonadThrow m,
-    MonadHieFile m,
-    HasStaticEnv m,
-    HasSemantic m,
-    SetSemantic m,
-    HasLogger m
+  ( MonadThrow m
+  , MonadHieFile m
+  , HasStaticEnv m
+  , HasSemantic m
+  , SetSemantic m
+  , HasLogger m
   )
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
@@ -66,7 +66,7 @@ getFileStateThrow path = do
   sema <- getSemantic
   let fileState = HashMap.lookup path sema.fileStates
   case fileState of
-    Just fileState -> pure $ fileState
+    Just fileState -> pure fileState
     Nothing -> do
       contents <- liftIO $ T.readFile $ toFilePath path
       let contentsRope = Rope.fromText contents

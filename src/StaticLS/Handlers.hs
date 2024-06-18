@@ -8,17 +8,17 @@ import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
-import Language.LSP.Protocol.Message
-  ( SMethod (..),
-    TNotificationMessage (..),
-    TRequestMessage (..),
-  )
+import Language.LSP.Protocol.Message (
+  SMethod (..),
+  TNotificationMessage (..),
+  TRequestMessage (..),
+ )
 import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
-import Language.LSP.Server
-  ( Handlers,
-    LspT,
-  )
+import Language.LSP.Server (
+  Handlers,
+  LspT,
+ )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.IDE.CodeActions (getCodeActions)
@@ -174,25 +174,25 @@ handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req re
 toLspCompletion :: Completion -> CompletionItem
 toLspCompletion Completion {label, insertText} =
   LSP.CompletionItem
-    { _label = label,
-      _labelDetails = Nothing,
-      _kind = Just LSP.CompletionItemKind_Function,
-      _textEditText = Nothing,
-      _data_ = Nothing,
-      _tags = Nothing,
-      _insertTextMode = Nothing,
-      _deprecated = Nothing,
-      _preselect = Nothing,
-      _detail = Nothing,
-      _documentation = Nothing,
-      _sortText = Nothing,
-      _filterText = Nothing,
-      _insertText = Just insertText,
-      _insertTextFormat = Just LSP.InsertTextFormat_Snippet,
-      _textEdit = Nothing,
-      _additionalTextEdits = Nothing,
-      _commitCharacters = Nothing,
-      _command = Nothing
+    { _label = label
+    , _labelDetails = Nothing
+    , _kind = Just LSP.CompletionItemKind_Function
+    , _textEditText = Nothing
+    , _data_ = Nothing
+    , _tags = Nothing
+    , _insertTextMode = Nothing
+    , _deprecated = Nothing
+    , _preselect = Nothing
+    , _detail = Nothing
+    , _documentation = Nothing
+    , _sortText = Nothing
+    , _filterText = Nothing
+    , _insertText = Just insertText
+    , _insertTextFormat = Just LSP.InsertTextFormat_Snippet
+    , _textEdit = Nothing
+    , _additionalTextEdits = Nothing
+    , _commitCharacters = Nothing
+    , _command = Nothing
     }
 
 handleCompletion :: Handlers (LspT c StaticLsM)
@@ -204,9 +204,9 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
   let lspCompletions = fmap toLspCompletion completions
   let lspList =
         LSP.CompletionList
-          { _isIncomplete = False,
-            _itemDefaults = Nothing,
-            _items = lspCompletions
+          { _isIncomplete = False
+          , _itemDefaults = Nothing
+          , _items = lspCompletions
           }
   res $ Right $ InR $ InL lspList
   pure ()

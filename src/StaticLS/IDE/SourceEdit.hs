@@ -19,7 +19,7 @@ data SourceEdit = SourceEdit
 
 instance Semigroup SourceEdit where
   (SourceEdit fileEdits fsEdits) <> (SourceEdit fileEdits' fsEdits') =
-    SourceEdit (fileEdits <> fileEdits') (fsEdits <> fsEdits')
+    SourceEdit (HashMap.unionWith (<>) fileEdits fileEdits') (fsEdits <> fsEdits')
 
 instance Monoid SourceEdit where
   mempty = empty

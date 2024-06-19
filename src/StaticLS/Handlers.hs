@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedLabels #-}
+
 module StaticLS.Handlers where
 
 import Control.Lens.Operators
@@ -7,6 +9,7 @@ import Data.Aeson qualified as Aeson
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Rope qualified as Rope
+import Data.Row ((.==))
 import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message (
@@ -30,9 +33,9 @@ import StaticLS.IDE.Completion (Completion (..), getCompletion)
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Hover
-import StaticLS.IDE.Monad
 import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.IDE.References
+import StaticLS.IDE.Rename qualified as IDE.Rename
 import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
 import StaticLS.Monad
@@ -83,6 +86,25 @@ handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \r
   refs <- lift $ findRefs path (ProtoLSP.lineColFromProto params._position)
   let locations = fmap ProtoLSP.fileLcRangeToLocation refs
   res $ Right . InL $ locations
+
+handleRenameRequest :: Handlers (LspT c StaticLsM)
+handleRenameRequest = LSP.requestHandler SMethod_TextDocumentRename $ \req res -> do
+  lift $ logInfo "Received rename request."
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  sourceEdit <- lift $ IDE.Rename.rename path (ProtoLSP.lineColFromProto params._position) params._newName
+  workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
+  res $ Right $ InL workspaceEdit
+  pure ()
+
+handlePrepareRenameRequest :: Handlers (LspT c StaticLsM)
+handlePrepareRenameRequest = LSP.requestHandler SMethod_TextDocumentPrepareRename $ \req res -> do
+  lift $ logInfo "Received prepare rename request."
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  -- get rid of this shit after lsp 2.3
+  res $ Right $ InL $ LSP.PrepareRenameResult $ InR $ InR $ #defaultBehavior .== True
+  pure ()
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)
 handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()
@@ -152,8 +174,7 @@ handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req res 
   let range = params._range
   let lineCol = (ProtoLSP.lineColFromProto range._start)
   assists <- lift $ getCodeActions path lineCol
-  rope <- lift $ getSourceRope path
-  let codeActions = fmap (ProtoLSP.assistToCodeAction rope) assists
+  codeActions <- lift $ traverse ProtoLSP.assistToCodeAction assists
   res (Right (LSP.InL (fmap LSP.InR codeActions)))
   pure ()
 
@@ -161,19 +182,15 @@ handleResolveCodeAction :: Handlers (LspT c StaticLsM)
 handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req res -> do
   _ <- lift $ logInfo "handleResolveCodeAction"
   let codeAction = req._params
-
   jsonData <- codeAction._data_ & isJustOrThrowS "code action didn't come with json data"
   let resultSuccessOrThrow res = case res of
         Aeson.Success a -> pure a
         Aeson.Error e -> Exception.throwString ("failed to parse json: " ++ e)
   codeActionMessage <- Aeson.fromJSON @IDE.CodeActions.CodeActionMessage jsonData & resultSuccessOrThrow
-  let path = codeActionMessage.path
   sourceEdit <- lift $ IDE.CodeActions.resolveLazyAssist codeActionMessage
-  rope <- lift $ getSourceRope path
-  let workspaceEdit = ProtoLSP.sourceEditToProto rope sourceEdit
+  workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
   let newCodeAction = codeAction & LSP.edit ?~ workspaceEdit
   res $ Right newCodeAction
-  -- let tdi = params._textDocument
   pure ()
 
 toLspCompletion :: Completion -> CompletionItem

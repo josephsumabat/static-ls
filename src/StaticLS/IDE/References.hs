@@ -1,4 +1,8 @@
-module StaticLS.IDE.References (findRefs) where
+module StaticLS.IDE.References (
+  findRefs,
+  findRefsPos,
+)
+where
 
 import Control.Monad (join)
 import Control.Monad.IO.Class
@@ -16,11 +20,16 @@ import HieDb qualified
 import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
-import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.StaticEnv
+
+findRefsPos :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileRange]
+findRefsPos path lineCol = do
+  refs <- findRefs path lineCol
+  traverse fileLcRangeToRange refs
 
 findRefs :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
 findRefs path lineCol = do

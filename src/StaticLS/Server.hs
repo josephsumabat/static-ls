@@ -46,7 +46,9 @@ import System.FilePath qualified as FilePath
 import UnliftIO.Concurrent qualified as Conc
 import UnliftIO.Exception qualified as Exception
 
-data ReactorMsg = ReactorMsgAct (StaticLsM ())
+data ReactorMsg where
+  ReactorMsgAct :: StaticLsM () -> ReactorMsg
+  ReactorMsgRequest :: StaticLsM a -> Conc.MVar a -> ReactorMsg
 
 reactor :: Conc.Chan ReactorMsg -> LoggerM IO -> StaticLsM ()
 reactor chan _logger = do
@@ -54,6 +56,9 @@ reactor chan _logger = do
     msg <- liftIO $ Conc.readChan chan
     case msg of
       ReactorMsgAct act -> act
+      ReactorMsgRequest act resp -> do
+        a <- act
+        Conc.putMVar resp a
 
 fileWatcher :: Conc.Chan ReactorMsg -> StaticEnv -> LoggerM IO -> IO ()
 fileWatcher chan staticEnv _logger = do
@@ -149,6 +154,8 @@ serverDef argOptions logger = do
               , handleDefinitionRequest
               , handleTypeDefinitionRequest
               , handleReferencesRequest
+              , handleRenameRequest
+              , handlePrepareRenameRequest
               , handleCancelNotification
               , handleDidOpen
               , handleDidChange

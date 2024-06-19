@@ -53,6 +53,12 @@ fileRangeToLc FileWith {path, loc} = do
   let range = Rope.rangeToLineColRange source loc
   pure $ FileWith {path, loc = range}
 
+fileLcRangeToRange :: (MonadIde m, MonadIO m) => FileLcRange -> m FileRange
+fileLcRangeToRange FileWith {path, loc} = do
+  source <- getSourceRope path
+  let range = Rope.lineColRangeToRange source loc
+  pure $ FileWith {path, loc = range}
+
 hieFileLcToFileLc :: (MonadIde m, MonadIO m) => FileLcRange -> MaybeT m FileLcRange
 hieFileLcToFileLc fileLineCol = do
   let path = fileLineCol.path

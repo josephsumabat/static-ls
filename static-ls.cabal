@@ -135,6 +135,7 @@ library
     , neat-interpolation
     , parsec >=3.1.0 && <3.2
     , pretty-simple
+    , row-types
     , sqlite-simple >=0.4.18 && <0.5
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
@@ -203,6 +204,7 @@ executable static-ls
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
     , pretty-simple
+    , row-types
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
     , template-haskell >=2.19.0 && <2.21
@@ -298,6 +300,7 @@ test-suite static-ls-test
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , quickcheck-instances
+    , row-types
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
     , tasty

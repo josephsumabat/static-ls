@@ -140,7 +140,6 @@ handleWorkspaceSymbol :: Handlers (LspT c StaticLsM)
 handleWorkspaceSymbol = LSP.requestHandler SMethod_WorkspaceSymbol $ \req res -> do
   -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
   symbols <- lift (symbolInfo req._params._query)
-  let another = 123423
   res $ Right . InL $ fmap ProtoLSP.symbolToProto symbols
 
 handleSetTrace :: Handlers (LspT c StaticLsM)

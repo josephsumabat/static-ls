@@ -28,7 +28,7 @@ import HieDb
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.Semantic.Position

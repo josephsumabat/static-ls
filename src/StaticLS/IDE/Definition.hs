@@ -1,7 +1,6 @@
 module StaticLS.IDE.Definition (getDefinition, getTypeDefinition) where
 
 import Control.Monad (guard, join)
-import Control.Monad.Catch
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..))
@@ -31,7 +30,7 @@ import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.IDE.HiePos
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
@@ -51,7 +50,7 @@ getDefinition path lineCol = do
     let identifiersAtPoint =
           join $
             HieDb.pointCommand
-              hieFile.file
+              hieFile
               (lineColToHieDbCoords lineCol')
               Nothing
               hieAstNodeToIdentifiers
@@ -82,8 +81,8 @@ getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieFile <- getHieFile path
     lineCol' <- lineColToHieLineCol path lineCol
-    let types' = nubOrd $ getTypesAtPoint hieFile.file (lineColToHieDbCoords lineCol')
-    let types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile.file) types'
+    let types' = nubOrd $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol')
+    let types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
     join <$> mapM (lift . nameToLocation) (typeToName =<< types)
   pure $ fromMaybe [] mLocationLinks
  where

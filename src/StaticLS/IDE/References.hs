@@ -22,7 +22,7 @@ import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
 import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith (..))
 import StaticLS.IDE.HiePos
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.StaticEnv
@@ -61,7 +61,7 @@ findRefs path lineCol = do
     hieFile <- getHieFile path
     lineCol' <- lineColToHieLineCol path lineCol
     let hiedbPosition = lineColToHieDbCoords lineCol'
-        names = namesAtPoint hieFile.file hiedbPosition
+        names = namesAtPoint hieFile hiedbPosition
         occNamesAndModNamesAtPoint =
           (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
             <$> names

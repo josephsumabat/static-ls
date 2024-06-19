@@ -11,7 +11,7 @@ import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import StaticLS.IDE.FileWith
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Monad
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic
 import StaticLS.StaticEnv

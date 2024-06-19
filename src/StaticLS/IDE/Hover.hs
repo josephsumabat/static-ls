@@ -3,7 +3,6 @@ module StaticLS.IDE.Hover (
 )
 where
 
-import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.RWS
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
@@ -28,16 +27,14 @@ import Language.LSP.Protocol.Types (
 import StaticLS.HI
 import StaticLS.HI.File
 
-import StaticLS.HIE.File
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
-import StaticLS.IDE.Utils
-import StaticLS.Logger (HasLogger, logInfo)
+import StaticLS.IDE.Monad
+import StaticLS.Logger (logInfo)
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
-import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
 
 -- | Retrieve hover information.
@@ -53,14 +50,14 @@ retrieveHover path lineCol = do
     lineCol' <- lineColToHieLineCol path lineCol
     lift $ logInfo $ T.pack $ "lineCol: " <> show lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
-    docs <- docsAtPoint hieFile.file lineCol'
+    docs <- docsAtPoint hieFile lineCol'
     let mHieInfo =
           listToMaybe $
             pointCommand
-              hieFile.file
+              hieFile
               (lineColToHieDbCoords lineCol')
               Nothing
-              (hoverInfo (GHC.hie_types hieFile.file) docs)
+              (hoverInfo (GHC.hie_types hieFile) docs)
     -- Convert the location from the hie file back to an original src location
     srcInfo <-
       MaybeT $

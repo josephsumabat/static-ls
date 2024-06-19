@@ -13,7 +13,7 @@ import StaticLS.IDE.CodeActions.AutoImport qualified as AutoImport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Monad
 import StaticLS.Monad (StaticLsM)
 
 getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]

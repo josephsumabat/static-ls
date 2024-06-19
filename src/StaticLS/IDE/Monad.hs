@@ -1,4 +1,17 @@
-module StaticLS.IDE.Utils where
+module StaticLS.IDE.Monad
+  ( MonadIde,
+    getHaskell,
+    getSourceRope,
+    getSource,
+    getHieToSrcDiffMap,
+    getSrcToHieDiffMap,
+    getFileStateThrow,
+    getHieSourceRope,
+    getHieSource,
+    getHieFile,
+    getHieCache,
+  )
+where
 
 import AST.Haskell qualified as Haskell
 import Control.Monad.Catch
@@ -10,7 +23,7 @@ import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text.IO qualified as T
-import StaticLS.HIE.File (HieFile (..), MonadHieFile (..))
+import StaticLS.IDE.HieCache
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic
@@ -18,12 +31,12 @@ import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv
 
 type MonadIde m =
-  ( MonadThrow m
-  , MonadHieFile m
-  , HasStaticEnv m
-  , HasSemantic m
-  , SetSemantic m
-  , HasLogger m
+  ( MonadThrow m,
+    MonadHieFile m,
+    HasStaticEnv m,
+    HasSemantic m,
+    SetSemantic m,
+    HasLogger m
   )
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
@@ -40,14 +53,6 @@ getSource :: (MonadIde m, MonadIO m) => AbsPath -> m Text
 getSource uri = do
   mFileState <- getFileStateThrow uri
   pure mFileState.contentsText
-
-getHieSource :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m (Text)
-getHieSource path = do
-  hieFile <- getHieFile path
-  pure hieFile.src
-
-getHieSourceRope :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m Rope
-getHieSourceRope path = Rope.fromText <$> getHieSource path
 
 getHieToSrcDiffMap :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m PositionDiff.DiffMap
 getHieToSrcDiffMap path = do

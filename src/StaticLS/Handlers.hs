@@ -30,7 +30,7 @@ import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover
 import StaticLS.IDE.References
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Monad
 import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
 import StaticLS.Monad

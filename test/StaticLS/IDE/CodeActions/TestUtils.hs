@@ -10,7 +10,7 @@ import Data.Text (Text)
 import StaticLS.IDE.CodeActions qualified as CodeActions
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Monad
 import StaticLS.Monad
 import StaticLS.Utils (isJustOrThrowS)
 import Test.Hspec

@@ -5,7 +5,6 @@ import Control.Monad.Trans.Maybe
 import Data.LineColRange
 import Data.Path (AbsPath)
 import Data.Pos (LineCol, Pos)
-import Data.Pos qualified as Position
 import Data.Rope qualified as Rope
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
@@ -26,20 +25,20 @@ hiePosToPos path hiePos = do
 
 hieLineColToLineCol :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> MaybeT m LineCol
 hieLineColToLineCol path lineCol = do
-  source <- lift $ getSource path
-  hieSource <- getHieSource path
-  let pos = Position.lineColToPos hieSource lineCol
+  sourceRope <- lift $ getSourceRope path
+  hieSourceRope <- getHieSourceRope path
+  let pos = Rope.lineColToPos hieSourceRope lineCol
   pos' <- hiePosToPos path pos
-  let lineCol' = Position.posToLineCol source pos'
+  let lineCol' = Rope.posToLineCol sourceRope pos'
   pure lineCol'
 
 lineColToHieLineCol :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> MaybeT m LineCol
 lineColToHieLineCol path lineCol = do
-  source <- lift $ getSource path
-  hieSource <- getHieSource path
-  let pos = Position.lineColToPos source lineCol
+  sourceRope <- lift $ getSourceRope path
+  hieSourceRope <- getHieSourceRope path
+  let pos = Rope.lineColToPos sourceRope lineCol
   pos' <- posToHiePos path pos
-  let lineCol' = Position.posToLineCol hieSource pos'
+  let lineCol' = Rope.posToLineCol hieSourceRope pos'
   pure lineCol'
 
 hieLineColRangeToSrc :: (MonadIde m, MonadIO m) => AbsPath -> LineColRange -> MaybeT m LineColRange

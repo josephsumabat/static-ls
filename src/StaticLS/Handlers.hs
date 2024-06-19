@@ -29,7 +29,6 @@ import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
 import StaticLS.IDE.Completion (Completion (..), getCompletion)
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
-import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover
 import StaticLS.IDE.Monad
 import StaticLS.IDE.Monad qualified as IDE
@@ -82,7 +81,6 @@ handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \r
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   refs <- lift $ findRefs path (ProtoLSP.lineColFromProto params._position)
-  refs <- lift $ traverse fileRangeToLc refs
   let locations = fmap ProtoLSP.fileLcRangeToLocation refs
   res $ Right . InL $ locations
 

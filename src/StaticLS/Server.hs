@@ -68,15 +68,6 @@ fileWatcher chan staticEnv _logger = do
           Handlers.handleHieFileChangeEvent e
       )
 
-  _stop <-
-    FSNotify.watchTree
-      mgr
-      (Path.toFilePath staticEnv.hiFilesPath)
-      (\e -> FilePath.takeExtension e.eventPath == ".hi")
-      ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
-          logInfo $ "Hi File changed: " <> T.pack (show e)
-      )
-
   Foldable.for_ staticEnv.srcDirs \srcDir -> do
     srcDir <- pure $ Path.toFilePath srcDir
     exists <- Dir.doesDirectoryExist srcDir

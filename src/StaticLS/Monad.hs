@@ -5,7 +5,7 @@ import Control.Monad.Reader
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Path (AbsPath)
-import StaticLS.IDE.HieCache
+import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.Semantic
 import StaticLS.StaticEnv
@@ -16,11 +16,12 @@ import UnliftIO.IORef qualified as IORef
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality
 data Env = Env
-  { fileEnv :: IORef.IORef Semantic,
-    staticEnv :: StaticEnv,
-    logger :: Logger,
-    -- map from src path to cached hie file
+  { fileEnv :: IORef.IORef Semantic
+  , staticEnv :: StaticEnv
+  , logger :: Logger
+  , -- map from src path to cached hie file
     hieCache :: IORef.IORef (HashMap AbsPath CachedHieFile)
+  , diffCache :: IORef.IORef (HashMap AbsPath DiffCache)
   }
 
 type StaticLsM = ReaderT Env IO
@@ -29,15 +30,21 @@ class (HasSemantic m, HasLogger m, HasStaticEnv m, MonadIO m) => HasStaticLsEnv 
   getEnv :: m Env
 
 instance HasHieCache StaticLsM where
-  getHieCacheForPath path = do
+  getHieCacheMap = do
     hieCacheRef <- asks (.hieCache)
     hieCache <- liftIO $ IORef.readIORef hieCacheRef
-    pure $ HashMap.lookup path hieCache
+    pure $ hieCache
 
 instance SetHieCache StaticLsM where
-  setHieCache path hieFile = do
+  setHieCacheMap !hieCache = do
     hieCacheRef <- asks (.hieCache)
-    liftIO $ IORef.modifyIORef' hieCacheRef (HashMap.insert path hieFile)
+    liftIO $ IORef.writeIORef hieCacheRef hieCache
+
+instance HasDiffCacheRef StaticLsM where
+  getDiffCacheRef = asks (.diffCache)
+
+instance GetDiffCache StaticLsM where
+  getDiffCache = getDiffCacheImpl
 
 instance MonadHieFile StaticLsM where
   getHieCache = getHieCacheImpl
@@ -48,7 +55,7 @@ instance HasSemantic StaticLsM where
     liftIO $ IORef.readIORef fileEnv
 
 instance SetSemantic StaticLsM where
-  setSemantic fileEnv = do
+  setSemantic !fileEnv = do
     fileEnvRef <- asks (.fileEnv)
     liftIO $ IORef.writeIORef fileEnvRef fileEnv
 
@@ -63,13 +70,15 @@ initEnv wsRoot staticEnvOptions loggerToUse = do
   staticEnv <- initStaticEnv wsRoot staticEnvOptions
   fileEnv <- IORef.newIORef mkSemantic
   hieCache <- IORef.newIORef mempty
+  diffCache <- IORef.newIORef mempty
   let logger = Colog.liftLogIO loggerToUse
   pure $
     Env
-      { staticEnv = staticEnv,
-        fileEnv = fileEnv,
-        hieCache,
-        logger = logger
+      { staticEnv = staticEnv
+      , fileEnv = fileEnv
+      , hieCache
+      , diffCache
+      , logger = logger
       }
 
 runStaticLsM :: Env -> StaticLsM a -> IO a

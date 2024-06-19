@@ -24,6 +24,7 @@ instance (HasSemantic m) => HasSemantic (MaybeT m) where
 instance (SetSemantic m) => SetSemantic (MaybeT m) where
   setSemantic sema = lift (setSemantic sema)
 
+-- keep these fields lazy
 data FileState = FileState
   { contentsRope :: Rope
   , contentsText :: Text

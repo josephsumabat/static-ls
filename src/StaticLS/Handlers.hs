@@ -2,6 +2,7 @@ module StaticLS.Handlers where
 
 import Control.Lens.Operators
 import Control.Monad.Reader
+import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
@@ -21,6 +22,7 @@ import Language.LSP.Server (
  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
+import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
 import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
@@ -29,8 +31,9 @@ import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover
-import StaticLS.IDE.References
 import StaticLS.IDE.Monad
+import StaticLS.IDE.Monad qualified as IDE
+import StaticLS.IDE.References
 import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
 import StaticLS.Monad
@@ -93,7 +96,8 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   updateFileStateForUri params._textDocument._uri
 
 updateFileState :: AbsPath -> Rope.Rope -> StaticLsM ()
-updateFileState path contentsRope = Semantic.updateSemantic path contentsRope
+updateFileState path contentsRope = do
+  Semantic.updateSemantic path contentsRope
 
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
@@ -101,7 +105,7 @@ updateFileStateForUri uri = do
   virtualFile <- LSP.getVirtualFile normalizedUri
   virtualFile <- isJustOrThrowS "no virtual file" virtualFile
   path <- ProtoLSP.uriToAbsPath uri
-  lift $ updateFileState path (Rope.fromTextRope virtualFile._file_text)
+  lift $ IDE.onNewSource path (Rope.fromTextRope virtualFile._file_text)
   pure ()
 
 handleDidChange :: Handlers (LspT c StaticLsM)
@@ -116,23 +120,27 @@ handleDidClose = LSP.notificationHandler SMethod_TextDocumentDidClose $ \_ -> do
   lift $ logInfo "did close"
   pure ()
 
-handleDidSave :: Handlers (LspT c StaticLsM)
-handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \message -> do
-  let params = message._params
-  let uri = params._textDocument._uri
-  updateFileStateForUri uri
-  pure ()
-
 handleFileChangeEvent :: FSNotify.Event -> StaticLsM ()
 handleFileChangeEvent event = do
   path <- Path.filePathToAbsThrow event.eventPath
-  Semantic.removePath path
+  IDE.removePath path
+  pure ()
+
+handleHieFileChangeEvent :: FSNotify.Event -> StaticLsM ()
+handleHieFileChangeEvent event = do
+  path <- Path.filePathToAbsThrow event.eventPath
+  srcPath <- runMaybeT $ HIE.File.hieFilePathToSrcFilePath path
+  case srcPath of
+    Just path ->
+      IDE.removeHieFromSourcePath path
+    Nothing -> pure ()
   pure ()
 
 handleWorkspaceSymbol :: Handlers (LspT c StaticLsM)
 handleWorkspaceSymbol = LSP.requestHandler SMethod_WorkspaceSymbol $ \req res -> do
   -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
   symbols <- lift (symbolInfo req._params._query)
+  let another = 123423
   res $ Right . InL $ fmap ProtoLSP.symbolToProto symbols
 
 handleSetTrace :: Handlers (LspT c StaticLsM)

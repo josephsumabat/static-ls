@@ -1,6 +1,5 @@
 module StaticLS.IDE.HiePos where
 
-import Control.Monad.Catch
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.LineColRange
@@ -8,28 +7,14 @@ import Data.Path (AbsPath)
 import Data.Pos (LineCol, Pos)
 import Data.Pos qualified as Position
 import Data.Rope qualified as Rope
-import Data.Text (Text)
-import Data.Text qualified as T
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
 import StaticLS.PositionDiff qualified as PositionDiff
-import StaticLS.Semantic
-import StaticLS.StaticEnv
 
-posToHiePos :: (MonadIde m, MonadIO m) => AbsPath -> Text -> Pos -> MaybeT m Pos
-posToHiePos uri hieSource pos = do
-  source <- lift $ getSource uri
-  let diff = PositionDiff.diffText source hieSource
-  let (ts, errs) = PositionDiff.lexWithErrors (T.unpack source)
-  let (ts', errs) = PositionDiff.lexWithErrors (T.unpack hieSource)
-  -- diff' = (fmap . fmap) PositionDiff.concatTokens $ Diff.diffMerged ts ts'
-  -- liftIO $ hPutStrLn stderr $ "diff': " ++ PositionDiff.printDiffSummary diff'
-  -- liftIO $ hPutStrLn stderr $ "diff: " ++ PositionDiff.printDiffSummary diff
-  -- liftIO $ hPutStrLn stderr $ "ts: " ++ show ts
-  -- liftIO $ hPutStrLn stderr $ "ts': " ++ show ts'
-  -- liftIO $ hPutStrLn stderr $ "errs: " ++ show errs
-  let pos' = PositionDiff.updatePositionUsingDiff diff pos
-  pure pos'
+posToHiePos :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> MaybeT m Pos
+posToHiePos path pos = do
+  sourceToHie <- getSourceToHie path
+  pure $ PositionDiff.diffPos pos sourceToHie
 
 hiePosToPos :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> MaybeT m Pos
 hiePosToPos path hiePos = do
@@ -53,7 +38,7 @@ lineColToHieLineCol path lineCol = do
   source <- lift $ getSource path
   hieSource <- getHieSource path
   let pos = Position.lineColToPos source lineCol
-  pos' <- posToHiePos path hieSource pos
+  pos' <- posToHiePos path pos
   let lineCol' = Position.posToLineCol hieSource pos'
   pure lineCol'
 

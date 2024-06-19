@@ -65,6 +65,7 @@ fileWatcher chan staticEnv _logger = do
       (\e -> FilePath.takeExtension e.eventPath == ".hie")
       ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
           logInfo $ "File changed: " <> T.pack (show e)
+          Handlers.handleHieFileChangeEvent e
       )
 
   _stop <-
@@ -155,7 +156,6 @@ serverDef argOptions logger = do
               , handleDidOpen
               , handleDidChange
               , handleDidClose
-              , handleDidSave
               , handleWorkspaceSymbol
               , handleSetTrace
               , handleCodeAction

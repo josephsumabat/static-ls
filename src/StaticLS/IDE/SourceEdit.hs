@@ -17,6 +17,13 @@ data SourceEdit = SourceEdit
   }
   deriving (Show, Eq)
 
+instance Semigroup SourceEdit where
+  (SourceEdit fileEdits fsEdits) <> (SourceEdit fileEdits' fsEdits') =
+    SourceEdit (fileEdits <> fileEdits') (fsEdits <> fsEdits')
+
+instance Monoid SourceEdit where
+  mempty = empty
+
 empty :: SourceEdit
 empty =
   SourceEdit

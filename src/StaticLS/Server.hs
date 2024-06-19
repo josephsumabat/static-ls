@@ -122,7 +122,10 @@ serverDef argOptions logger = do
   reactorChan <- liftIO Conc.newChan
   let
     -- TODO: actually respond to the client with an error
-    goReq :: forall (a :: LSP.Method LSP.ClientToServer LSP.Request) c. LSP.Handler (LSP.LspT c StaticLsM) a -> LSP.Handler (LSP.LspM c) a
+    goReq ::
+      forall (a :: LSP.Method LSP.ClientToServer LSP.Request) c.
+      LSP.Handler (LSP.LspT c StaticLsM) a ->
+      LSP.Handler (LSP.LspM c) a
     goReq f = \msg k -> do
       env <- LSP.getLspEnv
       let k' resp = do
@@ -130,7 +133,10 @@ serverDef argOptions logger = do
       Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do
         catchAndLog $ f msg k'
 
-    goNot :: forall (a :: LSP.Method LSP.ClientToServer LSP.Notification) c. LSP.Handler (LSP.LspT c StaticLsM) a -> LSP.Handler (LSP.LspM c) a
+    goNot ::
+      forall (a :: LSP.Method LSP.ClientToServer LSP.Notification) c.
+      LSP.Handler (LSP.LspT c StaticLsM) a ->
+      LSP.Handler (LSP.LspM c) a
     goNot f = \msg -> do
       env <- LSP.getLspEnv
       Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do

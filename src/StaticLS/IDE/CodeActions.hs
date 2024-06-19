@@ -11,9 +11,9 @@ import Data.Rope qualified as Rope
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
 import StaticLS.IDE.CodeActions.AutoImport qualified as AutoImport
 import StaticLS.IDE.CodeActions.Types
+import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
-import StaticLS.IDE.Monad
 import StaticLS.Monad (StaticLsM)
 
 getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]

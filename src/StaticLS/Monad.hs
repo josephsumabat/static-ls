@@ -33,7 +33,7 @@ instance HasHieCache StaticLsM where
   getHieCacheMap = do
     hieCacheRef <- asks (.hieCache)
     hieCache <- liftIO $ IORef.readIORef hieCacheRef
-    pure $ hieCache
+    pure hieCache
 
 instance SetHieCache StaticLsM where
   setHieCacheMap !hieCache = do

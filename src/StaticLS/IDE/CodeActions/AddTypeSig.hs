@@ -15,8 +15,8 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import StaticLS.HIE.Queries
 import StaticLS.IDE.CodeActions.Types
-import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.IDE.Monad
+import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.Semantic.Position
@@ -33,10 +33,10 @@ getDeclarationNameAtPos haskell pos lineCol = do
   let node = AST.getDeepestContaining @AddTypeContext astPoint haskell.dynNode.unDynNode
   case node of
     Just bind
-      | let dynNode = AST.getDynNode bind,
-        (Just parent) <- dynNode.nodeParent,
-        Nothing <- AST.cast @Haskell.LocalBinds parent,
-        let bindName = Monad.join $ Either.Extra.eitherToMaybe do
+      | let dynNode = AST.getDynNode bind
+      , (Just parent) <- dynNode.nodeParent
+      , Nothing <- AST.cast @Haskell.LocalBinds parent
+      , let bindName = Monad.join $ Either.Extra.eitherToMaybe do
               case bind of
                 Inj (function :: Haskell.Function) -> do
                   name <- AST.collapseErr function.name
@@ -44,10 +44,10 @@ getDeclarationNameAtPos haskell pos lineCol = do
                 Inj @Haskell.Bind bind -> do
                   name <- AST.collapseErr bind.name
                   pure name
-                _ -> Left "No Name found",
-        Just name <- bindName,
-        let nameRange = astRangeToRange $ AST.nodeToRange name,
-        nameRange `Range.contains` pos ->
+                _ -> Left "No Name found"
+      , Just name <- bindName
+      , let nameRange = astRangeToRange $ AST.nodeToRange name
+      , nameRange `Range.contains` pos ->
           pure $ Just name
     _ -> pure Nothing
 

@@ -63,7 +63,7 @@ findRefs path lineCol = do
         logInfo $ T.pack $ "localNamesAtSpan: " <> T.unpack (showNameWithoutUniques localNamesAtSpan)
         let localRefs = concatMap (namesWithDefSpan hieFile) defSpans
         logInfo $ T.pack $ "localRefs: " <> T.unpack (showNameWithoutUniques (fmap snd localRefs))
-        locations <- traverse Definition.realSrcSpanToFileLcRange (fmap fst localRefs)
+        locations <- traverse (Definition.realSrcSpanToFileLcRange . fst) localRefs
         pure locations
   let res = fromMaybe [] mLocList
   logInfo $ T.pack $ "res: " <> show res

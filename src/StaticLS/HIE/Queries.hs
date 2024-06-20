@@ -76,7 +76,7 @@ makeSpans hieFile coords =
 
 namesAtPoint :: GHC.HieFile -> HieDbCoords -> [GHC.Name]
 namesAtPoint hieFile position =
-  mapMaybe (\case Left _ -> Nothing; Right x -> Just x) $ fmap fst idents
+  mapMaybe ((\case Left _ -> Nothing; Right x -> Just x) . fst) idents
  where
   spans = makeSpans hieFile position
   idents = concatMap (identifiersAtSpan hieFile) spans
@@ -138,12 +138,11 @@ findLocalBindsAtSpan hieFile span =
   -- idents = identifiersAtSpan hieFile span
   getLocalBind = \case
     GHC.ValBind _ (GHC.LocalScope scopeSpan) _ -> True
-    GHC.PatternBind _ _ _ -> True
+    GHC.PatternBind (GHC.LocalScope _) (GHC.LocalScope _) _ -> True
     _ -> False
 
 hieAstNodeToIdentifiers :: GHC.HieAST a -> [GHC.Identifier]
 hieAstNodeToIdentifiers ast = Map.keys . GHC.sourcedNodeIdents . GHC.sourcedNodeInfo $ ast
- where
 
 identifiersToNames :: [GHC.Identifier] -> [GHC.Name]
 identifiersToNames =

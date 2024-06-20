@@ -85,3 +85,4 @@
 - ignore: {name: Use for_}
 - ignore: {name: Redundant id}
 - ignore: {name: Use forM_}
+- ignore: {name: Move concatMap out}

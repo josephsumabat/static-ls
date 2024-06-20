@@ -2,17 +2,18 @@ module StaticLS.HIE.Queries where
 
 import Control.Error.Util (hush)
 import Control.Monad (join)
-import Data.Bifunctor (second)
 import Data.Foldable qualified as Foldable
 import Data.Map qualified as Map
-import Data.Maybe (isJust, mapMaybe)
+import Data.Maybe (mapMaybe)
 import Data.Pos (LineCol (..))
 import Data.Set qualified as Set
 import Data.Text (Text)
+import Data.Text qualified as T
 import GHC qualified
 import GHC.Data.FastString qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
+import GHC.Plugins qualified as GHC
 import GHC.Types.SrcLoc qualified as GHC
 import HieDb (pointCommand)
 import StaticLS.HIE.Position
@@ -109,6 +110,9 @@ identifiersAtSpan hieFile span = results
 fileAstList :: GHC.HieFile -> [(GHC.HiePath, GHC.HieAST GHC.TypeIndex)]
 fileAstList = Map.toList . GHC.getAsts . GHC.hie_asts
 
+findAllGlobalBinds :: GHC.HieFile -> [Text]
+findAllGlobalBinds hieFile = undefined
+
 findLocalBindsAtSpan :: GHC.HieFile -> GHC.Span -> [GHC.Name]
 findLocalBindsAtSpan hieFile span =
   mapMaybe (\case Left _ -> Nothing; Right x -> Just x) results
@@ -152,11 +156,30 @@ astAllNames :: GHC.HieAST GHC.TypeIndex -> [(GHC.Span, GHC.Name)]
 astAllNames = mapMaybe (\(span, ident) -> do ident <- hush ident; pure (span, ident)) . astAllIdentifiers
 
 astAllIdentifiers :: GHC.HieAST GHC.TypeIndex -> [(GHC.Span, GHC.Identifier)]
-astAllIdentifiers = go
+astAllIdentifiers = foldMapAst go
  where
-  go ast = (fmap (span,) (hieAstNodeToIdentifiers ast)) ++ concatMap go (GHC.nodeChildren ast)
+  go ast = fmap (span,) (hieAstNodeToIdentifiers ast)
    where
     span = GHC.nodeSpan ast
+
+allGlobalSymbols :: GHC.HieFile -> [Text]
+allGlobalSymbols hieFile = strings
+ where
+  strings = fmap (T.pack . GHC.occNameString . GHC.nameOccName) filtered
+  filtered = mapMaybe hush . fmap fst . filter (\(_ident, details) -> detailsMatchesContext globalDef details) $ res
+  globalDef = \case
+    GHC.ValBind _ GHC.ModuleScope _ -> True
+    _ -> False
+  res = concatMap astAllIdentifiersWithDetails asts
+  asts = snd <$> fileAstList hieFile
+
+astAllIdentifiersWithDetails :: GHC.HieAST GHC.TypeIndex -> [(GHC.Identifier, GHC.IdentifierDetails GHC.TypeIndex)]
+astAllIdentifiersWithDetails = foldMapAst go
+ where
+  go ast = concatMap getNodeInfoIdentifiersWithDetails $ getNonGeneratedNodeInfo ast
+
+foldMapAst :: (Monoid m) => (GHC.HieAST a -> m) -> GHC.HieAST a -> m
+foldMapAst f ast = f ast <> foldMap (foldMapAst f) (GHC.nodeChildren ast)
 
 getNonGeneratedNodeInfo :: GHC.HieAST a -> [GHC.NodeInfo a]
 getNonGeneratedNodeInfo =
@@ -185,3 +208,6 @@ getIdentifiersWithContext pred ast = do
         if any pred contexts then Just ident else Nothing
     )
     identifiers
+
+detailsMatchesContext :: (GHC.ContextInfo -> Bool) -> GHC.IdentifierDetails a -> Bool
+detailsMatchesContext pred details = any pred (Set.toList $ GHC.identInfo details)

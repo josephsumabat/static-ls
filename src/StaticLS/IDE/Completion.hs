@@ -8,11 +8,14 @@ where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Function ((&))
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
+import StaticLS.HIE.Queries (allGlobalSymbols)
 import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Monad
@@ -49,7 +52,15 @@ getCompletion path = do
     (Nothing, Just mod) -> do
       let label = "module " <> mod <> " where"
       pure [Completion {label, insertText = label <> "\n$0"}]
-    (_, _) -> pure []
+    (_, _) -> do
+      res <-
+        runMaybeT $ do
+          hieFile <- getHieFile path
+          let symbols = allGlobalSymbols hieFile
+          logInfo $ "symbols: " <> T.pack (show symbols)
+          let completions = fmap (\symbol -> Completion {label = symbol, insertText = symbol}) symbols
+          pure completions
+      pure $ Maybe.fromMaybe [] res
 
 data Completion = Completion
   { label :: !Text

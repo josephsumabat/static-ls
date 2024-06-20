@@ -128,17 +128,10 @@ findLocalBindsAtSpan hieFile span =
       asts
   asts = fileAstList hieFile
 
-  -- localBinds =
-  --   mapMaybe
-  --     ( \(_ident, identInfo) -> do
-  --         let contexts = Set.toList . GHC.identInfo $ identInfo
-  --         mapMaybe getLocalBind (contexts) List.!? 0
-  --     )
-  --     idents
-  -- idents = identifiersAtSpan hieFile span
   getLocalBind = \case
     GHC.ValBind _ (GHC.LocalScope scopeSpan) _ -> True
-    GHC.PatternBind (GHC.LocalScope _) (GHC.LocalScope _) _ -> True
+    GHC.PatternBind _ (GHC.LocalScope _) _ -> True
+    GHC.PatternBind (GHC.LocalScope _) _ _ -> True
     _ -> False
 
 hieAstNodeToIdentifiers :: GHC.HieAST a -> [GHC.Identifier]

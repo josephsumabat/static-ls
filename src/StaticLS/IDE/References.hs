@@ -46,6 +46,7 @@ findRefs path lineCol = do
             <$> names
     let nameSpans = Maybe.mapMaybe (GHC.srcSpanToRealSrcSpan . GHC.nameSrcSpan) names
     let localNamesAtSpan = concatMap (findLocalBindsAtSpan hieFile) nameSpans
+    logInfo $ T.pack $ "localNamesAtSpan: " <> T.unpack (showNameWithoutUniques localNamesAtSpan)
     case localNamesAtSpan of
       [] -> do
         refResRows <-

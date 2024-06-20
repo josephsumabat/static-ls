@@ -6,6 +6,7 @@ import Control.Monad.Trans.Maybe (MaybeT)
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Path (AbsPath)
+import Data.RangeMap (RangeMap)
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
@@ -30,6 +31,7 @@ data FileState = FileState
   , contentsText :: Text
   , tree :: Haskell.Haskell
   , tokens :: [PositionDiff.Token]
+  , tokenMap :: RangeMap PositionDiff.Token
   }
   deriving (Show)
 
@@ -44,12 +46,14 @@ mkSemantic =
     }
 
 mkFileState :: Text -> Rope -> FileState
-mkFileState contentsText contentsRope =
+mkFileState contentsText contentsRope = do
+  let tokens = PositionDiff.lex $ T.unpack contentsText
   FileState
     { contentsRope
     , contentsText
     , tree = Haskell.parse contentsText
-    , tokens = PositionDiff.lex $ T.unpack contentsText
+    , tokens
+    , tokenMap = PositionDiff.tokensToRangeMap tokens
     }
 
 removePath :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> m ()

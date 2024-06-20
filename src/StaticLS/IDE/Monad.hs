@@ -24,6 +24,8 @@ module StaticLS.IDE.Monad (
   removePath,
   removeHieFromSourcePath,
   onNewSource,
+  getHieTokenMap,
+  getTokenMap,
 )
 where
 
@@ -34,9 +36,11 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
 import Data.Path (AbsPath, toFilePath)
+import Data.RangeMap (RangeMap)
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.Logger
@@ -102,6 +106,7 @@ data CachedHieFile = CachedHieFile
   { hieSource :: Text
   , hieSourceRope :: Rope
   , file :: HIE.File.HieFile
+  , hieTokenMap :: RangeMap PositionDiff.Token
   }
 
 class HasHieCache m where
@@ -128,17 +133,29 @@ getHieCacheImpl path = do
     Nothing -> do
       file <- HIE.File.getHieFileFromPath path
       let hieSource = HIE.File.getHieSource file
+      let tokens = PositionDiff.lex $ T.unpack hieSource
       let hieFile =
             CachedHieFile
               { hieSource
               , hieSourceRope = Rope.fromText hieSource
               , file = file
+              , hieTokenMap = PositionDiff.tokensToRangeMap tokens
               }
       setHieCacheMap $ HashMap.insert path hieFile hieCacheMap
       pure hieFile
 
 instance (MonadHieFile m, Monad m) => MonadHieFile (MaybeT m) where
   getHieCache = lift . getHieCache
+
+getTokenMap :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m (RangeMap PositionDiff.Token)
+getTokenMap path = do
+  fileState <- getFileStateThrow path
+  pure fileState.tokenMap
+
+getHieTokenMap :: (MonadHieFile m) => AbsPath -> MaybeT m (RangeMap PositionDiff.Token)
+getHieTokenMap path = do
+  hieCache <- getHieCache path
+  pure $ hieCache.hieTokenMap
 
 getHieFile :: (MonadHieFile m) => AbsPath -> MaybeT m HIE.File.HieFile
 getHieFile path = do
@@ -191,7 +208,11 @@ getDiffCacheImpl path = do
     Nothing -> do
       hieToSource <- getHieToSrcDiffMap path
       sourceToHie <- getSrcToHieDiffMap path
-      let diffCache = DiffCache {hieToSource, sourceToHie}
+      let diffCache =
+            DiffCache
+              { hieToSource
+              , sourceToHie
+              }
       IORef.writeIORef diffCacheRef $ HashMap.insert path diffCache diffCacheMap
       pure diffCache
 

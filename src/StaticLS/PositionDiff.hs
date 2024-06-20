@@ -15,6 +15,7 @@ module StaticLS.PositionDiff (
   printDiffSummary,
   lexWithErrors,
   concatTokens,
+  tokensToRangeMap,
 )
 where
 
@@ -71,6 +72,15 @@ lex source =
     ts
  where
   ts = (Lexer.lexerPass0 source)
+
+tokensWithRanges :: [Token] -> [(Range, Token)]
+tokensWithRanges = go 0
+ where
+  go _pos [] = []
+  go pos (t : ts) = (Range (Pos pos) (Pos (pos + t.len)), t) : go (pos + t.len) ts
+
+tokensToRangeMap :: [Token] -> RangeMap Token
+tokensToRangeMap = RangeMap.fromList . tokensWithRanges
 
 type TokenDiff = [Diff.Elem Token]
 

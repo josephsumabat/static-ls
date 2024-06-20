@@ -14,13 +14,13 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
 import Data.Text qualified as T
+import Development.IDE.GHC.Compat.Util qualified as IDE.GHC.Compat.Util
 import Development.IDE.GHC.Error (
+  realSrcSpanToLocation,
+  realSrcSpanToRange,
   srcSpanToFilename,
   srcSpanToRange,
-  realSrcSpanToLocation,
-  realSrcSpanToRange
  )
-import qualified Development.IDE.GHC.Compat.Util   as IDE.GHC.Compat.Util
 import GHC.Data.FastString qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
@@ -161,7 +161,7 @@ realSrcSpanToFileLcRange src = do
   let fs = (staticEnv.wsRoot Path.</>) . Path.filePathToRel $ fileName
   let rng = realSrcSpanToRange src
   pure $ FileWith fs (ProtoLSP.lineColRangeFromProto rng)
-  
+
 defRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m FileLcRange
 defRowToLocation (defRow HieDb.:. _) = do
   let start = hiedbCoordsToLineCol (defRow.defSLine, defRow.defSCol)

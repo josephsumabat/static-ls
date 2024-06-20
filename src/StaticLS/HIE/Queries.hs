@@ -2,6 +2,7 @@ module StaticLS.HIE.Queries where
 
 import Control.Error.Util (hush)
 import Control.Monad (join)
+import Data.Bifunctor (second)
 import Data.Foldable qualified as Foldable
 import Data.Map qualified as Map
 import Data.Maybe (isJust, mapMaybe)
@@ -16,7 +17,6 @@ import GHC.Types.SrcLoc qualified as GHC
 import HieDb (pointCommand)
 import StaticLS.HIE.Position
 import StaticLS.SDoc (showGhc)
-import Data.Bifunctor (second)
 
 getPrintedTypesAtPoint :: GHC.HieFile -> LineCol -> [Text]
 getPrintedTypesAtPoint hieFile lineCol =
@@ -143,7 +143,7 @@ findLocalBindsAtSpan hieFile span =
 
 hieAstNodeToIdentifiers :: GHC.HieAST a -> [GHC.Identifier]
 hieAstNodeToIdentifiers ast = Map.keys . GHC.sourcedNodeIdents . GHC.sourcedNodeInfo $ ast
-  where
+ where
 
 identifiersToNames :: [GHC.Identifier] -> [GHC.Name]
 identifiersToNames =
@@ -163,8 +163,8 @@ astAllIdentifiers :: GHC.HieAST GHC.TypeIndex -> [(GHC.Span, GHC.Identifier)]
 astAllIdentifiers = go
  where
   go ast = (fmap (span,) (hieAstNodeToIdentifiers ast)) ++ concatMap go (GHC.nodeChildren ast)
-    where
-      span = GHC.nodeSpan ast
+   where
+    span = GHC.nodeSpan ast
 
 getNonGeneratedNodeInfo :: GHC.HieAST a -> [GHC.NodeInfo a]
 getNonGeneratedNodeInfo =

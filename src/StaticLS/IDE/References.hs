@@ -1,7 +1,7 @@
-module StaticLS.IDE.References
-  ( findRefs,
-    findRefsPos,
-  )
+module StaticLS.IDE.References (
+  findRefs,
+  findRefsPos,
+)
 where
 
 import Control.Monad (join)
@@ -10,6 +10,7 @@ import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
 import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
@@ -20,14 +21,13 @@ import HieDb qualified
 import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
+import StaticLS.IDE.Definition qualified as Definition
 import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
 import StaticLS.Logger
-import StaticLS.StaticEnv
-import qualified Data.Maybe as Maybe
 import StaticLS.SDoc (showNameWithoutUniques)
-import qualified StaticLS.IDE.Definition as Definition
+import StaticLS.StaticEnv
 
 findRefsPos :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileRange]
 findRefsPos path lineCol = do

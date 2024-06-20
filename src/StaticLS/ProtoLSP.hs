@@ -27,6 +27,7 @@ import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineColRange
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos
@@ -44,7 +45,6 @@ import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.IDE.Workspace.Symbol (Symbol (..))
 import StaticLS.Monad
 import StaticLS.Utils
-import Data.Maybe qualified as Maybe
 
 lineColToProto :: LineCol -> LSP.Position
 lineColToProto (LineCol line col) =
@@ -87,7 +87,7 @@ locationToLocationLink LSP.Location {_uri, _range} =
 fileLcRangeToLocation :: FileLcRange -> LSP.Location
 fileLcRangeToLocation (FileWith path range) =
   LSP.Location (absPathToUri path) (lineColRangeToProto range)
-  
+
 locationToFileLcRange :: LSP.Location -> FileLcRange
 locationToFileLcRange (LSP.Location uri range) =
   FileWith (case (uriToAbsPath uri) of Left e -> error $ "e: " ++ show e; Right x -> x) (lineColRangeFromProto range)

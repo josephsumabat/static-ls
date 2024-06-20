@@ -47,5 +47,5 @@ rename path lineCol newName = do
         logInfo $ "idStart: " <> T.pack (show idStart) <> " oldStart: " <> T.pack (show ref.loc.start)
         let edit = Edit.replace (Range (Pos idStart) ref.loc.end) newName
         pure $ SourceEdit.single ref.path edit
-  sourceEdit <- pure $ mconcat sourceEdits
+  let sourceEdit = mconcat sourceEdits
   pure sourceEdit

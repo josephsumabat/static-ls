@@ -67,12 +67,9 @@ getModulesToImport ::
   LineCol ->
   StaticLsM ModulesToImport
 getModulesToImport path pos = do
-  _ <- logInfo "getModulesToImport"
   haskell <- getHaskell path
 
   let astPoint = lineColToAstPoint pos
-  _ <- logInfo $ T.pack $ "astPoint: " ++ show astPoint
-  _ <- logInfo "got haskell"
   -- TODO: Remove double traversal of AST
   let maybeQualified =
         AST.getDeepestContaining
@@ -104,7 +101,6 @@ getModulesToImport path pos = do
           , moduleQualifier = mQualifier
           }
     _ -> do
-      logInfo $ T.pack "no qualified: "
       pure
         ModulesToImport
           { moduleNames = []

@@ -173,7 +173,6 @@ handleSetTrace = LSP.notificationHandler SMethod_SetTrace $ \_ -> pure ()
 
 handleCodeAction :: Handlers (LspT c StaticLsM)
 handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req res -> do
-  _ <- lift $ logInfo "handleCodeAction"
   let params = req._params
   let tdi = params._textDocument
   path <- ProtoLSP.uriToAbsPath tdi._uri

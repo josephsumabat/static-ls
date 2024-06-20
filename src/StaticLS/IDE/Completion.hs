@@ -33,9 +33,6 @@ pathToModule absPath = do
   staticEnv <- getStaticEnv
   let srcDirs = staticEnv.srcDirs
   let wsRoot = staticEnv.wsRoot
-  logInfo $ T.pack $ "fp: " <> show fp
-  logInfo $ T.pack $ "srcDirs: " <> show srcDirs
-  logInfo $ T.pack $ "wsRoot: " <> show wsRoot
   pure $ do
     modPath <- asum ((\srcDir -> makeRelativeMaybe (Path.toFilePath srcDir) fp) <$> srcDirs)
     let (modPathWithoutExt, ext) = splitExtension modPath

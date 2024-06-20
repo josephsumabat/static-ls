@@ -13,7 +13,7 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Monad
 import StaticLS.StaticEnv

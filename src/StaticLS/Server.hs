@@ -13,6 +13,7 @@ import Colog.Core qualified as Colog
 import Control.Monad qualified as Monad
 import Control.Monad.Reader
 import Control.Monad.Trans.Except
+import Data.Foldable qualified as Foldable
 import Data.List as X
 import Data.Maybe as X (fromMaybe)
 import Data.Path qualified as Path
@@ -34,13 +35,20 @@ import Language.LSP.Server (
  )
 import Language.LSP.Server qualified as LSP
 import StaticLS.Handlers
+import StaticLS.Handlers qualified as Handlers
 import StaticLS.Logger
 import StaticLS.Monad
+import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
+import System.Directory qualified as Dir
+import System.FSNotify qualified as FSNotify
+import System.FilePath qualified as FilePath
 import UnliftIO.Concurrent qualified as Conc
 import UnliftIO.Exception qualified as Exception
 
-data ReactorMsg = ReactorMsgAct (StaticLsM ())
+data ReactorMsg where
+  ReactorMsgAct :: StaticLsM () -> ReactorMsg
+  ReactorMsgRequest :: StaticLsM a -> Conc.MVar a -> ReactorMsg
 
 reactor :: Conc.Chan ReactorMsg -> LoggerM IO -> StaticLsM ()
 reactor chan _logger = do
@@ -48,6 +56,39 @@ reactor chan _logger = do
     msg <- liftIO $ Conc.readChan chan
     case msg of
       ReactorMsgAct act -> act
+      ReactorMsgRequest act resp -> do
+        a <- act
+        Conc.putMVar resp a
+
+fileWatcher :: Conc.Chan ReactorMsg -> StaticEnv -> LoggerM IO -> IO ()
+fileWatcher chan staticEnv _logger = do
+  mgr <- FSNotify.startManager
+  _stop <-
+    FSNotify.watchTree
+      mgr
+      (Path.toFilePath staticEnv.hieFilesPath)
+      (\e -> FilePath.takeExtension e.eventPath == ".hie")
+      ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
+          logInfo $ "File changed: " <> T.pack (show e)
+          Handlers.handleHieFileChangeEvent e
+      )
+
+  Foldable.for_ staticEnv.srcDirs \srcDir -> do
+    srcDir <- pure $ Path.toFilePath srcDir
+    exists <- Dir.doesDirectoryExist srcDir
+    Monad.when exists do
+      _stop <-
+        FSNotify.watchTree
+          mgr
+          srcDir
+          (\e -> FilePath.takeExtension e.eventPath == ".hs")
+          ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
+              logInfo $ "File changed: " <> T.pack (show e)
+              Handlers.handleFileChangeEvent e
+          )
+      pure ()
+
+    pure ()
 
 initServer ::
   Conc.Chan ReactorMsg ->
@@ -60,8 +101,9 @@ initServer reactorChan staticEnvOptions logger serverConfig _ = do
   runExceptT $ do
     wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
     wsRoot <- Path.filePathToAbs wsRoot
-    serverStaticEnv <- ExceptT $ Right <$> initEnv wsRoot staticEnvOptions logger
-    _ <- liftIO $ Conc.forkIO $ runStaticLsM serverStaticEnv $ reactor reactorChan logger
+    env <- ExceptT $ Right <$> initEnv wsRoot staticEnvOptions logger
+    _ <- liftIO $ Conc.forkIO $ runStaticLsM env $ reactor reactorChan logger
+    _ <- liftIO $ Conc.forkIO $ fileWatcher reactorChan env.staticEnv logger
     pure serverConfig
  where
   getWsRoot :: LSP.LspM config (Either ResponseError FilePath)
@@ -76,7 +118,10 @@ serverDef argOptions logger = do
   reactorChan <- liftIO Conc.newChan
   let
     -- TODO: actually respond to the client with an error
-    goReq :: forall (a :: LSP.Method LSP.ClientToServer LSP.Request) c. LSP.Handler (LSP.LspT c StaticLsM) a -> LSP.Handler (LSP.LspM c) a
+    goReq ::
+      forall (a :: LSP.Method LSP.ClientToServer LSP.Request) c.
+      LSP.Handler (LSP.LspT c StaticLsM) a ->
+      LSP.Handler (LSP.LspM c) a
     goReq f = \msg k -> do
       env <- LSP.getLspEnv
       let k' resp = do
@@ -84,7 +129,10 @@ serverDef argOptions logger = do
       Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do
         catchAndLog $ f msg k'
 
-    goNot :: forall (a :: LSP.Method LSP.ClientToServer LSP.Notification) c. LSP.Handler (LSP.LspT c StaticLsM) a -> LSP.Handler (LSP.LspM c) a
+    goNot ::
+      forall (a :: LSP.Method LSP.ClientToServer LSP.Notification) c.
+      LSP.Handler (LSP.LspT c StaticLsM) a ->
+      LSP.Handler (LSP.LspM c) a
     goNot f = \msg -> do
       env <- LSP.getLspEnv
       Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do
@@ -106,11 +154,13 @@ serverDef argOptions logger = do
               , handleDefinitionRequest
               , handleTypeDefinitionRequest
               , handleReferencesRequest
+              , handleRenameRequest
+              , handlePrepareRenameRequest
               , handleCancelNotification
               , handleDidOpen
               , handleDidChange
-              , handleDidClose
               , handleDidSave
+              , handleDidClose
               , handleWorkspaceSymbol
               , handleSetTrace
               , handleCodeAction

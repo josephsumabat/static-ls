@@ -3,6 +3,9 @@ module StaticLS.Tree (
   Imports (..),
   getHeader,
   byteToPos,
+  Qualified (..),
+  parseQualified,
+  getQualifiedAtPoint,
 )
 where
 
@@ -10,9 +13,11 @@ import AST qualified
 import AST.Haskell qualified as Haskell
 import Data.Either.Extra qualified as Either.Extra
 import Data.Foldable qualified as Foldable
+import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe qualified as Maybe
 import Data.Pos (Pos (..))
 import Data.Rope (Rope)
+import Data.Text (Text)
 
 byteToPos :: Rope -> Int -> Pos
 byteToPos _rope byte = Pos byte
@@ -44,3 +49,26 @@ getImports hs = do
             { imports = importsFiltered
             , dynNode = imports.dynNode.unDynNode
             }
+
+data Qualified = Qualified
+  { modIds :: NonEmpty AST.DynNode
+  , id :: AST.DynNode
+  }
+
+parseQualified :: Haskell.Qualified -> AST.Err Qualified
+parseQualified qualified = do
+  module' <- qualified.module'
+  modIds <- AST.collapseErr module'.children
+  modIds <- pure $ fmap AST.getDynNode modIds
+  id <- qualified.id
+  id <- pure $ AST.getDynNode id
+  pure Qualified {modIds, id}
+
+getQualifiedAtPoint :: Haskell.Haskell -> AST.Point -> AST.Err (Maybe Qualified)
+getQualifiedAtPoint hs pos = do
+  let node = AST.getDeepestContaining @Haskell.Qualified pos (AST.getDynNode hs)
+  case node of
+    Nothing -> pure Nothing
+    Just node -> do
+      qualified <- parseQualified node
+      pure $ Just qualified

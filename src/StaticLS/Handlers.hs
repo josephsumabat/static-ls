@@ -1,10 +1,15 @@
+{-# LANGUAGE OverloadedLabels #-}
+
 module StaticLS.Handlers where
 
 import Control.Lens.Operators
 import Control.Monad.Reader
+import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
 import Data.Path (AbsPath)
+import Data.Path qualified as Path
 import Data.Rope qualified as Rope
+import Data.Row ((.==))
 import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message (
@@ -20,22 +25,24 @@ import Language.LSP.Server (
  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
+import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
 import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
 import StaticLS.IDE.Completion (Completion (..), getCompletion)
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
-import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover
+import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.IDE.References
-import StaticLS.IDE.Utils
+import StaticLS.IDE.Rename qualified as IDE.Rename
 import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.Semantic qualified as Semantic
 import StaticLS.Utils
+import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
 
 -----------------------------------------------------------------
@@ -77,9 +84,27 @@ handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \r
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   refs <- lift $ findRefs path (ProtoLSP.lineColFromProto params._position)
-  refs <- lift $ traverse fileRangeToLc refs
   let locations = fmap ProtoLSP.fileLcRangeToLocation refs
   res $ Right . InL $ locations
+
+handleRenameRequest :: Handlers (LspT c StaticLsM)
+handleRenameRequest = LSP.requestHandler SMethod_TextDocumentRename $ \req res -> do
+  lift $ logInfo "Received rename request."
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  sourceEdit <- lift $ IDE.Rename.rename path (ProtoLSP.lineColFromProto params._position) params._newName
+  workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
+  res $ Right $ InL workspaceEdit
+  pure ()
+
+handlePrepareRenameRequest :: Handlers (LspT c StaticLsM)
+handlePrepareRenameRequest = LSP.requestHandler SMethod_TextDocumentPrepareRename $ \req res -> do
+  lift $ logInfo "Received prepare rename request."
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  -- get rid of this shit after lsp 2.3
+  res $ Right $ InL $ LSP.PrepareRenameResult $ InR $ InR $ #defaultBehavior .== True
+  pure ()
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)
 handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()
@@ -91,7 +116,8 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   updateFileStateForUri params._textDocument._uri
 
 updateFileState :: AbsPath -> Rope.Rope -> StaticLsM ()
-updateFileState path contentsRope = Semantic.updateSemantic path contentsRope
+updateFileState path contentsRope = do
+  Semantic.updateSemantic path contentsRope
 
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
@@ -99,7 +125,7 @@ updateFileStateForUri uri = do
   virtualFile <- LSP.getVirtualFile normalizedUri
   virtualFile <- isJustOrThrowS "no virtual file" virtualFile
   path <- ProtoLSP.uriToAbsPath uri
-  lift $ updateFileState path (Rope.fromTextRope virtualFile._file_text)
+  lift $ IDE.onNewSource path (Rope.fromTextRope virtualFile._file_text)
   pure ()
 
 handleDidChange :: Handlers (LspT c StaticLsM)
@@ -108,17 +134,32 @@ handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \messa
   let uri = params._textDocument._uri
   updateFileStateForUri uri
 
+handleDidSave :: Handlers (LspT c StaticLsM)
+handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \message -> do
+  let params = message._params
+  let uri = params._textDocument._uri
+  pure ()
+
 handleDidClose :: Handlers (LspT c StaticLsM)
 handleDidClose = LSP.notificationHandler SMethod_TextDocumentDidClose $ \_ -> do
   -- TODO: remove stuff from file state
   lift $ logInfo "did close"
   pure ()
 
-handleDidSave :: Handlers (LspT c StaticLsM)
-handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \message -> do
-  let params = message._params
-  let uri = params._textDocument._uri
-  updateFileStateForUri uri
+handleFileChangeEvent :: FSNotify.Event -> StaticLsM ()
+handleFileChangeEvent event = do
+  path <- Path.filePathToAbsThrow event.eventPath
+  IDE.removePath path
+  pure ()
+
+handleHieFileChangeEvent :: FSNotify.Event -> StaticLsM ()
+handleHieFileChangeEvent event = do
+  path <- Path.filePathToAbsThrow event.eventPath
+  srcPath <- runMaybeT $ HIE.File.hieFilePathToSrcFilePath path
+  case srcPath of
+    Just path ->
+      IDE.removeHieFromSourcePath path
+    Nothing -> pure ()
   pure ()
 
 handleWorkspaceSymbol :: Handlers (LspT c StaticLsM)
@@ -139,8 +180,7 @@ handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req res 
   let range = params._range
   let lineCol = (ProtoLSP.lineColFromProto range._start)
   assists <- lift $ getCodeActions path lineCol
-  rope <- lift $ getSourceRope path
-  let codeActions = fmap (ProtoLSP.assistToCodeAction rope) assists
+  codeActions <- lift $ traverse ProtoLSP.assistToCodeAction assists
   res (Right (LSP.InL (fmap LSP.InR codeActions)))
   pure ()
 
@@ -148,19 +188,15 @@ handleResolveCodeAction :: Handlers (LspT c StaticLsM)
 handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req res -> do
   _ <- lift $ logInfo "handleResolveCodeAction"
   let codeAction = req._params
-
   jsonData <- codeAction._data_ & isJustOrThrowS "code action didn't come with json data"
   let resultSuccessOrThrow res = case res of
         Aeson.Success a -> pure a
         Aeson.Error e -> Exception.throwString ("failed to parse json: " ++ e)
   codeActionMessage <- Aeson.fromJSON @IDE.CodeActions.CodeActionMessage jsonData & resultSuccessOrThrow
-  let path = codeActionMessage.path
   sourceEdit <- lift $ IDE.CodeActions.resolveLazyAssist codeActionMessage
-  rope <- lift $ getSourceRope path
-  let workspaceEdit = ProtoLSP.sourceEditToProto rope sourceEdit
+  workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
   let newCodeAction = codeAction & LSP.edit ?~ workspaceEdit
   res $ Right newCodeAction
-  -- let tdi = params._textDocument
   pure ()
 
 toLspCompletion :: Completion -> CompletionItem

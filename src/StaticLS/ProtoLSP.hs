@@ -31,14 +31,17 @@ import Data.Path qualified as Path
 import Data.Pos
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
+import Data.Traversable (for)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.CodeActions.Types (Assist (..))
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
 import StaticLS.IDE.SymbolKind (SymbolKind)
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.IDE.Workspace.Symbol (Symbol (..))
+import StaticLS.Monad
 import StaticLS.Utils
 
 lineColToProto :: LineCol -> LSP.Position
@@ -128,41 +131,42 @@ editToProto rope edit =
   changeToProto rope <$> Edit.getChanges edit
 
 -- TODO: convert fsEdits
-sourceEditToProto :: Rope -> SourceEdit -> LSP.WorkspaceEdit
-sourceEditToProto rope SourceEdit {fileEdits, fsEdits = _} =
-  LSP.WorkspaceEdit
-    { _changes = Nothing
-    , _documentChanges = Just (fmap LSP.InL documentChanges)
-    , _changeAnnotations = Nothing
-    }
- where
-  documentChanges =
-    ( \(path, edit) ->
-        LSP.TextDocumentEdit
-          { _textDocument =
-              LSP.OptionalVersionedTextDocumentIdentifier
-                { _uri = absPathToUri path
-                , _version = LSP.InR LSP.Null
-                }
-          , _edits = LSP.InL <$> editToProto rope edit
-          }
-    )
-      <$> HashMap.toList
-        fileEdits
+sourceEditToProto :: SourceEdit -> StaticLsM LSP.WorkspaceEdit
+sourceEditToProto SourceEdit {fileEdits, fsEdits} = do
+  documentChanges <- for (HashMap.toList fileEdits) \(path, edit) -> do
+    rope <- IDE.Monad.getSourceRope path
+    pure
+      LSP.TextDocumentEdit
+        { _textDocument =
+            LSP.OptionalVersionedTextDocumentIdentifier
+              { _uri = absPathToUri path
+              , _version = LSP.InR LSP.Null
+              }
+        , _edits = LSP.InL <$> editToProto rope edit
+        }
+  pure
+    LSP.WorkspaceEdit
+      { _changes = Nothing
+      , _documentChanges = Just (fmap LSP.InL documentChanges)
+      , _changeAnnotations = Nothing
+      }
 
-assistToCodeAction :: Rope -> Assist -> LSP.CodeAction
-assistToCodeAction rope Assist {label, sourceEdit} =
-  LSP.CodeAction
-    { _title = label
-    , _kind = Just LSP.CodeActionKind_QuickFix
-    , _diagnostics = Nothing
-    , _edit = case sourceEdit of
-        Left edit -> Just $ sourceEditToProto rope edit
-        Right _ -> Nothing
-    , _command = Nothing
-    , _isPreferred = Nothing
-    , _disabled = Nothing
-    , _data_ = case sourceEdit of
-        Left _ -> Nothing
-        Right data_ -> Just $ Aeson.toJSON data_
-    }
+assistToCodeAction :: Assist -> StaticLsM LSP.CodeAction
+assistToCodeAction Assist {label, sourceEdit} = do
+  edit <-
+    case sourceEdit of
+      Left edit -> Just <$> sourceEditToProto edit
+      Right _ -> pure Nothing
+  pure $
+    LSP.CodeAction
+      { _title = label
+      , _kind = Just LSP.CodeActionKind_QuickFix
+      , _diagnostics = Nothing
+      , _edit = edit
+      , _command = Nothing
+      , _isPreferred = Nothing
+      , _disabled = Nothing
+      , _data_ = case sourceEdit of
+          Left _ -> Nothing
+          Right data_ -> Just $ Aeson.toJSON data_
+      }

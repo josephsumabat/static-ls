@@ -20,6 +20,12 @@ import Data.Text (Text)
 data Edit = Edit [Change]
   deriving (Show, Eq)
 
+instance Semigroup Edit where
+  Edit cs <> Edit cs' = Edit (cs <> cs')
+
+instance Monoid Edit where
+  mempty = empty
+
 insert :: Pos -> Text -> Edit
 insert p t = Edit [Change.insert p t]
 
@@ -31,10 +37,10 @@ replace r t = Edit [Change.replace r t]
 
 -- TODO: change if they are disjoint
 changesToEdit :: [Change] -> Edit
-changesToEdit = Edit . List.sortOn (\c -> (c.delete.start, c.delete.end))
+changesToEdit = Edit
 
 getChanges :: Edit -> [Change]
-getChanges (Edit cs) = cs
+getChanges (Edit cs) = List.sortOn (\c -> (c.delete.start, c.delete.end)) cs
 
 empty :: Edit
 empty = Edit []

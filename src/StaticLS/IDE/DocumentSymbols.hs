@@ -10,9 +10,9 @@ import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Sum
 import Data.Text (Text)
+import StaticLS.IDE.Monad
 import StaticLS.IDE.SymbolKind (SymbolKind)
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
-import StaticLS.IDE.Utils
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.Semantic.Position

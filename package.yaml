@@ -61,6 +61,8 @@ dependencies:
   - cryptohash-md5
   - async
   - fsnotify
+  # because of lsp-types 2.1
+  - row-types
 language: GHC2021
 default-extensions:
 - LambdaCase

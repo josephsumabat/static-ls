@@ -13,11 +13,10 @@ import Data.Rope qualified as Rope
 import Data.Sum (Nil, (:+), pattern Inj)
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.HIE.File (getHieFileFromPath)
 import StaticLS.HIE.Queries
 import StaticLS.IDE.CodeActions.Types
+import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
-import StaticLS.IDE.Utils
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.Semantic.Position
@@ -74,7 +73,7 @@ codeActionWith CodeActionContext {path, pos, lineCol} getTypes = do
 codeAction :: CodeActionContext -> StaticLsM [Assist]
 codeAction cx = do
   res <- runMaybeT do
-    hieFile <- getHieFileFromPath cx.path
+    hieFile <- getHieFile cx.path
     let getTypes lineCol = getPrintedTypesAtPoint hieFile lineCol
     lift $ codeActionWith cx getTypes
   case res of

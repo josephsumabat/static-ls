@@ -1,7 +1,6 @@
 module StaticLS.IDE.Definition (getDefinition, getTypeDefinition) where
 
 import Control.Monad (guard, join)
-import Control.Monad.Catch
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..))
@@ -15,7 +14,6 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (LineCol (..))
 import Data.Text qualified as T
-import Data.Text.Encoding qualified as T.Encoding
 import Development.IDE.GHC.Error (
   srcSpanToFilename,
   srcSpanToRange,
@@ -27,30 +25,27 @@ import GHC.Iface.Type qualified as GHC
 import GHC.Plugins qualified as GHC
 import GHC.Utils.Monad (mapMaybeM)
 import HieDb qualified
-
 import StaticLS.HIE.File
-import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.IDE.HiePos
+import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
-import StaticLS.Semantic (HasSemantic)
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 
 getDefinition ::
-  (HasCallStack, HasLogger m, HasStaticEnv m, HasSemantic m, MonadIO m, MonadThrow m) =>
+  (MonadIde m, MonadIO m) =>
   AbsPath ->
   LineCol ->
   m [FileLcRange]
 getDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
-    hieFile <- getHieFileFromPath path
-    let hieSource = HIE.File.getHieSource hieFile
-    lineCol' <- lineColToHieLineCol path hieSource lineCol
+    hieFile <- getHieFile path
+    lineCol' <- lineColToHieLineCol path lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
     let identifiersAtPoint =
           join $
@@ -62,7 +57,7 @@ getDefinition path lineCol = do
     join <$> mapM identifierToLocation identifiersAtPoint
   pure $ fromMaybe [] mLocationLinks
  where
-  identifierToLocation :: (HasStaticEnv m, MonadIO m, HasSemantic m, MonadThrow m) => GHC.Identifier -> m [FileLcRange]
+  identifierToLocation :: (MonadIde m, MonadIO m) => GHC.Identifier -> m [FileLcRange]
   identifierToLocation ident = do
     hieLcRanges <-
       either
@@ -78,15 +73,14 @@ getDefinition path lineCol = do
     pure $ FileWith srcFile (LineColRange.empty (LineCol 0 0))
 
 getTypeDefinition ::
-  (HasCallStack, HasStaticEnv m, HasSemantic m, MonadIO m, MonadThrow m) =>
+  (MonadIde m, MonadIO m) =>
   AbsPath ->
   LineCol ->
   m [FileLcRange]
 getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
-    hieFile <- getHieFileFromPath path
-    let hieSource = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-    lineCol' <- lineColToHieLineCol path hieSource lineCol
+    hieFile <- getHieFile path
+    lineCol' <- lineColToHieLineCol path lineCol
     let types' = nubOrd $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol')
     let types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
     join <$> mapM (lift . nameToLocation) (typeToName =<< types)

@@ -84,3 +84,4 @@
 - ignore: {name: Use <$>}
 - ignore: {name: Use for_}
 - ignore: {name: Redundant id}
+- ignore: {name: Use forM_}

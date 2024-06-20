@@ -159,6 +159,7 @@ serverDef argOptions logger = do
               , handleCancelNotification
               , handleDidOpen
               , handleDidChange
+              , handleDidSave
               , handleDidClose
               , handleWorkspaceSymbol
               , handleSetTrace

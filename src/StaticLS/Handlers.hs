@@ -134,6 +134,12 @@ handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \messa
   let uri = params._textDocument._uri
   updateFileStateForUri uri
 
+handleDidSave :: Handlers (LspT c StaticLsM)
+handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \message -> do
+  let params = message._params
+  let uri = params._textDocument._uri
+  pure ()
+
 handleDidClose :: Handlers (LspT c StaticLsM)
 handleDidClose = LSP.notificationHandler SMethod_TextDocumentDidClose $ \_ -> do
   -- TODO: remove stuff from file state

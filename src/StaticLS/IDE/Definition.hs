@@ -1,4 +1,4 @@
-module StaticLS.IDE.Definition (getDefinition, getTypeDefinition) where
+module StaticLS.IDE.Definition (getDefinition, getTypeDefinition, nameToLocation, realSrcSpanToFileLcRange) where
 
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -17,7 +17,10 @@ import Data.Text qualified as T
 import Development.IDE.GHC.Error (
   srcSpanToFilename,
   srcSpanToRange,
+  realSrcSpanToLocation,
+  realSrcSpanToRange
  )
+import qualified Development.IDE.GHC.Compat.Util   as IDE.GHC.Compat.Util
 import GHC.Data.FastString qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
@@ -64,7 +67,7 @@ getDefinition path lineCol = do
         (fmap maybeToList . modToLocation)
         nameToLocation
         ident
-    fileRanges <- mapM (runMaybeT . (hieFileLcToFileLc)) hieLcRanges
+    fileRanges <- mapM (runMaybeT . hieFileLcToFileLc) hieLcRanges
     pure $ catMaybes fileRanges
 
   modToLocation :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe FileLcRange)
@@ -151,6 +154,14 @@ srcSpanToLocation src = do
   -- important that the URI's we produce have been properly normalized, otherwise they point at weird places in VS Code
   pure $ FileWith fs (ProtoLSP.lineColRangeFromProto rng)
 
+realSrcSpanToFileLcRange :: (HasCallStack, HasStaticEnv m) => GHC.RealSrcSpan -> m FileLcRange
+realSrcSpanToFileLcRange src = do
+  staticEnv <- getStaticEnv
+  let fileName = IDE.GHC.Compat.Util.unpackFS $ GHC.srcSpanFile src
+  let fs = (staticEnv.wsRoot Path.</>) . Path.filePathToRel $ fileName
+  let rng = realSrcSpanToRange src
+  pure $ FileWith fs (ProtoLSP.lineColRangeFromProto rng)
+  
 defRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m FileLcRange
 defRowToLocation (defRow HieDb.:. _) = do
   let start = hiedbCoordsToLineCol (defRow.defSLine, defRow.defSCol)

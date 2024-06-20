@@ -5,3 +5,5 @@ import Control.Monad.Trans.Except
 
 exceptToMaybe :: Except a b -> Maybe b
 exceptToMaybe = hush . runExcept
+
+another (b, a, (a -> True)) = a

@@ -15,6 +15,7 @@ module StaticLS.ProtoLSP (
   editToProto,
   sourceEditToProto,
   assistToCodeAction,
+  locationToFileLcRange,
 )
 where
 
@@ -43,6 +44,7 @@ import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.IDE.Workspace.Symbol (Symbol (..))
 import StaticLS.Monad
 import StaticLS.Utils
+import Data.Maybe qualified as Maybe
 
 lineColToProto :: LineCol -> LSP.Position
 lineColToProto (LineCol line col) =
@@ -85,6 +87,10 @@ locationToLocationLink LSP.Location {_uri, _range} =
 fileLcRangeToLocation :: FileLcRange -> LSP.Location
 fileLcRangeToLocation (FileWith path range) =
   LSP.Location (absPathToUri path) (lineColRangeToProto range)
+  
+locationToFileLcRange :: LSP.Location -> FileLcRange
+locationToFileLcRange (LSP.Location uri range) =
+  FileWith (case (uriToAbsPath uri) of Left e -> error $ "e: " ++ show e; Right x -> x) (lineColRangeFromProto range)
 
 symbolKindToProto :: SymbolKind -> LSP.SymbolKind
 symbolKindToProto = \case

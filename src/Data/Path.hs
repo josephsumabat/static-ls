@@ -74,7 +74,7 @@ unsafeFilePathToAbs p
 filePathToAbsThrow :: (MonadThrow m, HasCallStack) => FilePath -> m AbsPath
 filePathToAbsThrow p
   | FilePath.isAbsolute p = pure $ UncheckedPath p
-  | otherwise = throwM (stringException "")
+  | otherwise = throwM (stringException $ "filepath was not absolute: " ++ p)
 
 (</>) :: Path p -> Path Rel -> Path p
 (UncheckedPath p) </> (UncheckedPath p') = UncheckedPath (p FilePath.</> p')

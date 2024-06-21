@@ -7,6 +7,7 @@ import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Path (AbsPath)
 import Data.RangeMap (RangeMap)
+import Data.RangeMap qualified as RangeMap
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
@@ -38,6 +39,9 @@ data FileState = FileState
 data Semantic = Semantic
   { fileStates :: HashMap AbsPath FileState
   }
+
+emptyFileState :: FileState
+emptyFileState = mkFileState T.empty Rope.empty
 
 mkSemantic :: Semantic
 mkSemantic =

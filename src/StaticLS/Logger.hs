@@ -18,6 +18,7 @@ where
 
 import Colog.Core qualified as Colog
 import Control.Monad.IO.Class (MonadIO (..))
+import Control.Monad.Reader
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT)
 import Data.ByteString qualified as B
@@ -33,6 +34,12 @@ class HasLogger m where
 
 instance (Monad m, HasLogger m) => HasLogger (MaybeT m) where
   getLogger = lift getLogger
+
+instance HasLogger ((->) Logger) where
+  getLogger = id
+
+instance (Monad m) => HasLogger (ReaderT Logger m) where
+  getLogger = ask
 
 logWith :: (HasCallStack, HasLogger m, MonadIO m) => Colog.Severity -> Text -> CallStack -> m ()
 logWith severity text stack = do

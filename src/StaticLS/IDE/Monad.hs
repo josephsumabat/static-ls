@@ -5,7 +5,7 @@ module StaticLS.IDE.Monad (
   getSource,
   getHieToSrcDiffMap,
   getSrcToHieDiffMap,
-  getFileStateThrow,
+  getFileState,
   getHieSourceRope,
   getHieSource,
   getHieFile,
@@ -47,6 +47,7 @@ import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv
+import UnliftIO.Exception qualified as Exception
 import UnliftIO.IORef qualified as IORef
 
 type MonadIde m =
@@ -61,17 +62,17 @@ type MonadIde m =
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
 getHaskell uri = do
-  fileState <- getFileStateThrow uri
+  fileState <- getFileState uri
   pure fileState.tree
 
 getSourceRope :: (MonadIde m, MonadIO m) => AbsPath -> m Rope
 getSourceRope uri = do
-  mFileState <- getFileStateThrow uri
+  mFileState <- getFileState uri
   pure mFileState.contentsRope
 
 getSource :: (MonadIde m, MonadIO m) => AbsPath -> m Text
 getSource uri = do
-  mFileState <- getFileStateThrow uri
+  mFileState <- getFileState uri
   pure mFileState.contentsText
 
 getHieToSrcDiffMap :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m PositionDiff.DiffMap
@@ -86,18 +87,33 @@ getSrcToHieDiffMap path = do
   source <- getSource path
   pure $ PositionDiff.getDiffMap source hieSource
 
-getFileStateThrow :: (MonadIde m, MonadIO m) => AbsPath -> m Semantic.FileState
-getFileStateThrow path = do
+-- While hie operations return MaybeT, because we expect those operations to fail and we want to recover from them
+-- However, if we fail to get the file state, we're probably screwed anyway
+-- So we catch the exception and return an empty file state, so the exception doesn't ruin other stuff
+-- For example, sometimes the hiefiles are stale and refer to some file that doesn't exist anymore
+-- We don't want one non existing file to ruin an entire goto references for example
+getFileState :: (MonadIde m, MonadIO m) => AbsPath -> m Semantic.FileState
+getFileState path = do
   sema <- Semantic.getSemantic
   let fileState = HashMap.lookup path sema.fileStates
   case fileState of
     Just fileState -> pure fileState
     Nothing -> do
-      contents <- liftIO $ T.readFile $ toFilePath path
-      let contentsRope = Rope.fromText contents
-      let fileState = Semantic.mkFileState contents contentsRope
-      Semantic.setFileState path fileState
-      pure fileState
+      -- use the double liftIO here to avoid the MonadUnliftIO constraint
+      -- we really just want unliftio to handle not catching async exceptions
+      contents <-
+        liftIO $
+          Exception.tryAny
+            (liftIO $ T.readFile $ toFilePath path)
+      case contents of
+        Left e -> do
+          logError $ "Failed to read file: " <> T.pack (show e)
+          pure Semantic.emptyFileState
+        Right contents -> do
+          let contentsRope = Rope.fromText contents
+          let fileState = Semantic.mkFileState contents contentsRope
+          Semantic.setFileState path fileState
+          pure fileState
 
 type HieCacheMap = HashMap.HashMap AbsPath CachedHieFile
 
@@ -149,7 +165,7 @@ instance (MonadHieFile m, Monad m) => MonadHieFile (MaybeT m) where
 
 getTokenMap :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m (RangeMap PositionDiff.Token)
 getTokenMap path = do
-  fileState <- getFileStateThrow path
+  fileState <- getFileState path
   pure fileState.tokenMap
 
 getHieTokenMap :: (MonadHieFile m) => AbsPath -> MaybeT m (RangeMap PositionDiff.Token)

@@ -17,11 +17,8 @@ posToHiePos path pos = do
 
 hiePosToPos :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> MaybeT m Pos
 hiePosToPos path hiePos = do
-  source <- lift $ getSource path
-  hieSource <- getHieSource path
-  let diff = PositionDiff.diffText hieSource source
-  let pos' = PositionDiff.updatePositionUsingDiff diff hiePos
-  pure pos'
+  hieToSource <- getHieToSource path
+  pure $ PositionDiff.diffPos hiePos hieToSource
 
 hieLineColToLineCol :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> MaybeT m LineCol
 hieLineColToLineCol path lineCol = do

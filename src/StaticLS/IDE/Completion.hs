@@ -29,6 +29,7 @@ import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath
+import Data.Containers.ListUtils (nubOrd)
 
 makeRelativeMaybe :: FilePath -> FilePath -> Maybe FilePath
 makeRelativeMaybe base path = do
@@ -89,8 +90,9 @@ getCompletion path = do
             pure exports
           hieFile <- getHieFile path
           let symbols = allGlobalSymbols hieFile ++ res
+          let symbolsNubbed = nubOrd symbols
           -- logInfo $ "symbols: " <> T.pack (show symbols)
-          let completions = fmap (\symbol -> Completion {label = symbol, insertText = symbol}) symbols
+          let completions = fmap (\symbol -> Completion {label = symbol, insertText = symbol}) symbolsNubbed
           pure completions
       pure $ Maybe.fromMaybe [] res
 

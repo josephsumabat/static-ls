@@ -3,6 +3,7 @@ module Data.RangeMap (
   fromList,
   lookup,
   lookupWith,
+  empty,
 )
 where
 
@@ -19,6 +20,9 @@ data IntPair a = P !Int a
 
 newtype RangeMap a = RangeMap {map :: IntMap (IntPair a)}
   deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
+
+empty :: RangeMap a
+empty = RangeMap IntMap.empty
 
 -- Invariant: ranges must be disjoint
 fromList :: (HasCallStack) => [(Range, a)] -> RangeMap a

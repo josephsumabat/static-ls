@@ -155,7 +155,7 @@ getCompletion cx = do
     UnqualifiedMode -> do
       fileCompletions <- getFileCompletions cx
       importCompletions <- getUnqualifiedImportCompletions cx
-      pure $ importCompletions ++ fileCompletions
+      pure $ nubOrd $ importCompletions ++ fileCompletions
     QualifiedMode mod -> do
       let path = cx.path
       haskell <- getHaskell path
@@ -165,13 +165,13 @@ getCompletion cx = do
       let importsWithAlias = filter (\imp -> fmap (.text) imp.alias == Just mod) imports
       logInfo $ "importsWithAlias: " <> T.pack (show importsWithAlias)
       let importMods = fmap (.mod.text) imports
-      getCompletionsForImports importsWithAlias
+      nubOrd <$> getCompletionsForImports importsWithAlias
 
 data Completion = Completion
   { label :: !Text
   , insertText :: !Text
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 data TriggerKind = TriggerCharacter | TriggerUnknown
   deriving (Show, Eq)

@@ -87,6 +87,11 @@ getSrcToHieDiffMap path = do
   source <- getSource path
   pure $ PositionDiff.getDiffMap source hieSource
 
+-- While hie operations return MaybeT, because we expect those operations to fail and we want to recover from them
+-- However, if we fail to get the file state, we're probably screwed anyway
+-- So we catch the exception and return an empty file state, so the exception doesn't ruin other stuff
+-- For example, sometimes the hiefiles are stale and refer to some file that doesn't exist anymore
+-- We don't want one non existing file to ruin an entire goto references for example
 getFileState :: (MonadIde m, MonadIO m) => AbsPath -> m Semantic.FileState
 getFileState path = do
   sema <- Semantic.getSemantic

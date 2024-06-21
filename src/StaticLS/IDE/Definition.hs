@@ -16,7 +16,6 @@ import Data.Pos (LineCol (..))
 import Data.Text qualified as T
 import Development.IDE.GHC.Compat.Util qualified as IDE.GHC.Compat.Util
 import Development.IDE.GHC.Error (
-  realSrcSpanToLocation,
   realSrcSpanToRange,
   srcSpanToFilename,
   srcSpanToRange,

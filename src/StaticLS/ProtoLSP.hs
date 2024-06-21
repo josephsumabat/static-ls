@@ -16,6 +16,7 @@ module StaticLS.ProtoLSP (
   sourceEditToProto,
   assistToCodeAction,
   locationToFileLcRange,
+  triggerKindFromProto,
 )
 where
 
@@ -36,6 +37,7 @@ import Data.Rope qualified as Rope
 import Data.Traversable (for)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.CodeActions.Types (Assist (..))
+import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
 import StaticLS.IDE.Monad qualified as IDE.Monad
@@ -64,6 +66,11 @@ lineColRangeToProto (LineColRange start end) =
 
 posToLSPPosition :: Rope -> Pos -> LSP.Position
 posToLSPPosition rope pos = lineColToProto $ Rope.posToLineCol rope pos
+
+triggerKindFromProto :: LSP.CompletionTriggerKind -> IDE.Completion.TriggerKind
+triggerKindFromProto = \case
+  LSP.CompletionTriggerKind_TriggerCharacter -> IDE.Completion.TriggerCharacter
+  _ -> IDE.Completion.TriggerUnknown
 
 -- beware: the uri must be absolute or this function will return Nothing
 uriToAbsPath :: (MonadThrow m) => LSP.Uri -> m AbsPath

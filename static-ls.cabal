@@ -55,6 +55,8 @@ library
       StaticLS.HIE.Position
       StaticLS.HIE.Queries
       StaticLS.HieDb
+      StaticLS.HieView
+      StaticLS.Hir
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AddTypeSig
       StaticLS.IDE.CodeActions.AutoImport
@@ -227,6 +229,7 @@ test-suite static-ls-test
   main-is: Main.hs
   other-modules:
       Data.RopeSpec
+      Semantic.HirSpec
       Spec
       SpecHook
       StaticLS.HI.FileSpec

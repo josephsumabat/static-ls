@@ -20,6 +20,5 @@ spec = do
     |]
     let stuff = Hir.parseHaskell hs
     print stuff
-    True `shouldBe` False
     pure @IO ()
   pure ()

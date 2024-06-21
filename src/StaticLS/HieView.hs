@@ -11,8 +11,8 @@ import GHC.Types.Avail qualified as GHC
 import HieDb.Compat qualified
 
 data File = File
-  { path :: FilePath,
-    asts :: (Map FilePath Ast)
+  { path :: FilePath
+  , asts :: (Map FilePath Ast)
   }
 
 data NodeOrigin
@@ -24,8 +24,8 @@ data Ast = Ast
   }
 
 data NodeAnnotation = NodeAnnotation
-  { constr :: Text,
-    ty :: Text
+  { constr :: Text
+  , ty :: Text
   }
   deriving (Show, Eq, Ord)
 

@@ -10,8 +10,8 @@ import Data.Maybe qualified as Maybe
 import Data.Text (Text)
 
 data Module = Module
-  { ids :: NonEmpty Text,
-    text :: Text
+  { ids :: NonEmpty Text
+  , text :: Text
   }
   deriving (Show, Eq)
 
@@ -21,18 +21,18 @@ data ImportName = ImportName
   deriving (Show, Eq)
 
 data Import = Import
-  { mod :: Module,
-    alias :: Maybe Module,
-    qualified :: !Bool,
-    hiding :: !Bool,
-    importList :: [ImportName]
+  { mod :: Module
+  , alias :: Maybe Module
+  , qualified :: !Bool
+  , hiding :: !Bool
+  , importList :: [ImportName]
   }
   deriving (Show, Eq)
 
 findNode :: (AST.DynNode -> Maybe b) -> AST.DynNode -> Maybe b
 findNode f n = go n
-  where
-    go n = f n <|> asum (go <$> (AST.nodeChildren n))
+ where
+  go n = f n <|> asum (go <$> (AST.nodeChildren n))
 
 parseImportName :: H.ImportName -> AST.Err ImportName
 parseImportName name = do
@@ -50,8 +50,8 @@ parseModule m = do
   ids <- AST.collapseErr m.children
   pure $
     Module
-      { text = AST.nodeToText m,
-        ids = fmap AST.nodeToText ids
+      { text = AST.nodeToText m
+      , ids = fmap AST.nodeToText ids
       }
 
 parseImport :: H.Import -> AST.Err Import
@@ -67,11 +67,11 @@ parseImport i = do
   let hiding = Maybe.isJust $ findNode (AST.cast @(AST.Token "hiding")) (AST.getDynNode i)
   pure
     Import
-      { mod,
-        alias,
-        qualified,
-        hiding,
-        importList
+      { mod
+      , alias
+      , qualified
+      , hiding
+      , importList
       }
 
 parseImports :: H.Imports -> AST.Err ([Text], [Import])

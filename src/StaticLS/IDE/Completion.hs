@@ -83,7 +83,7 @@ getCompletionsForImports imports = do
   importCompletions <- for imports \imp -> do
     getCompletionsForImport imp
   pure $ concat importCompletions
-  
+
 -- getExportsForMod
 --   pure []
 getFileCompletions :: Context -> StaticLsM [Completion]

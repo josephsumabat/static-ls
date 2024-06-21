@@ -1,6 +1,6 @@
 module StaticLS.Hir where
 
-import AST qualified as AST
+import AST qualified
 import AST.Haskell qualified as H
 import Control.Applicative (asum, (<|>))
 import Data.Either qualified as Either

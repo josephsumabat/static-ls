@@ -155,7 +155,7 @@ getCompletionMode cx = do
           let firstIsUpper = case firstChar of
                 Just c -> Char.isUpper c
                 Nothing -> False
-          let containsDot = T.unpack prefix & any (== '.')
+          let containsDot = T.unpack prefix & elem '.'
           if firstIsUpper && containsDot
             then do
               let (mod, _) = T.breakOn "." prefix

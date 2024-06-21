@@ -86,3 +86,5 @@
 - ignore: {name: Redundant id}
 - ignore: {name: Use forM_}
 - ignore: {name: Move concatMap out}
+- ignore: {name: Use maybe}
+- ignore: {name: Replace case with maybe}

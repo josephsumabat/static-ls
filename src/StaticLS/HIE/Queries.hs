@@ -165,7 +165,7 @@ allGlobalSymbols :: GHC.HieFile -> [Text]
 allGlobalSymbols hieFile = strings
  where
   strings = fmap (T.pack . GHC.occNameString . GHC.nameOccName) filtered
-  filtered = mapMaybe hush . fmap fst . filter (\(_ident, details) -> detailsMatchesContext globalDef details) $ res
+  filtered = mapMaybe (hush . fst) . filter (\(_ident, details) -> detailsMatchesContext globalDef details) $ res
   globalDef = \case
     GHC.ValBind _ GHC.ModuleScope _ -> True
     GHC.TyDecl -> True

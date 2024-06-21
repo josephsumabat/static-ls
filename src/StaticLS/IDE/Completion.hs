@@ -8,6 +8,8 @@ module StaticLS.IDE.Completion (
 )
 where
 
+import AST qualified
+import AST.Haskell qualified as Haskell
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Maybe (MaybeT (..))
@@ -32,6 +34,7 @@ import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Monad
+import StaticLS.Semantic.Position qualified as Semantic.Position
 import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
@@ -70,6 +73,15 @@ getExportsForMod (HieDb.getConn -> conn) mod = do
       \WHERE mods.mod = ?"
       (SQL.Only mod)
   pure $ fmap stripNameSpacePrefix $ coerce res
+
+getModules :: HieDb -> IO [Text]
+getModules (HieDb.getConn -> conn) = do
+  res <-
+    SQL.query_
+      @(SQL.Only Text)
+      conn
+      "SELECT DISTINCT mod FROM mods"
+  pure $ coerce res
 
 getCompletionsForImport :: Hir.Import -> StaticLsM [Completion]
 getCompletionsForImport imp = do
@@ -111,7 +123,8 @@ getUnqualifiedImportCompletions cx = do
   getCompletionsForImports unqualifiedImports
 
 data CompletionMode
-  = HeaderMode !Text
+  = ImportMode
+  | HeaderMode !Text
   | QualifiedMode !Text
   | UnqualifiedMode
   deriving (Show, Eq)
@@ -125,23 +138,30 @@ getCompletionMode cx = do
   mod <- pathToModule path
   case (header, mod) of
     (Nothing, Just mod) -> pure $ HeaderMode mod
-    (_, _) -> do
+    _ -> do
       let lineCol = cx.lineCol
       let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope (Pos lineCol.line)
-      let (beforeCol, afterCol) = T.splitAt lineCol.col line
-      let (_, prefix) = Identity.runIdentity $ T.spanEndM (pure . not . Char.isSpace) beforeCol
-      logInfo $ "prefix: " <> prefix
-      let firstChar = fst <$> T.uncons prefix
-      let firstIsUpper = case firstChar of
-            Just c -> Char.isUpper c
-            Nothing -> False
-      let containsDot = T.unpack prefix & any (== '.')
-      if firstIsUpper && containsDot
-        then do
-          let (mod, _) = T.breakOn "." prefix
-          pure $ QualifiedMode mod
+      hs <- getHaskell cx.path
+      let astPoint = Semantic.Position.lineColToAstPoint cx.lineCol
+      let imports = AST.getDeepestContaining @Haskell.Imports astPoint (AST.getDynNode hs)
+      if Maybe.isJust imports && "import" `T.isPrefixOf` line
+        then
+          pure ImportMode
         else do
-          pure UnqualifiedMode
+          let (beforeCol, _afterCol) = T.splitAt lineCol.col line
+          let (_, prefix) = Identity.runIdentity $ T.spanEndM (pure . not . Char.isSpace) beforeCol
+          logInfo $ "prefix: " <> prefix
+          let firstChar = fst <$> T.uncons prefix
+          let firstIsUpper = case firstChar of
+                Just c -> Char.isUpper c
+                Nothing -> False
+          let containsDot = T.unpack prefix & any (== '.')
+          if firstIsUpper && containsDot
+            then do
+              let (mod, _) = T.breakOn "." prefix
+              pure $ QualifiedMode mod
+            else do
+              pure UnqualifiedMode
 
 getCompletion :: Context -> StaticLsM [Completion]
 getCompletion cx = do
@@ -149,6 +169,10 @@ getCompletion cx = do
   mode <- getCompletionMode cx
   logInfo $ "mode: " <> T.pack (show mode)
   case mode of
+    ImportMode -> do
+      res <- runMaybeT $ runHieDbMaybeT \hiedb -> getModules hiedb
+      res <- pure $ Maybe.fromMaybe [] res
+      pure $ textCompletion <$> res
     HeaderMode mod -> do
       let label = "module " <> mod <> " where"
       pure [Completion {label, insertText = label <> "\n$0"}]
@@ -164,7 +188,6 @@ getCompletion cx = do
       let imports = prog.imports
       let importsWithAlias = filter (\imp -> fmap (.text) imp.alias == Just mod) imports
       logInfo $ "importsWithAlias: " <> T.pack (show importsWithAlias)
-      let importMods = fmap (.mod.text) imports
       nubOrd <$> getCompletionsForImports importsWithAlias
 
 data Completion = Completion
@@ -172,6 +195,9 @@ data Completion = Completion
   , insertText :: !Text
   }
   deriving (Show, Eq, Ord)
+
+textCompletion :: Text -> Completion
+textCompletion text = Completion {label = text, insertText = text}
 
 data TriggerKind = TriggerCharacter | TriggerUnknown
   deriving (Show, Eq)

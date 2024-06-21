@@ -6,6 +6,7 @@ import Control.Lens.Operators
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Rope qualified as Rope
@@ -30,6 +31,7 @@ import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
 import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
 import StaticLS.IDE.Completion (Completion (..), getCompletion)
+import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Hover
@@ -101,7 +103,7 @@ handlePrepareRenameRequest :: Handlers (LspT c StaticLsM)
 handlePrepareRenameRequest = LSP.requestHandler SMethod_TextDocumentPrepareRename $ \req res -> do
   lift $ logInfo "Received prepare rename request."
   let params = req._params
-  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  -- pos <- ProtoLSP.
   -- get rid of this shit after lsp 2.3
   res $ Right $ InL $ LSP.PrepareRenameResult $ InR $ InR $ #defaultBehavior .== True
   pure ()
@@ -227,7 +229,13 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
   let params = req._params
   let tdi = params._textDocument
   path <- ProtoLSP.tdiToAbsPath tdi
-  completions <- lift $ getCompletion path
+  let lineCol = ProtoLSP.lineColFromProto params._position
+  sourceRope <- lift $ IDE.getSourceRope path
+  let pos = Rope.lineColToPos sourceRope lineCol
+  let lspContext = params._context
+  let triggerKind = Maybe.fromMaybe IDE.Completion.TriggerUnknown $ (ProtoLSP.triggerKindFromProto . (._triggerKind)) <$> lspContext
+  let cx = IDE.Completion.Context {path, lineCol, pos, triggerKind}
+  completions <- lift $ getCompletion cx
   let lspCompletions = fmap toLspCompletion completions
   let lspList =
         LSP.CompletionList

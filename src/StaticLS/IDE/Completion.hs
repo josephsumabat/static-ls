@@ -1,19 +1,26 @@
 {-# LANGUAGE BlockArguments #-}
 
-module StaticLS.IDE.Completion
-  ( getCompletion,
-    Completion (..),
-  )
+module StaticLS.IDE.Completion (
+  getCompletion,
+  Context (..),
+  TriggerKind (..),
+  Completion (..),
+)
 where
 
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Char qualified as Char
 import Data.Coerce (coerce)
+import Data.Containers.ListUtils (nubOrd)
 import Data.Function ((&))
+import Data.Functor.Identity qualified as Identity
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
+import Data.Pos (LineCol (..), Pos (..))
+import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Traversable (for)
@@ -29,7 +36,6 @@ import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
 import System.FilePath
-import Data.Containers.ListUtils (nubOrd)
 
 makeRelativeMaybe :: FilePath -> FilePath -> Maybe FilePath
 makeRelativeMaybe base path = do
@@ -65,39 +71,115 @@ getExportsForMod (HieDb.getConn -> conn) mod = do
       (SQL.Only mod)
   pure $ fmap stripNameSpacePrefix $ coerce res
 
-getCompletion :: AbsPath -> StaticLsM [Completion]
-getCompletion path = do
+getCompletionsForImport :: Hir.Import -> StaticLsM [Completion]
+getCompletionsForImport imp = do
+  res <- runMaybeT $ runHieDbMaybeT \hiedb -> do
+    getExportsForMod hiedb imp.mod.text
+  res <- pure $ Maybe.fromMaybe [] res
+  pure $ fmap (\text -> Completion {label = text, insertText = text}) res
+
+getCompletionsForImports :: [Hir.Import] -> StaticLsM [Completion]
+getCompletionsForImports imports = do
+  importCompletions <- for imports \imp -> do
+    getCompletionsForImport imp
+  pure $ concat importCompletions
+  
+-- getExportsForMod
+--   pure []
+getFileCompletions :: Context -> StaticLsM [Completion]
+getFileCompletions cx = do
+  let path = cx.path
+  fileCompletions <-
+    runMaybeT $ do
+      hieFile <- getHieFile path
+      let symbols = allGlobalSymbols hieFile
+      let symbolsNubbed = nubOrd symbols
+      -- logInfo $ "symbols: " <> T.pack (show symbols)
+      let completions = fmap (\symbol -> Completion {label = symbol, insertText = symbol}) symbolsNubbed
+      pure completions
+  fileCompletions <- pure $ Maybe.fromMaybe [] fileCompletions
+  pure fileCompletions
+
+getUnqualifiedImportCompletions :: Context -> StaticLsM [Completion]
+getUnqualifiedImportCompletions cx = do
+  let path = cx.path
+  haskell <- getHaskell path
+  let prog = Hir.parseHaskell haskell
+  (_errs, prog) <- isRightOrThrowT prog
+  let imports = prog.imports
+  let unqualifiedImports = filter (\imp -> not imp.qualified) imports
+  getCompletionsForImports unqualifiedImports
+
+data CompletionMode
+  = HeaderMode !Text
+  | QualifiedMode !Text
+  | UnqualifiedMode
+  deriving (Show, Eq)
+
+getCompletionMode :: Context -> StaticLsM CompletionMode
+getCompletionMode cx = do
+  let path = cx.path
   haskell <- getHaskell path
   header <- Tree.getHeader haskell & isRightOrThrowT
+  sourceRope <- getSourceRope path
   mod <- pathToModule path
   case (header, mod) of
-    (Nothing, Just mod) -> do
+    (Nothing, Just mod) -> pure $ HeaderMode mod
+    (_, _) -> do
+      let lineCol = cx.lineCol
+      let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope (Pos lineCol.line)
+      let (beforeCol, afterCol) = T.splitAt lineCol.col line
+      let (_, prefix) = Identity.runIdentity $ T.spanEndM (pure . not . Char.isSpace) beforeCol
+      logInfo $ "prefix: " <> prefix
+      let firstChar = fst <$> T.uncons prefix
+      let firstIsUpper = case firstChar of
+            Just c -> Char.isUpper c
+            Nothing -> False
+      let containsDot = T.unpack prefix & any (== '.')
+      if firstIsUpper && containsDot
+        then do
+          let (mod, _) = T.breakOn "." prefix
+          pure $ QualifiedMode mod
+        else do
+          pure UnqualifiedMode
+
+getCompletion :: Context -> StaticLsM [Completion]
+getCompletion cx = do
+  logInfo $ "triggerKind: " <> T.pack (show cx.triggerKind)
+  mode <- getCompletionMode cx
+  logInfo $ "mode: " <> T.pack (show mode)
+  case mode of
+    HeaderMode mod -> do
       let label = "module " <> mod <> " where"
       pure [Completion {label, insertText = label <> "\n$0"}]
-    (_, _) -> do
+    UnqualifiedMode -> do
+      fileCompletions <- getFileCompletions cx
+      importCompletions <- getUnqualifiedImportCompletions cx
+      pure $ importCompletions ++ fileCompletions
+    QualifiedMode mod -> do
+      let path = cx.path
       haskell <- getHaskell path
       let prog = Hir.parseHaskell haskell
       (_errs, prog) <- isRightOrThrowT prog
       let imports = prog.imports
+      let importsWithAlias = filter (\imp -> fmap (.text) imp.alias == Just mod) imports
+      logInfo $ "importsWithAlias: " <> T.pack (show importsWithAlias)
       let importMods = fmap (.mod.text) imports
-      logInfo $ "importMods: " <> T.pack (show importMods)
-      res <-
-        runMaybeT $ do
-          res <- runHieDbMaybeT \hiedb -> do
-            exports <- for importMods \importMod -> do
-              getExportsForMod hiedb importMod
-            exports <- pure $ concat exports
-            pure exports
-          hieFile <- getHieFile path
-          let symbols = allGlobalSymbols hieFile ++ res
-          let symbolsNubbed = nubOrd symbols
-          -- logInfo $ "symbols: " <> T.pack (show symbols)
-          let completions = fmap (\symbol -> Completion {label = symbol, insertText = symbol}) symbolsNubbed
-          pure completions
-      pure $ Maybe.fromMaybe [] res
+      getCompletionsForImports importsWithAlias
 
 data Completion = Completion
-  { label :: !Text,
-    insertText :: !Text
+  { label :: !Text
+  , insertText :: !Text
+  }
+  deriving (Show, Eq)
+
+data TriggerKind = TriggerCharacter | TriggerUnknown
+  deriving (Show, Eq)
+
+data Context = Context
+  { path :: AbsPath
+  , pos :: !Pos
+  , lineCol :: !LineCol
+  , triggerKind :: !TriggerKind
   }
   deriving (Show, Eq)

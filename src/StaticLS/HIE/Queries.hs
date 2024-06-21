@@ -14,7 +14,6 @@ import GHC.Data.FastString qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
 import GHC.Plugins qualified as GHC
-import GHC.Types.SrcLoc qualified as GHC
 import HieDb (pointCommand)
 import StaticLS.HIE.Position
 import StaticLS.SDoc (showGhc)

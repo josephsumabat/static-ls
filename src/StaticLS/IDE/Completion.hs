@@ -1,21 +1,27 @@
 {-# LANGUAGE BlockArguments #-}
 
-module StaticLS.IDE.Completion (
-  getCompletion,
-  Completion (..),
-)
+module StaticLS.IDE.Completion
+  ( getCompletion,
+    Completion (..),
+  )
 where
 
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Coerce (coerce)
 import Data.Function ((&))
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Traversable (for)
+import Database.SQLite.Simple qualified as SQL
+import HieDb (HieDb)
+import HieDb qualified
 import StaticLS.HIE.Queries (allGlobalSymbols)
+import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Monad
@@ -43,6 +49,21 @@ pathToModule absPath = do
     let modText = T.replace (T.pack [pathSeparator]) "." (T.pack modPathWithoutExt)
     pure modText
 
+stripNameSpacePrefix :: Text -> Text
+stripNameSpacePrefix t = snd $ T.breakOnEnd ":" t
+
+getExportsForMod :: HieDb -> Text -> IO [Text]
+getExportsForMod (HieDb.getConn -> conn) mod = do
+  res <-
+    SQL.query @_ @(SQL.Only Text)
+      conn
+      "SELECT DISTINCT exports.occ \
+      \FROM exports \
+      \JOIN mods using (hieFile) \
+      \WHERE mods.mod = ?"
+      (SQL.Only mod)
+  pure $ fmap stripNameSpacePrefix $ coerce res
+
 getCompletion :: AbsPath -> StaticLsM [Completion]
 getCompletion path = do
   haskell <- getHaskell path
@@ -53,17 +74,28 @@ getCompletion path = do
       let label = "module " <> mod <> " where"
       pure [Completion {label, insertText = label <> "\n$0"}]
     (_, _) -> do
+      haskell <- getHaskell path
+      let prog = Hir.parseHaskell haskell
+      (_errs, prog) <- isRightOrThrowT prog
+      let imports = prog.imports
+      let importMods = fmap (.mod.text) imports
+      logInfo $ "importMods: " <> T.pack (show importMods)
       res <-
         runMaybeT $ do
+          res <- runHieDbMaybeT \hiedb -> do
+            exports <- for importMods \importMod -> do
+              getExportsForMod hiedb importMod
+            exports <- pure $ concat exports
+            pure exports
           hieFile <- getHieFile path
-          let symbols = allGlobalSymbols hieFile
-          logInfo $ "symbols: " <> T.pack (show symbols)
+          let symbols = allGlobalSymbols hieFile ++ res
+          -- logInfo $ "symbols: " <> T.pack (show symbols)
           let completions = fmap (\symbol -> Completion {label = symbol, insertText = symbol}) symbols
           pure completions
       pure $ Maybe.fromMaybe [] res
 
 data Completion = Completion
-  { label :: !Text
-  , insertText :: !Text
+  { label :: !Text,
+    insertText :: !Text
   }
   deriving (Show, Eq)

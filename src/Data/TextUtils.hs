@@ -10,8 +10,6 @@ import Data.List.NonEmpty qualified as NE
 import Data.Text (Text)
 import Data.Text qualified as T
 
--- splitOnce :: Text -> Text -> (Text, t)
-
 -- never empty
 splitLinesWithEnd :: Text -> NonEmpty Text
 splitLinesWithEnd t =

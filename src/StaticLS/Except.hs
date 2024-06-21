@@ -1,7 +1,8 @@
 module StaticLS.Except (module X) where
 
-import Control.Error.Util as X
-import Control.Monad.Trans.Except as X
+import Data.List as X
+import Control.Error.Util
+import Control.Monad.Trans.Except
 
 exceptToMaybe :: Except a b -> Maybe b
 exceptToMaybe = hush . runExcept

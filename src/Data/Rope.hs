@@ -18,6 +18,7 @@ module Data.Rope (
   isValidLineCol,
   isValidLineColEnd,
   indexRange,
+  empty,
 )
 where
 
@@ -36,6 +37,9 @@ import Prelude hiding (getLine, length, splitAt)
 
 newtype Rope = Rope {rope :: Rope.Rope}
   deriving (Show, Eq, Ord, Semigroup, Monoid, IsString)
+
+empty :: Rope
+empty = Rope mempty
 
 fromTextRope :: Rope.Rope -> Rope
 fromTextRope = Rope

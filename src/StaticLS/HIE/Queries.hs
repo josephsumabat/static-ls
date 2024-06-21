@@ -169,6 +169,9 @@ allGlobalSymbols hieFile = strings
   filtered = mapMaybe hush . fmap fst . filter (\(_ident, details) -> detailsMatchesContext globalDef details) $ res
   globalDef = \case
     GHC.ValBind _ GHC.ModuleScope _ -> True
+    GHC.TyDecl -> True
+    GHC.ClassTyDecl {} -> True
+    GHC.Decl {} -> True
     _ -> False
   res = concatMap astAllIdentifiersWithDetails asts
   asts = snd <$> fileAstList hieFile

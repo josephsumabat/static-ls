@@ -265,14 +265,9 @@ getCompletion cx = do
       let imports = prog.imports
       let importsWithAlias = filter (\imp -> fmap (.text) imp.alias == Just mod) imports
       -- TODO: append both flyimports and normal ones
-      case importsWithAlias of
-        [] -> do
-          completions <- getFlyImports cx mod match
-          logInfo $ "flyImports: " <> T.pack (show completions)
-          pure completions
-        _ -> do
-          logInfo $ "importsWithAlias: " <> T.pack (show importsWithAlias)
-          nubOrd <$> (getCompletionsForMods $ (.mod.text) <$> importsWithAlias)
+      qualifiedCompletions <- nubOrd <$> (getCompletionsForMods $ (.mod.text) <$> importsWithAlias)
+      flyImports <- getFlyImports cx mod match
+      pure $ qualifiedCompletions ++ flyImports
 
 resolveCompletionEdit :: CompletionMessage -> StaticLsM Edit
 resolveCompletionEdit msg = do

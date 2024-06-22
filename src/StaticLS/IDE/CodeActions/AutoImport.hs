@@ -11,6 +11,7 @@ import AST.Err qualified as Haskell
 import AST.Haskell qualified as Haskell
 import Control.Lens.Operators
 import Control.Monad.Except
+import Data.Char qualified as Char
 import Data.Coerce (coerce)
 import Data.Edit qualified as Edit
 import Data.Either.Extra (eitherToMaybe)
@@ -18,13 +19,14 @@ import Data.List.NonEmpty qualified as NE
 import Data.Maybe (catMaybes)
 import Data.Path (AbsPath)
 import Data.Pos (LineCol (..), Pos (..))
+import Data.Range (Range (..))
 import Data.Rope (Rope)
+import Data.Rope qualified as Rope
 import Data.Sum
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
-
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
@@ -172,6 +174,11 @@ resolveLazy path toImport = do
   tree <- getHaskell path
   rope <- getSourceRope path
   insertPoint <- getImportsInsertPoint rope tree & isRightOrThrowT
-  let change = Edit.insert insertPoint $ "\n" <> toImport <> "\n"
+  let lineCol = Rope.posToLineCol rope insertPoint
+  let lineAfter = Rope.toText <$> Rope.getLine rope (Pos (lineCol.line + 1))
+  let shouldAddNewline = case lineAfter of
+        Just lineAfter -> T.all Char.isSpace lineAfter && T.elem '\n' lineAfter
+        Nothing -> False
+  let change = Edit.insert insertPoint $ "\n" <> toImport <> (if shouldAddNewline then "\n" else "")
   logInfo $ T.pack $ "Inserting import: " <> show change
   pure $ SourceEdit.single path change

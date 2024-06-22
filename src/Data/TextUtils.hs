@@ -1,14 +1,16 @@
-module Data.TextUtils
-  ( splitLinesWithEnd,
-    splitLines,
-    splitOnceEnd,
-    splitOnce,
-  )
+module Data.TextUtils (
+  splitLinesWithEnd,
+  splitLines,
+  splitOnceEnd,
+  splitOnce,
+  tryStripPrefix,
+)
 where
 
 import Data.Function ((&))
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
+import Data.Maybe qualified as Maybe
 import Data.Text (Text)
 import Data.Text qualified as T
 
@@ -19,9 +21,9 @@ splitLinesWithEnd t =
     & zip [0 :: Int ..]
     & map (\(i, l) -> if i == linesLen - 1 then l else l <> "\n")
     & NE.fromList
-  where
-    lines = T.splitOn "\n" t
-    linesLen = length lines
+ where
+  lines = T.splitOn "\n" t
+  linesLen = length lines
 
 splitLines :: Text -> [Text]
 splitLines = T.splitOn "\n"
@@ -37,3 +39,6 @@ splitOnceEnd sep t = do
   let (l, r) = T.breakOnEnd sep t
   l <- sep `T.stripSuffix` l
   pure (l, r)
+
+tryStripPrefix :: Text -> Text -> Text
+tryStripPrefix prefix t = Maybe.fromMaybe t $ prefix `T.stripPrefix` t

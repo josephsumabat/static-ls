@@ -1,12 +1,12 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE MultiWayIf #-}
 
-module StaticLS.IDE.Completion
-  ( getCompletion,
-    Context (..),
-    TriggerKind (..),
-    Completion (..),
-  )
+module StaticLS.IDE.Completion (
+  getCompletion,
+  Context (..),
+  TriggerKind (..),
+  Completion (..),
+)
 where
 
 import AST qualified
@@ -100,8 +100,6 @@ getCompletionsForImports imports = do
     getCompletionsForImport imp
   pure $ concat importCompletions
 
--- getExportsForMod
---   pure []
 getFileCompletions :: Context -> StaticLsM [Completion]
 getFileCompletions cx = do
   let path = cx.path
@@ -127,7 +125,7 @@ getUnqualifiedImportCompletions cx = do
   getCompletionsForImports unqualifiedImports
 
 data CompletionMode
-  = ImportMode !Text
+  = ImportMode !(Maybe Text)
   | HeaderMode !Text
   | QualifiedMode !Text
   | UnqualifiedMode
@@ -143,23 +141,21 @@ getModulePrefix cx sourceRope = do
   let firstIsUpper = case firstChar of
         Just c -> Char.isUpper c
         Nothing -> False
-  let containsDot = T.unpack prefix & elem '.'
-  let (mod, _) = T.breakOn "." prefix
-  if firstIsUpper && containsDot
-    then Just mod
-    else Nothing
+  if
+    | firstIsUpper, Just (mod, _) <- TextUtils.splitOnceEnd "." prefix -> Just mod
+    | otherwise -> Nothing
 
-getImportPrefix :: Context -> Rope -> H.Haskell -> Maybe Text
+getImportPrefix :: Context -> Rope -> H.Haskell -> Maybe (Maybe Text)
 getImportPrefix cx sourceRope hs = do
   let lineCol = cx.lineCol
   let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope (Pos lineCol.line)
   let astPoint = Semantic.Position.lineColToAstPoint cx.lineCol
   let imports = AST.getDeepestContaining @Haskell.Imports astPoint (AST.getDynNode hs)
-  case "imports" `T.stripPrefix` line of
+  case "import" `T.stripPrefix` line of
     Just rest | Maybe.isJust imports -> do
       let mod = T.dropWhile Char.isSpace rest
       let modPrefix = TextUtils.splitOnceEnd "." mod
-      Just $ Maybe.fromMaybe "" $ fst <$> modPrefix
+      Just $ fst <$> modPrefix
     _ -> Nothing
 
 getCompletionMode :: Context -> StaticLsM CompletionMode
@@ -185,9 +181,12 @@ getCompletion cx = do
   logInfo $ "mode: " <> T.pack (show mode)
   case mode of
     ImportMode modPrefix -> do
-      res <- runMaybeT $ runHieDbMaybeT \hiedb -> getModules hiedb
-      res <- pure $ Maybe.fromMaybe [] res
-      pure $ textCompletion <$> res
+      mods <- runMaybeT $ runHieDbMaybeT \hiedb -> getModules hiedb
+      mods <- pure $ Maybe.fromMaybe [] mods
+      let modsWithoutPrefix = case modPrefix of
+            Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
+            Nothing -> mods
+      pure $ textCompletion <$> modsWithoutPrefix
     HeaderMode mod -> do
       let label = "module " <> mod <> " where"
       pure [Completion {label, insertText = label <> "\n$0"}]
@@ -206,8 +205,8 @@ getCompletion cx = do
       nubOrd <$> getCompletionsForImports importsWithAlias
 
 data Completion = Completion
-  { label :: !Text,
-    insertText :: !Text
+  { label :: !Text
+  , insertText :: !Text
   }
   deriving (Show, Eq, Ord)
 
@@ -218,9 +217,9 @@ data TriggerKind = TriggerCharacter | TriggerUnknown
   deriving (Show, Eq)
 
 data Context = Context
-  { path :: AbsPath,
-    pos :: !Pos,
-    lineCol :: !LineCol,
-    triggerKind :: !TriggerKind
+  { path :: AbsPath
+  , pos :: !Pos
+  , lineCol :: !LineCol
+  , triggerKind :: !TriggerKind
   }
   deriving (Show, Eq)

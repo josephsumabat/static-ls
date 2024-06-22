@@ -177,8 +177,8 @@ resolveLazy path toImport = do
   let lineCol = Rope.posToLineCol rope insertPoint
   let lineAfter = Rope.toText <$> Rope.getLine rope (Pos (lineCol.line + 1))
   let shouldAddNewline = case lineAfter of
-        Just lineAfter -> T.all Char.isSpace lineAfter && T.elem '\n' lineAfter
-        Nothing -> False
+        Just lineAfter -> not (T.all Char.isSpace lineAfter && T.elem '\n' lineAfter)
+        Nothing -> True
   let change = Edit.insert insertPoint $ "\n" <> toImport <> (if shouldAddNewline then "\n" else "")
   logInfo $ T.pack $ "Inserting import: " <> show change
   pure $ SourceEdit.single path change

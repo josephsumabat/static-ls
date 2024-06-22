@@ -1,12 +1,13 @@
-module Data.Edit (
-  Edit,
-  insert,
-  delete,
-  replace,
-  changesToEdit,
-  getChanges,
-  empty,
-)
+module Data.Edit
+  ( Edit,
+    insert,
+    delete,
+    replace,
+    changesToEdit,
+    getChanges,
+    empty,
+    singleton,
+  )
 where
 
 import Data.Change (Change)
@@ -41,6 +42,9 @@ changesToEdit = Edit
 
 getChanges :: Edit -> [Change]
 getChanges (Edit cs) = List.sortOn (\c -> (c.delete.start, c.delete.end)) cs
+
+singleton :: Change -> Edit
+singleton = Edit . pure
 
 empty :: Edit
 empty = Edit []

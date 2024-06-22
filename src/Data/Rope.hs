@@ -11,7 +11,7 @@ module Data.Rope (
   lineColRangeToRange,
   change,
   edit,
-  splitAt,
+  splitAtLineCol,
   getLine,
   uncheckedGetLine,
   linesLength,
@@ -19,6 +19,7 @@ module Data.Rope (
   isValidLineColEnd,
   indexRange,
   empty,
+  splitAt,
 )
 where
 
@@ -94,9 +95,14 @@ edit :: Edit -> Rope -> Rope
 -- apply changes in reverse order
 edit (reverse . Edit.getChanges -> changes) rope = Foldable.foldl' (flip change) rope changes
 
+splitAt :: Pos -> Rope -> (Rope, Rope)
+splitAt (Pos pos) (Rope rope) = (Rope before, Rope after)
+ where
+  (before, after) = Rope.charSplitAt (fromIntegral pos) rope
+
 -- TODO: return a maybe
-splitAt :: LineCol -> Rope -> (Rope, Rope)
-splitAt (LineCol line col) (Rope rope) = (Rope before, Rope after)
+splitAtLineCol :: LineCol -> Rope -> (Rope, Rope)
+splitAtLineCol (LineCol line col) (Rope rope) = (Rope before, Rope after)
  where
   (before, after) =
     Rope.charSplitAtPosition

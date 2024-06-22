@@ -8,9 +8,13 @@ module StaticLS.IDE.CodeActions.AutoImport where
 
 import AST qualified
 import AST.Err qualified as Haskell
+import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
 import Control.Lens.Operators
 import Control.Monad.Except
+import Data.Change (Change)
+import Data.Change qualified as Change
+import Data.Char qualified as Char
 import Data.Coerce (coerce)
 import Data.Edit qualified as Edit
 import Data.Either.Extra (eitherToMaybe)
@@ -19,12 +23,12 @@ import Data.Maybe (catMaybes)
 import Data.Path (AbsPath)
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Rope (Rope)
+import Data.Rope qualified as Rope
 import Data.Sum
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
-
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
@@ -148,7 +152,11 @@ codeAction CodeActionContext {path, lineCol} = do
       <$> mapM (createAutoImportCodeActions path mModuleQualifier) moduleNamesToImport
   pure importCodeActions
 
-getImportsInsertPoint :: Rope -> Haskell.Haskell -> AST.Err Pos
+data ImportInsertPoint
+  = HeaderInsertPoint !Pos
+  | AfterImportInsertPoint !Pos
+
+getImportsInsertPoint :: Rope -> Haskell.Haskell -> AST.Err ImportInsertPoint
 getImportsInsertPoint rope hs = do
   imports <- Tree.getImports hs
   header <- Tree.getHeader hs
@@ -158,20 +166,37 @@ getImportsInsertPoint rope hs = do
           Just header -> Tree.byteToPos rope $ (AST.nodeToRange header).endByte
   case imports of
     Nothing -> do
-      pure headerPos
+      pure $ HeaderInsertPoint headerPos
     Just imports -> do
       let lastImport = NE.last <$> NE.nonEmpty imports.imports
       case lastImport of
-        Nothing -> pure headerPos
+        Nothing -> pure $ HeaderInsertPoint headerPos
         Just lastImport -> do
           let end = (AST.nodeToRange lastImport).endByte
-          pure $ Tree.byteToPos rope end
+          pure $ AfterImportInsertPoint $ Tree.byteToPos rope end
+
+shouldAddNewline :: Rope -> Pos -> Bool
+shouldAddNewline rope pos = do
+  let lineCol = Rope.posToLineCol rope pos
+  let lineAfter = Rope.toText <$> Rope.getLine rope (Pos (lineCol.line + 1))
+  case lineAfter of
+    Just lineAfter -> not (T.all Char.isSpace lineAfter && T.elem '\n' lineAfter)
+    Nothing -> True
+
+insertImportChange :: H.Haskell -> Rope -> Text -> AST.Err Change
+insertImportChange tree rope toImport = do
+  insertPoint <- getImportsInsertPoint rope tree
+  pure $ case insertPoint of
+    HeaderInsertPoint insertPoint -> do
+      let change = Change.insert insertPoint $ "\n\n" <> toImport <> (if shouldAddNewline rope insertPoint then "\n" else "")
+      change
+    AfterImportInsertPoint insertPoint -> do
+      let change = Change.insert insertPoint $ "\n" <> toImport <> (if shouldAddNewline rope insertPoint then "\n" else "")
+      change
 
 resolveLazy :: AbsPath -> Text -> StaticLsM SourceEdit
 resolveLazy path toImport = do
   tree <- getHaskell path
   rope <- getSourceRope path
-  insertPoint <- getImportsInsertPoint rope tree & isRightOrThrowT
-  let change = Edit.insert insertPoint $ "\n" <> toImport <> "\n"
-  logInfo $ T.pack $ "Inserting import: " <> show change
-  pure $ SourceEdit.single path change
+  change <- insertImportChange tree rope toImport & isRightOrThrowT
+  pure $ SourceEdit.single path (Edit.singleton change)

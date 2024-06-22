@@ -23,7 +23,7 @@ spec = do
   describe "line col split at" do
     let check name t lineCol (before, after) = it name do
           let r = Rope.fromText t
-          let (before', after') = Rope.splitAt lineCol r
+          let (before', after') = Rope.splitAtLineCol lineCol r
           before' `shouldBe` before
           after' `shouldBe` after
           pure @IO ()
@@ -33,7 +33,7 @@ spec = do
     it "index on newline" do
       let t = "abcd\n1234"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAt (LineCol 0 5) r
+      let (before, after) = Rope.splitAtLineCol (LineCol 0 5) r
       before `shouldBe` "abcd\n"
       after `shouldBe` "1234"
       pure @IO ()
@@ -42,7 +42,7 @@ spec = do
     it "index past newline" do
       let t = "abcd\n1234"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAt (LineCol 0 6) r
+      let (before, after) = Rope.splitAtLineCol (LineCol 0 6) r
       before `shouldBe` "abcd\n1"
       after `shouldBe` "234"
       pure @IO ()
@@ -50,7 +50,7 @@ spec = do
     it "index past newline" do
       let t = "abcd\n1234\n"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAt (LineCol 2 0) r
+      let (before, after) = Rope.splitAtLineCol (LineCol 2 0) r
       before `shouldBe` "abcd\n1234\n"
       after `shouldBe` ""
       pure @IO ()

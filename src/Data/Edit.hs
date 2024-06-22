@@ -6,6 +6,7 @@ module Data.Edit (
   changesToEdit,
   getChanges,
   empty,
+  singleton,
 )
 where
 
@@ -41,6 +42,9 @@ changesToEdit = Edit
 
 getChanges :: Edit -> [Change]
 getChanges (Edit cs) = List.sortOn (\c -> (c.delete.start, c.delete.end)) cs
+
+singleton :: Change -> Edit
+singleton = Edit . pure
 
 empty :: Edit
 empty = Edit []

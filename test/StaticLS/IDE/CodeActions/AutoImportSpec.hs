@@ -51,8 +51,8 @@ spec = do
           let expected =
                 [trimming|
           module Second where
-          import First
           
+          import First
 
           second :: IO ()
           second = do

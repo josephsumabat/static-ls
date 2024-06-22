@@ -1,12 +1,15 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE MultiWayIf #-}
 
-module StaticLS.IDE.Completion (
-  getCompletion,
-  Context (..),
-  TriggerKind (..),
-  Completion (..),
-)
+module StaticLS.IDE.Completion
+  ( getCompletion,
+    Context (..),
+    TriggerKind (..),
+    Completion (..),
+    CompletionKind (..),
+    CompletionMessage (..),
+    resolveCompletionEdit,
+  )
 where
 
 import AST qualified
@@ -15,11 +18,15 @@ import AST.Haskell qualified as Haskell
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Aeson qualified as Aeson
 import Data.Char qualified as Char
 import Data.Coerce (coerce)
 import Data.Containers.ListUtils (nubOrd)
+import Data.Edit (Edit)
+import Data.Edit qualified as Edit
 import Data.Function ((&))
 import Data.Functor.Identity qualified as Identity
+import Data.List qualified as List
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
@@ -31,10 +38,12 @@ import Data.Text qualified as T
 import Data.TextUtils qualified as TextUtils
 import Data.Traversable (for)
 import Database.SQLite.Simple qualified as SQL
+import GHC.Generics (Generic)
 import HieDb (HieDb)
 import HieDb qualified
 import StaticLS.HIE.Queries (allGlobalSymbols)
 import StaticLS.Hir qualified as Hir
+import StaticLS.IDE.CodeActions.AutoImport qualified as IDE.CodeActions.AutoImport
 import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Monad
@@ -78,26 +87,28 @@ getExportsForMod (HieDb.getConn -> conn) mod = do
       (SQL.Only mod)
   pure $ fmap stripNameSpacePrefix $ coerce res
 
-getModules :: HieDb -> IO [Text]
-getModules (HieDb.getConn -> conn) = do
-  res <-
-    SQL.query_
-      @(SQL.Only Text)
-      conn
-      "SELECT DISTINCT mod FROM mods"
-  pure $ coerce res
+getModules :: StaticLsM [Text]
+getModules = do
+  mods <- runMaybeT $ runHieDbMaybeT \(HieDb.getConn -> conn) -> do
+    res <-
+      SQL.query_
+        @(SQL.Only Text)
+        conn
+        "SELECT DISTINCT mod FROM mods"
+    pure $ coerce res
+  pure $ Maybe.fromMaybe [] mods
 
-getCompletionsForImport :: Hir.Import -> StaticLsM [Completion]
-getCompletionsForImport imp = do
+getCompletionsForMod :: Text -> StaticLsM [Completion]
+getCompletionsForMod mod = do
   res <- runMaybeT $ runHieDbMaybeT \hiedb -> do
-    getExportsForMod hiedb imp.mod.text
+    getExportsForMod hiedb mod
   res <- pure $ Maybe.fromMaybe [] res
-  pure $ fmap (\text -> Completion {label = text, insertText = text}) res
+  pure $ fmap textCompletion res
 
-getCompletionsForImports :: [Hir.Import] -> StaticLsM [Completion]
-getCompletionsForImports imports = do
-  importCompletions <- for imports \imp -> do
-    getCompletionsForImport imp
+getCompletionsForMods :: [Text] -> StaticLsM [Completion]
+getCompletionsForMods mods = do
+  importCompletions <- for mods \mod -> do
+    getCompletionsForMod mod
   pure $ concat importCompletions
 
 getFileCompletions :: Context -> StaticLsM [Completion]
@@ -109,7 +120,7 @@ getFileCompletions cx = do
       let symbols = allGlobalSymbols hieFile
       let symbolsNubbed = nubOrd symbols
       -- logInfo $ "symbols: " <> T.pack (show symbols)
-      let completions = fmap (\symbol -> Completion {label = symbol, insertText = symbol}) symbolsNubbed
+      let completions = fmap textCompletion symbolsNubbed
       pure completions
   fileCompletions <- pure $ Maybe.fromMaybe [] fileCompletions
   pure fileCompletions
@@ -122,16 +133,16 @@ getUnqualifiedImportCompletions cx = do
   (_errs, prog) <- isRightOrThrowT prog
   let imports = prog.imports
   let unqualifiedImports = filter (\imp -> not imp.qualified) imports
-  getCompletionsForImports unqualifiedImports
+  getCompletionsForMods $ (.mod.text) <$> unqualifiedImports
 
 data CompletionMode
   = ImportMode !(Maybe Text)
   | HeaderMode !Text
-  | QualifiedMode !Text
+  | QualifiedMode !Text !Text
   | UnqualifiedMode
   deriving (Show, Eq)
 
-getModulePrefix :: Context -> Rope -> Maybe Text
+getModulePrefix :: Context -> Rope -> Maybe (Text, Text)
 getModulePrefix cx sourceRope = do
   let lineCol = cx.lineCol
   let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope (Pos lineCol.line)
@@ -142,7 +153,7 @@ getModulePrefix cx sourceRope = do
         Just c -> Char.isUpper c
         Nothing -> False
   if
-    | firstIsUpper, Just (mod, _) <- TextUtils.splitOnceEnd "." prefix -> Just mod
+    | firstIsUpper, Just (mod, match) <- TextUtils.splitOnceEnd "." prefix -> Just (mod, match)
     | otherwise -> Nothing
 
 getImportPrefix :: Context -> Rope -> H.Haskell -> Maybe (Maybe Text)
@@ -169,10 +180,63 @@ getCompletionMode cx = do
     | (Nothing, Just mod) <- (header, mod) -> pure $ HeaderMode mod
     | Just modPrefix <- getImportPrefix cx sourceRope haskell -> do
         pure $ ImportMode modPrefix
-    | Just mod <- getModulePrefix cx sourceRope -> do
-        pure $ QualifiedMode mod
+    | Just (mod, match) <- getModulePrefix cx sourceRope -> do
+        pure $ QualifiedMode mod match
     | otherwise -> do
         pure UnqualifiedMode
+
+defaultAlias :: Text -> Maybe Text
+defaultAlias = \case
+  "T" -> Just "Data.Text"
+  "TE" -> Just "Data.Text.Encoding"
+  "B" -> Just "Data.ByteString"
+  "BL" -> Just "Data.ByteString.Lazy"
+  "TL" -> Just "Data.Text.Lazy"
+  "TIO" -> Just "Data.Text.IO"
+  _ -> Nothing
+
+bootModules :: [Text]
+bootModules =
+  [ "Data.Text",
+    "Data.ByteString",
+    "Data.Map",
+    "Data.Set",
+    "Data.IntMap",
+    "Data.IntSet",
+    "Data.Sequence"
+  ]
+
+isModSubseqOf :: Text -> Text -> Bool
+isModSubseqOf sub mod = List.isSubsequenceOf sub' mod' || sub == mod
+  where
+    sub' = T.splitOn "." sub
+    mod' = T.splitOn "." mod
+
+isBootModule :: Text -> Bool
+isBootModule mod = any (\bootMod -> mod `isModSubseqOf` bootMod || bootMod `isModSubseqOf` mod) bootModules
+
+getFlyImports :: Context -> Text -> Text -> StaticLsM [Completion]
+getFlyImports cx prefix match = do
+  expandedPrefix <- pure $ Maybe.fromMaybe prefix (defaultAlias prefix)
+  if isBootModule expandedPrefix
+    then do
+      pure [mkBootCompletion expandedPrefix prefix match cx.path]
+    else do
+      mods <- getModules
+      mods <- pure $ filter (expandedPrefix `isModSubseqOf`) mods
+      completions <- for mods \mod -> do
+        modCompletions <- getCompletionsForMod mod
+        pure $
+          fmap
+            ( \completion ->
+                completion
+                  { details = Just mod,
+                    msg = Just $ CompletionMessage {path = cx.path, kind = FlyImportCompletionKind mod prefix}
+                  }
+            )
+            modCompletions
+      completions <- pure $ concat completions
+      pure completions
 
 getCompletion :: Context -> StaticLsM [Completion]
 getCompletion cx = do
@@ -181,45 +245,110 @@ getCompletion cx = do
   logInfo $ "mode: " <> T.pack (show mode)
   case mode of
     ImportMode modPrefix -> do
-      mods <- runMaybeT $ runHieDbMaybeT \hiedb -> getModules hiedb
-      mods <- pure $ Maybe.fromMaybe [] mods
+      mods <- getModules
       let modsWithoutPrefix = case modPrefix of
             Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
             Nothing -> mods
       pure $ textCompletion <$> modsWithoutPrefix
     HeaderMode mod -> do
       let label = "module " <> mod <> " where"
-      pure [Completion {label, insertText = label <> "\n$0"}]
+      pure [mkCompletion label (label <> "\n$0")]
     UnqualifiedMode -> do
       fileCompletions <- getFileCompletions cx
       importCompletions <- getUnqualifiedImportCompletions cx
       pure $ nubOrd $ importCompletions ++ fileCompletions
-    QualifiedMode mod -> do
+    QualifiedMode mod match -> do
       let path = cx.path
       haskell <- getHaskell path
       let prog = Hir.parseHaskell haskell
       (_errs, prog) <- isRightOrThrowT prog
       let imports = prog.imports
       let importsWithAlias = filter (\imp -> fmap (.text) imp.alias == Just mod) imports
-      logInfo $ "importsWithAlias: " <> T.pack (show importsWithAlias)
-      nubOrd <$> getCompletionsForImports importsWithAlias
+      -- TODO: append both flyimports and normal ones
+      case importsWithAlias of
+        [] -> do
+          completions <- getFlyImports cx mod match
+          logInfo $ "flyImports: " <> T.pack (show completions)
+          pure completions
+        _ -> do
+          logInfo $ "importsWithAlias: " <> T.pack (show importsWithAlias)
+          nubOrd <$> (getCompletionsForMods $ (.mod.text) <$> importsWithAlias)
+
+resolveCompletionEdit :: CompletionMessage -> StaticLsM Edit
+resolveCompletionEdit msg = do
+  let path = msg.path
+  case msg.kind of
+    FlyImportCompletionKind mod alias -> do
+      sourceRope <- getSourceRope path
+      haskell <- getHaskell path
+      change <-
+        IDE.CodeActions.AutoImport.insertImportChange haskell sourceRope ("import " <> mod <> " qualified as " <> alias)
+          & isRightOrThrowT
+      pure $ Edit.singleton change
+
+data CompletionMessage = CompletionMessage
+  { path :: AbsPath,
+    kind :: CompletionKind
+  }
+  deriving (Show, Eq, Ord, Generic)
+
+instance Aeson.ToJSON CompletionMessage
+
+instance Aeson.FromJSON CompletionMessage
+
+data CompletionKind
+  = FlyImportCompletionKind
+      -- | The module to import
+      !Text
+      -- | The alias to use for the import
+      !Text
+  deriving (Show, Eq, Ord, Generic)
+
+instance Aeson.ToJSON CompletionKind
+
+instance Aeson.FromJSON CompletionKind
 
 data Completion = Completion
-  { label :: !Text
-  , insertText :: !Text
+  { label :: !Text,
+    insertText :: !Text,
+    details :: Maybe Text,
+    edit :: !Edit,
+    msg :: Maybe CompletionMessage
   }
   deriving (Show, Eq, Ord)
 
+mkBootCompletion :: Text -> Text -> Text -> AbsPath -> Completion
+mkBootCompletion mod alias match path =
+  (mkCompletion match "")
+    { details = Just "flyimport",
+      msg =
+        Just $
+          CompletionMessage
+            { path,
+              kind = FlyImportCompletionKind mod alias
+            }
+    }
+
 textCompletion :: Text -> Completion
-textCompletion text = Completion {label = text, insertText = text}
+textCompletion text = mkCompletion text text
+
+mkCompletion :: Text -> Text -> Completion
+mkCompletion label insertText =
+  Completion
+    { label,
+      details = Nothing,
+      insertText,
+      edit = Edit.empty,
+      msg = Nothing
+    }
 
 data TriggerKind = TriggerCharacter | TriggerUnknown
   deriving (Show, Eq)
 
 data Context = Context
-  { path :: AbsPath
-  , pos :: !Pos
-  , lineCol :: !LineCol
-  , triggerKind :: !TriggerKind
+  { path :: AbsPath,
+    pos :: !Pos,
+    lineCol :: !LineCol,
+    triggerKind :: !TriggerKind
   }
   deriving (Show, Eq)

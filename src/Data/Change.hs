@@ -16,7 +16,7 @@ data Change = Change
   { insert :: !Text
   , delete :: !Range
   }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 insert :: Pos -> Text -> Change
 insert pos text = Change {insert = text, delete = Range.empty pos}

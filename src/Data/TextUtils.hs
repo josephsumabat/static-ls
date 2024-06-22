@@ -1,7 +1,9 @@
-module Data.TextUtils (
-  splitLinesWithEnd,
-  splitLines,
-)
+module Data.TextUtils
+  ( splitLinesWithEnd,
+    splitLines,
+    splitOnceEnd,
+    splitOnce,
+  )
 where
 
 import Data.Function ((&))
@@ -17,9 +19,21 @@ splitLinesWithEnd t =
     & zip [0 :: Int ..]
     & map (\(i, l) -> if i == linesLen - 1 then l else l <> "\n")
     & NE.fromList
- where
-  lines = T.splitOn "\n" t
-  linesLen = length lines
+  where
+    lines = T.splitOn "\n" t
+    linesLen = length lines
 
 splitLines :: Text -> [Text]
 splitLines = T.splitOn "\n"
+
+splitOnce :: Text -> Text -> Maybe (Text, Text)
+splitOnce sep t = do
+  let (l, r) = T.breakOn sep t
+  r <- sep `T.stripPrefix` r
+  pure (l, r)
+
+splitOnceEnd :: Text -> Text -> Maybe (Text, Text)
+splitOnceEnd sep t = do
+  let (l, r) = T.breakOnEnd sep t
+  l <- sep `T.stripSuffix` l
+  pure (l, r)

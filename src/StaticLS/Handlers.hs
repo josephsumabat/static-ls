@@ -214,7 +214,7 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
   let lspCompletions = fmap (ProtoLSP.completionToProto sourceRope) completions
   let lspList =
         LSP.CompletionList
-          { _isIncomplete = False,
+          { _isIncomplete = True,
             _itemDefaults = Nothing,
             _items = lspCompletions
           }

@@ -185,14 +185,14 @@ assistToCodeAction Assist {label, sourceEdit} = do
       }
 
 completionToProto :: Rope -> IDE.Completion.Completion -> LSP.CompletionItem
-completionToProto rope IDE.Completion.Completion {label, detail, insertText, edit, msg} =
+completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, description, insertText, edit, msg} =
   LSP.CompletionItem
     { _label = label,
       _labelDetails =
         Just
           LSP.CompletionItemLabelDetails
-            { _detail = Just "bruh apsofdiuadsf",
-              _description = Just "bruh"
+            { _detail = labelDetail,
+              _description = description
             },
       _kind = Just LSP.CompletionItemKind_Function,
       _textEditText = Nothing,

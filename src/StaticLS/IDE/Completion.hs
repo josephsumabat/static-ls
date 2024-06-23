@@ -226,6 +226,8 @@ getFlyImports cx prefix match = do
       mods <- pure $ filter (expandedPrefix `isModSubseqOf`) mods
       completions <- for mods \mod -> do
         modCompletions <- getCompletionsForMod mod
+        -- do some filtering
+        modCompletions <- pure $ filter (\completion -> match `T.isPrefixOf` completion.label) modCompletions
         pure $
           fmap
             ( \completion ->

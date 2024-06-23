@@ -185,7 +185,7 @@ assistToCodeAction Assist {label, sourceEdit} = do
       }
 
 completionToProto :: Rope -> IDE.Completion.Completion -> LSP.CompletionItem
-completionToProto rope IDE.Completion.Completion {label, details, insertText, edit, msg} =
+completionToProto rope IDE.Completion.Completion {label, detail, insertText, edit, msg} =
   LSP.CompletionItem
     { _label = label,
       _labelDetails =
@@ -201,9 +201,9 @@ completionToProto rope IDE.Completion.Completion {label, details, insertText, ed
       _insertTextMode = Nothing,
       _deprecated = Nothing,
       _preselect = Nothing,
-      _detail = details,
+      _detail = detail,
       _documentation = Nothing,
-      _sortText = Nothing,
+      _sortText = Just "AAAAA",
       _filterText = Nothing,
       _insertText = Just insertText,
       _insertTextFormat = Just LSP.InsertTextFormat_Snippet,

@@ -215,30 +215,30 @@ isModSubseqOf sub mod = List.isSubsequenceOf sub' mod' || sub == mod
 isBootModule :: Text -> Bool
 isBootModule mod = any (\bootMod -> mod `isModSubseqOf` bootMod || bootMod `isModSubseqOf` mod) bootModules
 
+formatQualifiedAs :: Text -> Text -> Text
+formatQualifiedAs mod alias = "import qualified " <> mod <> " as " <> alias
+
 getFlyImports :: Context -> Text -> Text -> StaticLsM [Completion]
 getFlyImports cx prefix match = do
   expandedPrefix <- pure $ Maybe.fromMaybe prefix (defaultAlias prefix)
-  if isBootModule expandedPrefix
-    then do
-      pure [mkBootCompletion expandedPrefix prefix match cx.path]
-    else do
-      mods <- getModules
-      mods <- pure $ filter (expandedPrefix `isModSubseqOf`) mods
-      completions <- for mods \mod -> do
-        modCompletions <- getCompletionsForMod mod
-        -- do some filtering
-        modCompletions <- pure $ filter (\completion -> match `T.isPrefixOf` completion.label) modCompletions
-        pure $
-          fmap
-            ( \completion ->
-                completion
-                  { details = Just mod,
-                    msg = Just $ CompletionMessage {path = cx.path, kind = FlyImportCompletionKind mod prefix}
-                  }
-            )
-            modCompletions
-      completions <- pure $ concat completions
-      pure completions
+  let bootCompletions = if isBootModule expandedPrefix then [mkBootCompletion expandedPrefix prefix match cx.path] else []
+  mods <- getModules
+  mods <- pure $ filter (expandedPrefix `isModSubseqOf`) mods
+  completions <- for mods \mod -> do
+    modCompletions <- getCompletionsForMod mod
+    -- do some filtering
+    modCompletions <- pure $ filter (\completion -> match `T.isPrefixOf` completion.label) modCompletions
+    pure $
+      fmap
+        ( \completion ->
+            completion
+              { description = Just $ formatQualifiedAs mod prefix,
+                msg = Just $ CompletionMessage {path = cx.path, kind = FlyImportCompletionKind mod prefix}
+              }
+        )
+        modCompletions
+  completions <- pure $ concat completions
+  pure $ bootCompletions ++ completions
 
 getCompletion :: Context -> StaticLsM [Completion]
 getCompletion cx = do
@@ -268,7 +268,9 @@ getCompletion cx = do
       let importsWithAlias = filter (\imp -> fmap (.text) imp.alias == Just mod) imports
       -- TODO: append both flyimports and normal ones
       qualifiedCompletions <- nubOrd <$> (getCompletionsForMods $ (.mod.text) <$> importsWithAlias)
-      flyImports <- getFlyImports cx mod match
+      flyImports <- case match of
+        "" -> pure []
+        _ -> getFlyImports cx mod match
       pure $ qualifiedCompletions ++ flyImports
 
 resolveCompletionEdit :: CompletionMessage -> StaticLsM Edit
@@ -279,7 +281,7 @@ resolveCompletionEdit msg = do
       sourceRope <- getSourceRope path
       haskell <- getHaskell path
       change <-
-        IDE.CodeActions.AutoImport.insertImportChange haskell sourceRope ("import " <> mod <> " qualified as " <> alias)
+        IDE.CodeActions.AutoImport.insertImportChange haskell sourceRope (formatQualifiedAs mod alias)
           & isRightOrThrowT
       pure $ Edit.singleton change
 
@@ -308,7 +310,9 @@ instance Aeson.FromJSON CompletionKind
 data Completion = Completion
   { label :: !Text,
     insertText :: !Text,
-    details :: Maybe Text,
+    labelDetail :: Maybe Text,
+    description :: Maybe Text,
+    detail :: Maybe Text,
     edit :: !Edit,
     msg :: Maybe CompletionMessage
   }
@@ -317,7 +321,7 @@ data Completion = Completion
 mkBootCompletion :: Text -> Text -> Text -> AbsPath -> Completion
 mkBootCompletion mod alias match path =
   (mkCompletion match "")
-    { details = Just "flyimport",
+    { description = Just $ formatQualifiedAs mod alias,
       msg =
         Just $
           CompletionMessage
@@ -333,7 +337,9 @@ mkCompletion :: Text -> Text -> Completion
 mkCompletion label insertText =
   Completion
     { label,
-      details = Nothing,
+      detail = Nothing,
+      labelDetail = Nothing,
+      description = Nothing,
       insertText,
       edit = Edit.empty,
       msg = Nothing

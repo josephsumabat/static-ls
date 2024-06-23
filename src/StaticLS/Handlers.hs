@@ -210,11 +210,11 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
   let lspContext = params._context
   let triggerKind = Maybe.fromMaybe IDE.Completion.TriggerUnknown $ (ProtoLSP.triggerKindFromProto . (._triggerKind)) <$> lspContext
   let cx = IDE.Completion.Context {path, lineCol, pos, triggerKind}
-  completions <- lift $ IDE.Completion.getCompletion cx
+  (isIncomplete, completions) <- lift $ IDE.Completion.getCompletion cx
   let lspCompletions = fmap (ProtoLSP.completionToProto sourceRope) completions
   let lspList =
         LSP.CompletionList
-          { _isIncomplete = True,
+          { _isIncomplete = isIncomplete,
             _itemDefaults = Nothing,
             _items = lspCompletions
           }

@@ -240,7 +240,7 @@ getFlyImports cx prefix match = do
   completions <- pure $ concat completions
   pure $ bootCompletions ++ completions
 
-getCompletion :: Context -> StaticLsM [Completion]
+getCompletion :: Context -> StaticLsM (Bool, [Completion])
 getCompletion cx = do
   logInfo $ "triggerKind: " <> T.pack (show cx.triggerKind)
   mode <- getCompletionMode cx
@@ -251,14 +251,14 @@ getCompletion cx = do
       let modsWithoutPrefix = case modPrefix of
             Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
             Nothing -> mods
-      pure $ textCompletion <$> modsWithoutPrefix
+      pure $ (False, textCompletion <$> modsWithoutPrefix)
     HeaderMode mod -> do
       let label = "module " <> mod <> " where"
-      pure [mkCompletion label (label <> "\n$0")]
+      pure (False, [mkCompletion label (label <> "\n$0")])
     UnqualifiedMode -> do
       fileCompletions <- getFileCompletions cx
       importCompletions <- getUnqualifiedImportCompletions cx
-      pure $ nubOrd $ importCompletions ++ fileCompletions
+      pure $ (False, nubOrd $ importCompletions ++ fileCompletions)
     QualifiedMode mod match -> do
       let path = cx.path
       haskell <- getHaskell path
@@ -271,7 +271,7 @@ getCompletion cx = do
       flyImports <- case match of
         "" -> pure []
         _ -> getFlyImports cx mod match
-      pure $ qualifiedCompletions ++ flyImports
+      pure $ (match == "", qualifiedCompletions ++ flyImports)
 
 resolveCompletionEdit :: CompletionMessage -> StaticLsM Edit
 resolveCompletionEdit msg = do

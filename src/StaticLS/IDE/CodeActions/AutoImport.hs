@@ -45,8 +45,10 @@ findModulesForDef (getConn -> conn) name = do
   res <-
     query @_ @(Only Text)
       conn
-      "SELECT DISTINCT exports.mod \
+      "SELECT DISTINCT mods.mod \
       \FROM exports \
+      \JOIN mods \
+      \USING (hieFile) \
       \WHERE exports.occ LIKE ?"
       (Only (T.pack "_:" <> name))
   pure (coerce res)

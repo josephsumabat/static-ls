@@ -13,17 +13,17 @@ import Data.Rope qualified as Rope
 import Data.Row ((.==))
 import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
-import Language.LSP.Protocol.Message
-  ( SMethod (..),
-    TNotificationMessage (..),
-    TRequestMessage (..),
-  )
+import Language.LSP.Protocol.Message (
+  SMethod (..),
+  TNotificationMessage (..),
+  TRequestMessage (..),
+ )
 import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
-import Language.LSP.Server
-  ( Handlers,
-    LspT,
-  )
+import Language.LSP.Server (
+  Handlers,
+  LspT,
+ )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.HIE.File qualified as HIE.File
@@ -214,9 +214,9 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
   let lspCompletions = fmap (ProtoLSP.completionToProto sourceRope) completions
   let lspList =
         LSP.CompletionList
-          { _isIncomplete = isIncomplete,
-            _itemDefaults = Nothing,
-            _items = lspCompletions
+          { _isIncomplete = isIncomplete
+          , _itemDefaults = Nothing
+          , _items = lspCompletions
           }
   res $ Right $ InR $ InL lspList
   pure ()

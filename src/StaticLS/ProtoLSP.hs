@@ -1,24 +1,24 @@
-module StaticLS.ProtoLSP
-  ( lineColToProto,
-    lineColFromProto,
-    uriToAbsPath,
-    lineColRangeToProto,
-    lineColRangeFromProto,
-    absPathToUri,
-    tdiToAbsPath,
-    locationToLocationLink,
-    fileLcRangeToLocation,
-    symbolToProto,
-    symbolTreeToProto,
-    posToLSPPosition,
-    changeToProto,
-    editToProto,
-    sourceEditToProto,
-    assistToCodeAction,
-    locationToFileLcRange,
-    triggerKindFromProto,
-    completionToProto,
-  )
+module StaticLS.ProtoLSP (
+  lineColToProto,
+  lineColFromProto,
+  uriToAbsPath,
+  lineColRangeToProto,
+  lineColRangeFromProto,
+  absPathToUri,
+  tdiToAbsPath,
+  locationToLocationLink,
+  fileLcRangeToLocation,
+  symbolToProto,
+  symbolTreeToProto,
+  posToLSPPosition,
+  changeToProto,
+  editToProto,
+  sourceEditToProto,
+  assistToCodeAction,
+  locationToFileLcRange,
+  triggerKindFromProto,
+  completionToProto,
+)
 where
 
 import Control.Monad ((<=<))
@@ -85,10 +85,10 @@ absPathToUri = LSP.filePathToUri . Path.toFilePath
 locationToLocationLink :: LSP.Location -> LSP.LocationLink
 locationToLocationLink LSP.Location {_uri, _range} =
   LSP.LocationLink
-    { _originSelectionRange = Nothing,
-      _targetUri = _uri,
-      _targetRange = _range,
-      _targetSelectionRange = _range
+    { _originSelectionRange = Nothing
+    , _targetUri = _uri
+    , _targetRange = _range
+    , _targetSelectionRange = _range
     }
 
 fileLcRangeToLocation :: FileLcRange -> LSP.Location
@@ -111,32 +111,32 @@ symbolKindToProto = \case
 symbolToProto :: Symbol -> LSP.SymbolInformation
 symbolToProto Symbol {name, kind, loc} =
   LSP.SymbolInformation
-    { _name = name,
-      _kind = symbolKindToProto kind,
-      _deprecated = Nothing,
-      _location = fileLcRangeToLocation loc,
-      _containerName = Nothing,
-      _tags = Nothing
+    { _name = name
+    , _kind = symbolKindToProto kind
+    , _deprecated = Nothing
+    , _location = fileLcRangeToLocation loc
+    , _containerName = Nothing
+    , _tags = Nothing
     }
 
 symbolTreeToProto :: SymbolTree -> LSP.DocumentSymbol
 symbolTreeToProto SymbolTree {name, kind, range, selectionRange, children} =
   LSP.DocumentSymbol
-    { _name = name,
-      _tags = Nothing,
-      _detail = Nothing,
-      _kind = symbolKindToProto kind,
-      _deprecated = Nothing,
-      _range = lineColRangeToProto range,
-      _selectionRange = lineColRangeToProto selectionRange,
-      _children = Just $ symbolTreeToProto <$> children
+    { _name = name
+    , _tags = Nothing
+    , _detail = Nothing
+    , _kind = symbolKindToProto kind
+    , _deprecated = Nothing
+    , _range = lineColRangeToProto range
+    , _selectionRange = lineColRangeToProto selectionRange
+    , _children = Just $ symbolTreeToProto <$> children
     }
 
 changeToProto :: Rope -> Change -> LSP.TextEdit
 changeToProto rope Change {insert, delete} =
   LSP.TextEdit
-    { LSP._range = lineColRangeToProto (Rope.rangeToLineColRange rope delete),
-      LSP._newText = insert
+    { LSP._range = lineColRangeToProto (Rope.rangeToLineColRange rope delete)
+    , LSP._newText = insert
     }
 
 editToProto :: Rope -> Edit -> [LSP.TextEdit]
@@ -152,16 +152,16 @@ sourceEditToProto SourceEdit {fileEdits, fsEdits} = do
       LSP.TextDocumentEdit
         { _textDocument =
             LSP.OptionalVersionedTextDocumentIdentifier
-              { _uri = absPathToUri path,
-                _version = LSP.InR LSP.Null
-              },
-          _edits = LSP.InL <$> editToProto rope edit
+              { _uri = absPathToUri path
+              , _version = LSP.InR LSP.Null
+              }
+        , _edits = LSP.InL <$> editToProto rope edit
         }
   pure
     LSP.WorkspaceEdit
-      { _changes = Nothing,
-        _documentChanges = Just (fmap LSP.InL documentChanges),
-        _changeAnnotations = Nothing
+      { _changes = Nothing
+      , _documentChanges = Just (fmap LSP.InL documentChanges)
+      , _changeAnnotations = Nothing
       }
 
 assistToCodeAction :: Assist -> StaticLsM LSP.CodeAction
@@ -172,14 +172,14 @@ assistToCodeAction Assist {label, sourceEdit} = do
       Right _ -> pure Nothing
   pure $
     LSP.CodeAction
-      { _title = label,
-        _kind = Just LSP.CodeActionKind_QuickFix,
-        _diagnostics = Nothing,
-        _edit = edit,
-        _command = Nothing,
-        _isPreferred = Nothing,
-        _disabled = Nothing,
-        _data_ = case sourceEdit of
+      { _title = label
+      , _kind = Just LSP.CodeActionKind_QuickFix
+      , _diagnostics = Nothing
+      , _edit = edit
+      , _command = Nothing
+      , _isPreferred = Nothing
+      , _disabled = Nothing
+      , _data_ = case sourceEdit of
           Left _ -> Nothing
           Right data_ -> Just $ Aeson.toJSON data_
       }
@@ -187,30 +187,30 @@ assistToCodeAction Assist {label, sourceEdit} = do
 completionToProto :: Rope -> IDE.Completion.Completion -> LSP.CompletionItem
 completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, description, insertText, edit, msg} =
   LSP.CompletionItem
-    { _label = label,
-      _labelDetails =
+    { _label = label
+    , _labelDetails =
         Just
           LSP.CompletionItemLabelDetails
-            { _detail = labelDetail,
-              _description = description
-            },
-      _kind = Just LSP.CompletionItemKind_Function,
-      _textEditText = Nothing,
-      _data_ = Aeson.toJSON @IDE.Completion.CompletionMessage <$> msg,
-      _tags = Nothing,
-      _insertTextMode = Nothing,
-      _deprecated = Nothing,
-      _preselect = Nothing,
-      _detail = detail,
-      _documentation = Nothing,
-      _sortText = Just "AAAAA",
-      _filterText = Nothing,
-      _insertText = Just insertText,
-      _insertTextFormat = Just LSP.InsertTextFormat_Snippet,
-      _textEdit = Nothing,
-      _additionalTextEdits = case Edit.getChanges edit of
+            { _detail = labelDetail
+            , _description = description
+            }
+    , _kind = Just LSP.CompletionItemKind_Function
+    , _textEditText = Nothing
+    , _data_ = Aeson.toJSON @IDE.Completion.CompletionMessage <$> msg
+    , _tags = Nothing
+    , _insertTextMode = Nothing
+    , _deprecated = Nothing
+    , _preselect = Nothing
+    , _detail = detail
+    , _documentation = Nothing
+    , _sortText = Just "AAAAA"
+    , _filterText = Nothing
+    , _insertText = Just insertText
+    , _insertTextFormat = Just LSP.InsertTextFormat_Snippet
+    , _textEdit = Nothing
+    , _additionalTextEdits = case Edit.getChanges edit of
         [] -> Nothing
-        changes -> Just $ changeToProto rope <$> changes,
-      _commitCharacters = Nothing,
-      _command = Nothing
+        changes -> Just $ changeToProto rope <$> changes
+    , _commitCharacters = Nothing
+    , _command = Nothing
     }

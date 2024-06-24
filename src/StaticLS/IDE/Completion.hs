@@ -26,6 +26,8 @@ import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.Function ((&))
 import Data.Functor.Identity qualified as Identity
+import Data.HashSet (HashSet)
+import Data.HashSet qualified as HashSet
 import Data.List qualified as List
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
@@ -87,6 +89,18 @@ getExportsForMod (HieDb.getConn -> conn) mod = do
       (SQL.Only mod)
   pure $ fmap stripNameSpacePrefix $ coerce res
 
+getExportsForModWithPrefix :: HieDb -> Text -> Text -> IO [(Text)]
+getExportsForModWithPrefix (HieDb.getConn -> conn) mod prefix = do
+  res <-
+    SQL.query @_ @(SQL.Only Text)
+      conn
+      "SELECT DISTINCT exports.occ \
+      \FROM exports \
+      \JOIN mods using (hieFile) \
+      \WHERE mods.mod = ? AND exports.occ LIKE ?"
+      (mod, "_:" <> prefix <> "%")
+  pure $ fmap stripNameSpacePrefix $ coerce res
+
 getModules :: StaticLsM [Text]
 getModules = do
   mods <- runMaybeT $ runHieDbMaybeT \(HieDb.getConn -> conn) -> do
@@ -98,14 +112,21 @@ getModules = do
     pure $ coerce res
   pure $ Maybe.fromMaybe [] mods
 
-getCompletionsForMod :: Text -> StaticLsM [Completion]
+getCompletionsForMod :: Text -> StaticLsM [Text]
 getCompletionsForMod mod = do
   res <- runMaybeT $ runHieDbMaybeT \hiedb -> do
     getExportsForMod hiedb mod
   res <- pure $ Maybe.fromMaybe [] res
-  pure $ fmap textCompletion res
+  pure res
 
-getCompletionsForMods :: [Text] -> StaticLsM [Completion]
+getCompletionsForModWithPrefix :: Text -> Text -> StaticLsM [Text]
+getCompletionsForModWithPrefix mod prefix = do
+  res <- runMaybeT $ runHieDbMaybeT \hiedb -> do
+    getExportsForModWithPrefix hiedb mod prefix
+  res <- pure $ Maybe.fromMaybe [] res
+  pure res
+
+getCompletionsForMods :: [Text] -> StaticLsM [Text]
 getCompletionsForMods mods = do
   importCompletions <- for mods \mod -> do
     getCompletionsForMod mod
@@ -133,7 +154,8 @@ getUnqualifiedImportCompletions cx = do
   (_errs, prog) <- isRightOrThrowT prog
   let imports = prog.imports
   let unqualifiedImports = filter (\imp -> not imp.qualified) imports
-  getCompletionsForMods $ (.mod.text) <$> unqualifiedImports
+  completions <- getCompletionsForMods $ (.mod.text) <$> unqualifiedImports
+  pure $ fmap textCompletion completions
 
 data CompletionMode
   = ImportMode !(Maybe Text)
@@ -211,7 +233,7 @@ isModSubseqOf sub mod = List.isSubsequenceOf sub' mod' || sub == mod
   where
     sub' = T.splitOn "." sub
     mod' = T.splitOn "." mod
-    
+
 isModSuffixOf :: Text -> Text -> Bool
 isModSuffixOf sub mod = List.isSuffixOf sub' mod'
   where
@@ -224,20 +246,26 @@ isBootModule mod = any (\bootMod -> mod `isModSuffixOf` bootMod) bootModules
 formatQualifiedAs :: Text -> Text -> Text
 formatQualifiedAs mod alias = "import qualified " <> mod <> " as " <> alias
 
-getFlyImports :: Context -> Text -> Text -> StaticLsM [Completion]
-getFlyImports cx prefix match = do
+getFlyImports :: Context -> HashSet Text -> Text -> Text -> StaticLsM [Completion]
+getFlyImports cx qualifiedCompletions prefix match = do
   expandedPrefix <- pure $ Maybe.fromMaybe prefix (defaultAlias prefix)
   let bootCompletions = if isBootModule expandedPrefix then [mkBootCompletion expandedPrefix prefix match cx.path] else []
   mods <- getModules
   mods <- pure $ filter (expandedPrefix `isModSuffixOf`) mods
   completions <- for mods \mod -> do
-    modCompletions <- getCompletionsForMod mod
+    modCompletions <- getCompletionsForModWithPrefix mod match
     -- do some filtering
-    modCompletions <- pure $ filter (\completion -> match `T.isPrefixOf` completion.label) modCompletions
+    modCompletions <-
+      pure $
+        filter
+          ( \completion ->
+              not (HashSet.member completion qualifiedCompletions)
+          )
+          modCompletions
     pure $
       fmap
         ( \completion ->
-            completion
+            (textCompletion completion)
               { description = Just $ formatQualifiedAs mod prefix,
                 msg = Just $ CompletionMessage {path = cx.path, kind = FlyImportCompletionKind mod prefix}
               }
@@ -276,8 +304,8 @@ getCompletion cx = do
       qualifiedCompletions <- nubOrd <$> (getCompletionsForMods $ (.mod.text) <$> importsWithAlias)
       flyImports <- case match of
         "" -> pure []
-        _ -> getFlyImports cx mod match
-      pure $ (match == "", qualifiedCompletions ++ flyImports)
+        _ -> getFlyImports cx (HashSet.fromList qualifiedCompletions) mod match
+      pure $ (match == "", (textCompletion <$> qualifiedCompletions) ++ flyImports)
 
 resolveCompletionEdit :: CompletionMessage -> StaticLsM Edit
 resolveCompletionEdit msg = do

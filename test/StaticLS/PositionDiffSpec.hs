@@ -1,5 +1,4 @@
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE QuasiQuotes #-}
 
 module StaticLS.PositionDiffSpec where
 

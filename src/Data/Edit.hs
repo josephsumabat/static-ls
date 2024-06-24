@@ -19,7 +19,7 @@ import Data.Text (Text)
 
 -- Invariant: disjoint, sorted by delete
 data Edit = Edit [Change]
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 instance Semigroup Edit where
   Edit cs <> Edit cs' = Edit (cs <> cs')

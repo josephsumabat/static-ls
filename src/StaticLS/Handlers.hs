@@ -30,7 +30,6 @@ import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
 import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
-import StaticLS.IDE.Completion (Completion (..), getCompletion)
 import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
@@ -213,30 +212,6 @@ handleFormat = LSP.requestHandler SMethod_TextDocumentFormatting $ \req res -> d
   res $ Right $ InL textEdits
   pure ()
 
-toLspCompletion :: Completion -> CompletionItem
-toLspCompletion Completion {label, insertText} =
-  LSP.CompletionItem
-    { _label = label
-    , _labelDetails = Nothing
-    , _kind = Just LSP.CompletionItemKind_Function
-    , _textEditText = Nothing
-    , _data_ = Nothing
-    , _tags = Nothing
-    , _insertTextMode = Nothing
-    , _deprecated = Nothing
-    , _preselect = Nothing
-    , _detail = Nothing
-    , _documentation = Nothing
-    , _sortText = Nothing
-    , _filterText = Nothing
-    , _insertText = Just insertText
-    , _insertTextFormat = Just LSP.InsertTextFormat_Snippet
-    , _textEdit = Nothing
-    , _additionalTextEdits = Nothing
-    , _commitCharacters = Nothing
-    , _command = Nothing
-    }
-
 handleCompletion :: Handlers (LspT c StaticLsM)
 handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res -> do
   let params = req._params
@@ -248,16 +223,35 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
   let lspContext = params._context
   let triggerKind = Maybe.fromMaybe IDE.Completion.TriggerUnknown $ (ProtoLSP.triggerKindFromProto . (._triggerKind)) <$> lspContext
   let cx = IDE.Completion.Context {path, lineCol, pos, triggerKind}
-  completions <- lift $ getCompletion cx
-  let lspCompletions = fmap toLspCompletion completions
+  (isIncomplete, completions) <- lift $ IDE.Completion.getCompletion cx
+  let lspCompletions = fmap (ProtoLSP.completionToProto sourceRope) completions
   let lspList =
         LSP.CompletionList
-          { _isIncomplete = False
+          { _isIncomplete = isIncomplete
           , _itemDefaults = Nothing
           , _items = lspCompletions
           }
   res $ Right $ InR $ InL lspList
   pure ()
+
+handleCompletionItemResolve :: Handlers (LspT c StaticLsM)
+handleCompletionItemResolve = LSP.requestHandler SMethod_CompletionItemResolve $ \req res -> do
+  lift $ logInfo "handleCompletionItemResolve"
+  let params = req._params
+  case params._data_ of
+    Nothing -> pure ()
+    Just _data -> do
+      let resultSuccessOrThrow res = case res of
+            Aeson.Success a -> pure a
+            Aeson.Error e -> Exception.throwString ("failed to parse json: " ++ e)
+      msg <- Aeson.fromJSON @IDE.Completion.CompletionMessage _data & resultSuccessOrThrow
+      let path = msg.path
+      edit <- lift $ IDE.Completion.resolveCompletionEdit msg
+      rope <- lift $ IDE.getSourceRope path
+      let textEdits = ProtoLSP.editToProto rope edit
+      let newCompletion = params & LSP.additionalTextEdits ?~ textEdits
+      res $ Right newCompletion
+      pure ()
 
 handleDocumentSymbols :: Handlers (LspT c StaticLsM)
 handleDocumentSymbols = LSP.requestHandler SMethod_TextDocumentDocumentSymbol $ \req res -> do

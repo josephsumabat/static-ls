@@ -209,12 +209,12 @@ getCompletionMode cx = do
 
 defaultAlias :: Text -> Maybe Text
 defaultAlias = \case
-  "T" -> Just "Text"
-  "TE" -> Just "Text.Encoding"
-  "B" -> Just "ByteString"
-  "BL" -> Just "ByteString.Lazy"
-  "TL" -> Just "Text.Lazy"
-  "TIO" -> Just "Text.IO"
+  "T" -> Just "Data.Text"
+  "TE" -> Just "Data.Text.Encoding"
+  "B" -> Just "Data.ByteString"
+  "BL" -> Just "Data.ByteString.Lazy"
+  "TL" -> Just "Data.Text.Lazy"
+  "TIO" -> Just "Data.Text.IO"
   _ -> Nothing
 
 bootModules :: [Text]

@@ -1,7 +1,4 @@
 {-# HLINT ignore "Avoid lambda using `infix`" #-}
-{-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module StaticLS.IDE.CodeActions.AutoImport where

@@ -5,7 +5,6 @@
 
 module StaticLS.Server (
   runServer,
-  module X,
 )
 where
 
@@ -14,8 +13,6 @@ import Control.Monad qualified as Monad
 import Control.Monad.Reader
 import Control.Monad.Trans.Except
 import Data.Foldable qualified as Foldable
-import Data.List as X
-import Data.Maybe as X (fromMaybe)
 import Data.Path qualified as Path
 import Data.Text qualified as T
 import Language.LSP.Logging qualified as LSP.Logging

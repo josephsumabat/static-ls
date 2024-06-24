@@ -4,6 +4,7 @@ module StaticLS.PositionDiff (
   Token (..),
   mkToken,
   lex,
+  lexCooked,
   diffText,
   updatePositionUsingDiff,
   DiffMap,
@@ -34,14 +35,23 @@ import Data.Text qualified as T
 import Language.Haskell.Lexer qualified as Lexer
 import Prelude hiding (lex)
 
+data TokenKind where
+  TokenKind :: forall a. (Show a, Eq a) => a -> TokenKind
+
+deriving instance Show TokenKind
+
+instance Eq TokenKind where
+  TokenKind _ == TokenKind _ = True
+
 data Token = Token
   { text :: !Text
   , len :: !Int
+  , kind :: TokenKind
   }
   deriving (Eq, Show)
 
 mkToken :: Text -> Token
-mkToken text = Token {text, len = T.length text}
+mkToken text = Token {text, len = T.length text, kind = TokenKind False}
 
 lexWithErrors :: String -> ([Token], [Text])
 lexWithErrors s = (res, es)
@@ -55,23 +65,42 @@ lexWithErrors s = (res, es)
       ts
   res =
     fmap
-      ( \(_tok, (_pos, s)) ->
+      ( \(tok, (_pos, s)) ->
           let text = T.pack s
-           in Token {text, len = T.length text}
+           in Token {text, len = T.length text, kind = TokenKind tok}
       )
       ts
   ts = (Lexer.lexerPass0 s)
 
 lex :: String -> [Token]
 lex source =
-  fmap
-    ( \(_tok, (_pos, s)) ->
-        let text = T.pack s
-         in Token {text, len = T.length text}
-    )
-    ts
+  concatMap f ts
  where
-  ts = (Lexer.lexerPass0 source)
+  ts = Lexer.lexerPass0 source
+
+  f (t, (p, s)) =
+    case t of
+      Lexer.ErrorToken -> onError
+      Lexer.TheRest -> onError
+      _ ->
+        let text = T.pack s
+         in [Token {text, len = T.length text, kind = TokenKind t}]
+   where
+    onError =
+      case s of
+        (c : cs) ->
+          Token {text = T.singleton c, len = 1, kind = TokenKind t} : lex cs
+        [] -> []
+
+lexCooked :: String -> [Token]
+lexCooked source =
+  fmap f ts
+ where
+  ts = Lexer.lexerPass0 source
+
+  f (t, (p, s)) =
+    let text = T.pack s
+     in Token {text, len = T.length text, kind = TokenKind t}
 
 tokensWithRanges :: [Token] -> [(Range, Token)]
 tokensWithRanges = go 0
@@ -88,7 +117,7 @@ printDiffSummary :: TokenDiff -> String
 printDiffSummary diff = show $ (fmap . fmap) (.len) diff
 
 concatTokens :: [Token] -> Token
-concatTokens ts = Token {text = t, len = T.length t}
+concatTokens ts = Token {text = t, len = T.length t, kind = TokenKind ts}
  where
   t = T.concat $ map (.text) ts
 

@@ -117,10 +117,6 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   let params = message._params
   updateFileStateForUri params._textDocument._uri
 
-updateFileState :: AbsPath -> Rope.Rope -> StaticLsM ()
-updateFileState path contentsRope = do
-  Semantic.updateSemantic path contentsRope
-
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
   let normalizedUri = toNormalizedUri uri

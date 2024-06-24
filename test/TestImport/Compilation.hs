@@ -16,6 +16,7 @@ import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
 import Data.Text.IO qualified as T.IO
 import Data.Traversable (for)
+import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.Logger qualified as Logger
 import StaticLS.Monad
 import StaticLS.Semantic qualified as Semantic
@@ -36,12 +37,11 @@ setupWithoutCompilation sourceFiles act = do
   ppSources <- traverse Placeholder.parseM sourceFiles
   absSources <- for (Map.toList ppSources) \(path, t@(contents, _)) -> do
     let absPath = dir Path.</> path
-    T.IO.writeFile (Path.toFilePath absPath) contents
     pure (absPath, t)
   staticEnv <- initEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
   res <- runStaticLsM staticEnv do
     for_ absSources \(absPath, (contents, _)) -> do
-      Semantic.updateSemantic absPath (Rope.fromText contents)
+      IDE.onNewSource absPath (Rope.fromText contents)
     act dir (Map.fromList absSources)
   pure res
 

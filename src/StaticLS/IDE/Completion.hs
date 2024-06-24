@@ -1,15 +1,15 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE MultiWayIf #-}
 
-module StaticLS.IDE.Completion (
-  getCompletion,
-  Context (..),
-  TriggerKind (..),
-  Completion (..),
-  CompletionKind (..),
-  CompletionMessage (..),
-  resolveCompletionEdit,
-)
+module StaticLS.IDE.Completion
+  ( getCompletion,
+    Context (..),
+    TriggerKind (..),
+    Completion (..),
+    CompletionKind (..),
+    CompletionMessage (..),
+    resolveCompletionEdit,
+  )
 where
 
 import AST qualified
@@ -219,37 +219,37 @@ defaultAlias = \case
 
 bootModules :: [Text]
 bootModules =
-  [ "Data.Text"
-  , "Data.ByteString"
-  , "Data.Map"
-  , "Data.Set"
-  , "Data.IntMap"
-  , "Data.IntSet"
-  , "Data.Sequence"
+  [ "Data.Text",
+    "Data.ByteString",
+    "Data.Map",
+    "Data.Set",
+    "Data.IntMap",
+    "Data.IntSet",
+    "Data.Sequence"
   ]
 
 isModSubseqOf :: Text -> Text -> Bool
 isModSubseqOf sub mod = List.isSubsequenceOf sub' mod' || sub == mod
- where
-  sub' = T.splitOn "." sub
-  mod' = T.splitOn "." mod
+  where
+    sub' = T.splitOn "." sub
+    mod' = T.splitOn "." mod
 
 isModSuffixOf :: Text -> Text -> Bool
-isModSuffixOf sub mod = List.isSuffixOf sub' mod'
- where
-  sub' = T.splitOn "." sub
-  mod' = T.splitOn "." mod
+isModSuffixOf sub mod = sub' `List.isSuffixOf` mod'
+  where
+    sub' = T.splitOn "." sub
+    mod' = T.splitOn "." mod
 
 isBootModule :: Text -> Bool
-isBootModule mod = any (\bootMod -> mod `isModSuffixOf` bootMod) bootModules
+isBootModule mod = any (mod `isModSuffixOf`) bootModules
 
 formatQualifiedAs :: Text -> Text -> Text
 formatQualifiedAs mod alias = "import qualified " <> mod <> " as " <> alias
 
 getFlyImports :: Context -> HashSet Text -> Text -> Text -> StaticLsM [Completion]
 getFlyImports cx qualifiedCompletions prefix match = do
-  expandedPrefix <- pure $ Maybe.fromMaybe prefix (defaultAlias prefix)
-  let bootCompletions = if isBootModule expandedPrefix then [mkBootCompletion expandedPrefix prefix match cx.path] else []
+  let expandedPrefix = Maybe.fromMaybe prefix (defaultAlias prefix)
+  let bootCompletions = [mkBootCompletion expandedPrefix prefix match cx.path | isBootModule expandedPrefix]
   mods <- getModules
   mods <- pure $ filter (expandedPrefix `isModSuffixOf`) mods
   completions <- for mods \mod -> do
@@ -266,8 +266,8 @@ getFlyImports cx qualifiedCompletions prefix match = do
       fmap
         ( \completion ->
             (textCompletion completion)
-              { description = Just $ formatQualifiedAs mod prefix
-              , msg = Just $ CompletionMessage {path = cx.path, kind = FlyImportCompletionKind mod prefix}
+              { description = Just $ formatQualifiedAs mod prefix,
+                msg = Just $ CompletionMessage {path = cx.path, kind = FlyImportCompletionKind mod prefix}
               }
         )
         modCompletions
@@ -285,14 +285,14 @@ getCompletion cx = do
       let modsWithoutPrefix = case modPrefix of
             Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
             Nothing -> mods
-      pure $ (False, textCompletion <$> modsWithoutPrefix)
+      pure (False, textCompletion <$> modsWithoutPrefix)
     HeaderMode mod -> do
       let label = "module " <> mod <> " where"
       pure (False, [mkCompletion label (label <> "\n$0")])
     UnqualifiedMode -> do
       fileCompletions <- getFileCompletions cx
       importCompletions <- getUnqualifiedImportCompletions cx
-      pure $ (False, nubOrd $ importCompletions ++ fileCompletions)
+      pure (False, nubOrd $ importCompletions ++ fileCompletions)
     QualifiedMode mod match -> do
       let path = cx.path
       haskell <- getHaskell path
@@ -301,11 +301,11 @@ getCompletion cx = do
       let imports = prog.imports
       let importsWithAlias = filter (\imp -> fmap (.text) imp.alias == Just mod) imports
       -- TODO: append both flyimports and normal ones
-      qualifiedCompletions <- nubOrd <$> (getCompletionsForMods $ (.mod.text) <$> importsWithAlias)
+      qualifiedCompletions <- nubOrd <$> getCompletionsForMods ((.mod.text) <$> importsWithAlias)
       flyImports <- case match of
         "" -> pure []
         _ -> getFlyImports cx (HashSet.fromList qualifiedCompletions) mod match
-      pure $ (match == "", (textCompletion <$> qualifiedCompletions) ++ flyImports)
+      pure (match == "", (textCompletion <$> qualifiedCompletions) ++ flyImports)
 
 resolveCompletionEdit :: CompletionMessage -> StaticLsM Edit
 resolveCompletionEdit msg = do
@@ -320,8 +320,8 @@ resolveCompletionEdit msg = do
       pure $ Edit.singleton change
 
 data CompletionMessage = CompletionMessage
-  { path :: AbsPath
-  , kind :: CompletionKind
+  { path :: AbsPath,
+    kind :: CompletionKind
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -342,25 +342,25 @@ instance Aeson.ToJSON CompletionKind
 instance Aeson.FromJSON CompletionKind
 
 data Completion = Completion
-  { label :: !Text
-  , insertText :: !Text
-  , labelDetail :: Maybe Text
-  , description :: Maybe Text
-  , detail :: Maybe Text
-  , edit :: !Edit
-  , msg :: Maybe CompletionMessage
+  { label :: !Text,
+    insertText :: !Text,
+    labelDetail :: Maybe Text,
+    description :: Maybe Text,
+    detail :: Maybe Text,
+    edit :: !Edit,
+    msg :: Maybe CompletionMessage
   }
   deriving (Show, Eq, Ord)
 
 mkBootCompletion :: Text -> Text -> Text -> AbsPath -> Completion
 mkBootCompletion mod alias match path =
   (mkCompletion match "")
-    { description = Just $ formatQualifiedAs mod alias
-    , msg =
+    { description = Just $ formatQualifiedAs mod alias,
+      msg =
         Just $
           CompletionMessage
-            { path
-            , kind = FlyImportCompletionKind mod alias
+            { path,
+              kind = FlyImportCompletionKind mod alias
             }
     }
 
@@ -370,22 +370,22 @@ textCompletion text = mkCompletion text text
 mkCompletion :: Text -> Text -> Completion
 mkCompletion label insertText =
   Completion
-    { label
-    , detail = Nothing
-    , labelDetail = Nothing
-    , description = Nothing
-    , insertText
-    , edit = Edit.empty
-    , msg = Nothing
+    { label,
+      detail = Nothing,
+      labelDetail = Nothing,
+      description = Nothing,
+      insertText,
+      edit = Edit.empty,
+      msg = Nothing
     }
 
 data TriggerKind = TriggerCharacter | TriggerUnknown
   deriving (Show, Eq)
 
 data Context = Context
-  { path :: AbsPath
-  , pos :: !Pos
-  , lineCol :: !LineCol
-  , triggerKind :: !TriggerKind
+  { path :: AbsPath,
+    pos :: !Pos,
+    lineCol :: !LineCol,
+    triggerKind :: !TriggerKind
   }
   deriving (Show, Eq)

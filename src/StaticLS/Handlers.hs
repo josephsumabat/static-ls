@@ -207,7 +207,7 @@ handleFormat = LSP.requestHandler SMethod_TextDocumentFormatting $ \req res -> d
   path <- ProtoLSP.tdiToAbsPath tdi
   sourceRope <- lift $ IDE.getSourceRope path
   source <- lift $ IDE.getSource path
-  edit <- IDE.Format.format path sourceRope source
+  edit <- IDE.Format.format path source
   let textEdits = ProtoLSP.editToProto sourceRope edit
   res $ Right $ InL textEdits
   pure ()

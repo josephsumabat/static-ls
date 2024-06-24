@@ -1,9 +1,12 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module StaticLS.PositionDiffSpec where
 
 import Data.Diff qualified as Diff
 import Data.Pos
+import Data.Text qualified as T
+import NeatInterpolation
 import StaticLS.PositionDiff
 import StaticLS.PositionDiff qualified as PositionDiff
 import Test.Hspec
@@ -56,4 +59,20 @@ spec = do
     let y = "third second third fourth"
     let diff = PositionDiff.diffText x y
     diff `shouldBe` []
+
+  xdescribe "lexing" do
+    let check name s ex = it name do
+          let ts = fmap mkToken ex
+          PositionDiff.lex s `shouldBe` ts
+
+    let checkCooked name s ex = it name do
+          let ts = fmap mkToken ex
+          PositionDiff.lexCooked s `shouldBe` ts
+
+    check "" "hello 'Message adfadsf adfpaoidfu  adpofiuasdfpoi aspdfoiuasfpo adsf poiasduf ' 'adf'asdf a" []
+
+    checkCooked "" "hello 'Message adfadsf adfpaoidfu adpofiuasdfpoi apodsifu asf asdf'a sdfaspodfiu adfopi" []
+
+    pure ()
+
   pure ()

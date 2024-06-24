@@ -187,12 +187,12 @@ getCompletionMode cx = do
 
 defaultAlias :: Text -> Maybe Text
 defaultAlias = \case
-  "T" -> Just "Data.Text"
-  "TE" -> Just "Data.Text.Encoding"
-  "B" -> Just "Data.ByteString"
-  "BL" -> Just "Data.ByteString.Lazy"
-  "TL" -> Just "Data.Text.Lazy"
-  "TIO" -> Just "Data.Text.IO"
+  "T" -> Just "Text"
+  "TE" -> Just "Text.Encoding"
+  "B" -> Just "ByteString"
+  "BL" -> Just "ByteString.Lazy"
+  "TL" -> Just "Text.Lazy"
+  "TIO" -> Just "Text.IO"
   _ -> Nothing
 
 bootModules :: [Text]
@@ -211,9 +211,15 @@ isModSubseqOf sub mod = List.isSubsequenceOf sub' mod' || sub == mod
   where
     sub' = T.splitOn "." sub
     mod' = T.splitOn "." mod
+    
+isModSuffixOf :: Text -> Text -> Bool
+isModSuffixOf sub mod = List.isSuffixOf sub' mod'
+  where
+    sub' = T.splitOn "." sub
+    mod' = T.splitOn "." mod
 
 isBootModule :: Text -> Bool
-isBootModule mod = any (\bootMod -> mod `isModSubseqOf` bootMod || bootMod `isModSubseqOf` mod) bootModules
+isBootModule mod = any (\bootMod -> mod `isModSuffixOf` bootMod) bootModules
 
 formatQualifiedAs :: Text -> Text -> Text
 formatQualifiedAs mod alias = "import qualified " <> mod <> " as " <> alias
@@ -223,7 +229,7 @@ getFlyImports cx prefix match = do
   expandedPrefix <- pure $ Maybe.fromMaybe prefix (defaultAlias prefix)
   let bootCompletions = if isBootModule expandedPrefix then [mkBootCompletion expandedPrefix prefix match cx.path] else []
   mods <- getModules
-  mods <- pure $ filter (expandedPrefix `isModSubseqOf`) mods
+  mods <- pure $ filter (expandedPrefix `isModSuffixOf`) mods
   completions <- for mods \mod -> do
     modCompletions <- getCompletionsForMod mod
     -- do some filtering

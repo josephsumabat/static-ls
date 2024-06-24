@@ -167,6 +167,7 @@ serverDef argOptions logger = do
               , handleResolveCodeAction
               , handleDocumentSymbols
               , handleCompletion
+              , handleFormat
               , handleCompletionItemResolve
               ]
       , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO

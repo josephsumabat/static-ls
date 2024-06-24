@@ -33,6 +33,7 @@ import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
 import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Definition
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
+import StaticLS.IDE.Format qualified as IDE.Format
 import StaticLS.IDE.Hover
 import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.IDE.References
@@ -197,6 +198,18 @@ handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req re
   workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
   let newCodeAction = codeAction & LSP.edit ?~ workspaceEdit
   res $ Right newCodeAction
+  pure ()
+
+handleFormat :: Handlers (LspT c StaticLsM)
+handleFormat = LSP.requestHandler SMethod_TextDocumentFormatting $ \req res -> do
+  let params = req._params
+  let tdi = params._textDocument
+  path <- ProtoLSP.tdiToAbsPath tdi
+  sourceRope <- lift $ IDE.getSourceRope path
+  source <- lift $ IDE.getSource path
+  edit <- IDE.Format.format path source
+  let textEdits = ProtoLSP.editToProto sourceRope edit
+  res $ Right $ InL textEdits
   pure ()
 
 handleCompletion :: Handlers (LspT c StaticLsM)

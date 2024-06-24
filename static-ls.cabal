@@ -65,6 +65,7 @@ library
       StaticLS.IDE.Definition
       StaticLS.IDE.DocumentSymbols
       StaticLS.IDE.FileWith
+      StaticLS.IDE.Format
       StaticLS.IDE.HiePos
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info

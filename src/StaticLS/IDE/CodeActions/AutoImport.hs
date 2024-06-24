@@ -1,13 +1,12 @@
+{-# HLINT ignore "Avoid lambda using `infix`" #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Avoid lambda using `infix`" #-}
-
 module StaticLS.IDE.CodeActions.AutoImport where
 
 import AST qualified
-import AST.Err qualified as Haskell
 import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
 import Control.Lens.Operators
@@ -17,9 +16,7 @@ import Data.Change qualified as Change
 import Data.Char qualified as Char
 import Data.Coerce (coerce)
 import Data.Edit qualified as Edit
-import Data.Either.Extra (eitherToMaybe)
 import Data.List.NonEmpty qualified as NE
-import Data.Maybe (catMaybes)
 import Data.Path (AbsPath)
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Rope (Rope)
@@ -29,6 +26,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
+import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
@@ -40,8 +38,8 @@ import StaticLS.StaticEnv (runHieDbExceptT)
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils
 
-findModulesForDef :: HieDb -> Text -> IO [Text]
-findModulesForDef (getConn -> conn) name = do
+findModulesForDefQuery :: HieDb -> Text -> IO [Text]
+findModulesForDefQuery (getConn -> conn) name = do
   res <-
     query @_ @(Only Text)
       conn
@@ -52,6 +50,15 @@ findModulesForDef (getConn -> conn) name = do
       \WHERE exports.occ LIKE ?"
       (Only (T.pack "_:" <> name))
   pure (coerce res)
+
+findModulesForDef :: Text -> StaticLsM [Text]
+findModulesForDef name = do
+  res <- runExceptT $ runHieDbExceptT (\db -> findModulesForDefQuery db name)
+  case res of
+    Left e -> do
+      logError $ T.pack $ "Error finding modules for def: " <> show e
+      pure []
+    Right res -> pure res
 
 type AutoImportTypes =
   Haskell.Name
@@ -74,61 +81,41 @@ getModulesToImport ::
   StaticLsM ModulesToImport
 getModulesToImport path pos = do
   haskell <- getHaskell path
-
   let astPoint = lineColToAstPoint pos
   -- TODO: Remove double traversal of AST
-  let maybeQualified =
-        AST.getDeepestContaining
-          @Haskell.Qualified
-          astPoint
-          (AST.getDynNode haskell)
-      maybeImportable =
-        AST.getDeepestContaining
-          @AutoImportTypes
-          astPoint
-          ( maybe
-              (AST.getDynNode haskell)
-              AST.getDynNode
-              maybeQualified
-          )
-  case maybeImportable of
-    Just importableNode -> do
-      let node = AST.getDynNode importableNode
-          nodeText = AST.nodeText node
-          -- Get the module qualifier from the AST if applicable
-          mQualifier =
-            (toQualifierImports . getQualifiers) <$> maybeQualified
-
-      res <- runExceptT $ runHieDbExceptT (\db -> findModulesForDef db nodeText)
-      res <- isRightOrThrow res
-      pure $
-        ModulesToImport
-          { moduleNames = res
-          , moduleQualifier = mQualifier
-          }
-    _ -> do
+  let qualified = Hir.getQualifiedAtPoint pos haskell
+  let importable = AST.getDeepestContaining @AutoImportTypes astPoint (AST.getDynNode haskell)
+  case qualified of
+    Left e -> do
+      logError $ T.pack $ "Error getting qualified: " <> show e
       pure
         ModulesToImport
           { moduleNames = []
           , moduleQualifier = Nothing
           }
- where
-  toQualifierImports :: [Haskell.ModuleId] -> Text
-  toQualifierImports modIds =
-    T.intercalate "." ((AST.nodeText . AST.getDynNode) <$> modIds)
-
-  getQualifiers :: Haskell.Qualified -> [Haskell.ModuleId]
-  getQualifiers qualifiedNode =
-    either (const []) (unwrapModIds . (.children)) qualifiedNode.module'
-
-  unwrapModIds :: Haskell.Err (NE.NonEmpty (Haskell.Err (Haskell.ModuleId))) -> [Haskell.ModuleId]
-  unwrapModIds eModIds =
-    either
-      (const [])
-      ( \modIds ->
-          catMaybes (NE.toList $ eitherToMaybe <$> modIds)
-      )
-      eModIds
+    Right Nothing -> case importable of
+      Just importableNode -> do
+        let node = AST.getDynNode importableNode
+            nodeText = AST.nodeText node
+        res <- findModulesForDef nodeText
+        pure $
+          ModulesToImport
+            { moduleNames = res
+            , moduleQualifier = Nothing
+            }
+      Nothing -> do
+        pure
+          ModulesToImport
+            { moduleNames = []
+            , moduleQualifier = Nothing
+            }
+    Right (Just qualified) -> do
+      res <- findModulesForDef qualified.name.text
+      pure $
+        ModulesToImport
+          { moduleNames = res
+          , moduleQualifier = Just qualified.mod.text
+          }
 
 createAutoImportCodeActions :: AbsPath -> Maybe Text -> Text -> StaticLsM [Assist]
 createAutoImportCodeActions path mQualifier toImport =

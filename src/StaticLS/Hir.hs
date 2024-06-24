@@ -7,10 +7,22 @@ import Data.Either qualified as Either
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
+import Data.Pos (LineCol)
 import Data.Text (Text)
+import Data.Text qualified as T
+import StaticLS.Semantic.Position (lineColToAstPoint)
+
+data Name = Name
+  { text :: Text
+  }
+
+data Qualified = Qualified
+  { mod :: Module
+  , name :: Name
+  }
 
 data Module = Module
-  { ids :: NonEmpty Text
+  { parts :: NonEmpty Text
   , text :: Text
   }
   deriving (Show, Eq)
@@ -50,8 +62,10 @@ parseModule m = do
   ids <- AST.collapseErr m.children
   pure $
     Module
-      { text = AST.nodeToText m
-      , ids = fmap AST.nodeToText ids
+      { text =
+          -- the text sometimes includes trailing dots
+          T.dropWhileEnd (== '.') (AST.nodeToText m)
+      , parts = fmap AST.nodeToText ids
       }
 
 parseImport :: H.Import -> AST.Err Import
@@ -73,6 +87,21 @@ parseImport i = do
       , hiding
       , importList
       }
+
+parseQualified :: H.Qualified -> AST.Err Qualified
+parseQualified q = do
+  mod <- q.module'
+  mod <- parseModule mod
+  name <- q.id
+  name <- pure $ Name {text = AST.nodeToText name}
+  pure $ Qualified {mod, name}
+
+getQualifiedAtPoint :: LineCol -> H.Haskell -> AST.Err (Maybe Qualified)
+getQualifiedAtPoint lineCol h = do
+  let astPoint = lineColToAstPoint lineCol
+  let node = AST.getDeepestContaining @H.Qualified astPoint (AST.getDynNode h)
+  qualified <- traverse parseQualified node
+  pure qualified
 
 parseImports :: H.Imports -> AST.Err ([Text], [Import])
 parseImports i = do

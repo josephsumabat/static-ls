@@ -63,6 +63,7 @@ dependencies:
   - fsnotify
   # because of lsp-types 2.1
   - row-types
+  - regex-tdfa
 language: GHC2021
 default-extensions:
 - LambdaCase

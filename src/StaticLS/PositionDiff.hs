@@ -117,7 +117,7 @@ printDiffSummary :: TokenDiff -> String
 printDiffSummary diff = show $ (fmap . fmap) (.len) diff
 
 concatTokens :: [Token] -> Token
-concatTokens ts = Token {text = t, len = T.length t}
+concatTokens ts = Token {text = t, len = T.length t, kind = TokenKind ts}
  where
   t = T.concat $ map (.text) ts
 

@@ -66,7 +66,6 @@ pathToModule absPath = do
   let fp = Path.toFilePath absPath
   staticEnv <- getStaticEnv
   let srcDirs = staticEnv.srcDirs
-  let wsRoot = staticEnv.wsRoot
   pure $ do
     modPath <- asum ((\srcDir -> makeRelativeMaybe (Path.toFilePath srcDir) fp) <$> srcDirs)
     let (modPathWithoutExt, ext) = splitExtension modPath
@@ -228,8 +227,8 @@ bootModules =
   , "Data.Sequence"
   ]
 
-isModSubseqOf :: Text -> Text -> Bool
-isModSubseqOf sub mod = List.isSubsequenceOf sub' mod' || sub == mod
+_isModSubseqOf :: Text -> Text -> Bool
+_isModSubseqOf sub mod = List.isSubsequenceOf sub' mod' || sub == mod
  where
   sub' = T.splitOn "." sub
   mod' = T.splitOn "." mod

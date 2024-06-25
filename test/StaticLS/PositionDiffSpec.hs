@@ -20,9 +20,9 @@ spec = do
 
   describe "simple diff" do
     let diff =
-          [ Diff.Keep (mkToken "module"),
-            Diff.Delete (mkToken "ca"),
-            Diff.Keep (mkToken "da")
+          [ Diff.Keep (mkToken "module")
+          , Diff.Delete (mkToken "ca")
+          , Diff.Keep (mkToken "da")
           ]
 
     let check' = check diff
@@ -34,8 +34,8 @@ spec = do
 
   describe "last diff is delete" do
     let diff =
-          [ Diff.Keep (mkToken "module"),
-            Diff.Delete (mkToken "ca")
+          [ Diff.Keep (mkToken "module")
+          , Diff.Delete (mkToken "ca")
           ]
     let check' = check diff
     check' "" (Pos 6) (Pos 5)
@@ -45,11 +45,11 @@ spec = do
 
   describe "more complex diff" do
     let diff =
-          [ Diff.Keep (mkToken "module"),
-            Diff.Delete (mkToken "ca"),
-            Diff.Keep (mkToken "da"),
-            Diff.Insert (mkToken "hello"),
-            Diff.Delete (mkToken "hela")
+          [ Diff.Keep (mkToken "module")
+          , Diff.Delete (mkToken "ca")
+          , Diff.Keep (mkToken "da")
+          , Diff.Insert (mkToken "hello")
+          , Diff.Delete (mkToken "hela")
           ]
     let check' = check diff
     check' "" (Pos 8) (Pos 6)
@@ -58,20 +58,20 @@ spec = do
 
   describe "last delta" do
     let diff =
-          [ Diff.Keep (mkToken "first"),
-            Diff.Delete (mkToken "hello")
+          [ Diff.Keep (mkToken "first")
+          , Diff.Delete (mkToken "hello")
           ]
     let check' = check diff
     check' "" (Pos 6) (Pos 4)
 
   describe "last delta only delete" do
-    let diff = [
-            Diff.Delete (mkToken "hello")
+    let diff =
+          [ Diff.Delete (mkToken "hello")
           ]
     let check' = check diff
     check' "" (Pos 2) (Pos 0)
     check' "" (Pos 2) (Pos 0)
-    
+
   xit "smoke" do
     let x = "first second third fourth"
     let y = "third second third fourth"

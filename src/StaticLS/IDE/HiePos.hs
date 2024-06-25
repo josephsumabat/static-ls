@@ -6,11 +6,11 @@ import Data.LineColRange
 import Data.Path (AbsPath)
 import Data.Pos (LineCol, Pos)
 import Data.Rope qualified as Rope
+import Data.Text qualified as T
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
-import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Logger (logInfo)
-import qualified Data.Text as T
+import StaticLS.PositionDiff qualified as PositionDiff
 
 posToHiePos :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> MaybeT m Pos
 posToHiePos path pos = do

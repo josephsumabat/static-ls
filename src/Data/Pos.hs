@@ -56,7 +56,7 @@ lineCol line col
 
 pos :: (HasCallStack) => Int -> Pos
 pos p
-  | p < 0 = error "pos must be >= 0"
+  | p < 0 = error $ "pos must be >= 0, got " <> show p
   | otherwise = UnsafePos p
 
 lineColToPos :: Text -> LineCol -> Pos

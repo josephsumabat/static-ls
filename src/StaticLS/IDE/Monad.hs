@@ -1,32 +1,32 @@
-module StaticLS.IDE.Monad (
-  MonadIde,
-  getHaskell,
-  getSourceRope,
-  getSource,
-  getHieToSrcDiffMap,
-  getSrcToHieDiffMap,
-  getFileState,
-  getHieSourceRope,
-  getHieSource,
-  getHieFile,
-  getHieCacheImpl,
-  CachedHieFile (..),
-  MonadHieFile (..),
-  SetHieCache (..),
-  HasHieCache (..),
-  DiffCache (..),
-  HasDiffCacheRef (..),
-  GetDiffCache (..),
-  getDiffCacheImpl,
-  getHieToSource,
-  getSourceToHie,
-  removeDiffCache,
-  removePath,
-  removeHieFromSourcePath,
-  onNewSource,
-  getHieTokenMap,
-  getTokenMap,
-)
+module StaticLS.IDE.Monad
+  ( MonadIde,
+    getHaskell,
+    getSourceRope,
+    getSource,
+    getHieToSrcDiffMap,
+    getSrcToHieDiffMap,
+    getFileState,
+    getHieSourceRope,
+    getHieSource,
+    getHieFile,
+    getHieCacheImpl,
+    CachedHieFile (..),
+    MonadHieFile (..),
+    SetHieCache (..),
+    HasHieCache (..),
+    DiffCache (..),
+    HasDiffCacheRef (..),
+    GetDiffCache (..),
+    getDiffCacheImpl,
+    getHieToSource,
+    getSourceToHie,
+    removeDiffCache,
+    removePath,
+    removeHieFromSourcePath,
+    onNewSource,
+    getHieTokenMap,
+    getTokenMap,
+  )
 where
 
 import AST.Haskell qualified as Haskell
@@ -51,13 +51,13 @@ import UnliftIO.Exception qualified as Exception
 import UnliftIO.IORef qualified as IORef
 
 type MonadIde m =
-  ( MonadThrow m
-  , MonadHieFile m
-  , HasStaticEnv m
-  , Semantic.HasSemantic m
-  , Semantic.SetSemantic m
-  , HasLogger m
-  , GetDiffCache m
+  ( MonadThrow m,
+    MonadHieFile m,
+    HasStaticEnv m,
+    Semantic.HasSemantic m,
+    Semantic.SetSemantic m,
+    HasLogger m,
+    GetDiffCache m
   )
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
@@ -119,10 +119,10 @@ type HieCacheMap = HashMap.HashMap AbsPath CachedHieFile
 
 -- keep these fields lazy
 data CachedHieFile = CachedHieFile
-  { hieSource :: Text
-  , hieSourceRope :: Rope
-  , file :: HIE.File.HieFile
-  , hieTokenMap :: RangeMap PositionDiff.Token
+  { hieSource :: Text,
+    hieSourceRope :: Rope,
+    file :: HIE.File.HieFile,
+    hieTokenMap :: RangeMap PositionDiff.Token
   }
 
 class HasHieCache m where
@@ -152,10 +152,10 @@ getHieCacheImpl path = do
       let tokens = PositionDiff.lex $ T.unpack hieSource
       let hieFile =
             CachedHieFile
-              { hieSource
-              , hieSourceRope = Rope.fromText hieSource
-              , file = file
-              , hieTokenMap = PositionDiff.tokensToRangeMap tokens
+              { hieSource,
+                hieSourceRope = Rope.fromText hieSource,
+                file = file,
+                hieTokenMap = PositionDiff.tokensToRangeMap tokens
               }
       setHieCacheMap $ HashMap.insert path hieFile hieCacheMap
       pure hieFile
@@ -199,9 +199,10 @@ getHieToSource path = do
   pure $ hieCache.hieToSource
 
 data DiffCache = DiffCache
-  { hieToSource :: PositionDiff.DiffMap
-  , sourceToHie :: PositionDiff.DiffMap
+  { hieToSource :: PositionDiff.DiffMap,
+    sourceToHie :: PositionDiff.DiffMap
   }
+  deriving (Show, Eq)
 
 class HasDiffCacheRef m where
   getDiffCacheRef :: m (IORef.IORef (HashMap.HashMap AbsPath DiffCache))
@@ -226,8 +227,8 @@ getDiffCacheImpl path = do
       sourceToHie <- getSrcToHieDiffMap path
       let diffCache =
             DiffCache
-              { hieToSource
-              , sourceToHie
+              { hieToSource,
+                sourceToHie
               }
       IORef.writeIORef diffCacheRef $ HashMap.insert path diffCache diffCacheMap
       pure diffCache

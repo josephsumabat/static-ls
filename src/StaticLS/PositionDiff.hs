@@ -184,7 +184,7 @@ getDiffMapFromDiff diff =
 data DiffMap = DiffMap
   { map :: !(RangeMap Delta)
   , last :: (Maybe (Range, Delta))
-  }
+  } deriving (Show, Eq)
 
 diffPos :: (HasCallStack) => Pos -> DiffMap -> Pos
 diffPos pos DiffMap {map, last} =

@@ -9,6 +9,8 @@ import Data.Rope qualified as Rope
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
 import StaticLS.PositionDiff qualified as PositionDiff
+import StaticLS.Logger (logInfo)
+import qualified Data.Text as T
 
 posToHiePos :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> MaybeT m Pos
 posToHiePos path pos = do
@@ -18,6 +20,8 @@ posToHiePos path pos = do
 hiePosToPos :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> MaybeT m Pos
 hiePosToPos path hiePos = do
   hieToSource <- getHieToSource path
+  diffCache <- getDiffCache path
+  logInfo $ T.pack $ "diffCache: " <> show diffCache
   pure $ PositionDiff.diffPos hiePos hieToSource
 
 hieLineColToLineCol :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> MaybeT m LineCol

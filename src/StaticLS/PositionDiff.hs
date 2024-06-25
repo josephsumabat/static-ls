@@ -32,6 +32,7 @@ import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
+import GHC.Stack (HasCallStack)
 import Language.Haskell.Lexer qualified as Lexer
 import Prelude hiding (lex)
 
@@ -185,13 +186,13 @@ data DiffMap = DiffMap
   , last :: (Maybe (Range, Delta))
   }
 
-diffPos :: Pos -> DiffMap -> Pos
+diffPos :: (HasCallStack) => Pos -> DiffMap -> Pos
 diffPos pos DiffMap {map, last} =
   case last of
     Nothing -> pos
     Just (finalRange, finalDelta) ->
       if
-        | finalRange.end <= pos -> Pos (pos.pos + getDelta finalDelta)
+        | finalRange.end <= pos -> Pos (max 0 (pos.pos + getDelta finalDelta))
         | finalRange.start <= pos -> applyLastDelta pos finalRange finalDelta
         | otherwise ->
             -- since the ranges are contiguous, there must be a range that contains the position

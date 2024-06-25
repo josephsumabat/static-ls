@@ -145,7 +145,7 @@ editToProto rope edit =
 
 -- TODO: convert fsEdits
 sourceEditToProto :: SourceEdit -> StaticLsM LSP.WorkspaceEdit
-sourceEditToProto SourceEdit {fileEdits, fsEdits} = do
+sourceEditToProto SourceEdit {fileEdits} = do
   documentChanges <- for (HashMap.toList fileEdits) \(path, edit) -> do
     rope <- IDE.Monad.getSourceRope path
     pure

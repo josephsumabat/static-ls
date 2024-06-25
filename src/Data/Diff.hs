@@ -38,7 +38,7 @@ diffEdit x y =
  where
   diff = diffText x y
 
-  go !pos acc [] = acc
+  go !_pos acc [] = acc
   go !pos acc (d : ds) = case d of
     Keep t -> go (pos + T.length t) acc ds
     Delete t ->

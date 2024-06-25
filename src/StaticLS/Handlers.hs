@@ -7,11 +7,9 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
 import Data.Maybe qualified as Maybe
-import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Row ((.==))
-import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message (
   SMethod (..),
@@ -42,7 +40,6 @@ import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.ProtoLSP qualified as ProtoLSP
-import StaticLS.Semantic qualified as Semantic
 import StaticLS.Utils
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
@@ -102,7 +99,7 @@ handleRenameRequest = LSP.requestHandler SMethod_TextDocumentRename $ \req res -
 handlePrepareRenameRequest :: Handlers (LspT c StaticLsM)
 handlePrepareRenameRequest = LSP.requestHandler SMethod_TextDocumentPrepareRename $ \req res -> do
   lift $ logInfo "Received prepare rename request."
-  let params = req._params
+  let _params = req._params
   -- pos <- ProtoLSP.
   -- get rid of this shit after lsp 2.3
   res $ Right $ InL $ LSP.PrepareRenameResult $ InR $ InR $ #defaultBehavior .== True
@@ -116,10 +113,6 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   lift $ logInfo "did open"
   let params = message._params
   updateFileStateForUri params._textDocument._uri
-
-updateFileState :: AbsPath -> Rope.Rope -> StaticLsM ()
-updateFileState path contentsRope = do
-  Semantic.updateSemantic path contentsRope
 
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
@@ -139,7 +132,7 @@ handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \messa
 handleDidSave :: Handlers (LspT c StaticLsM)
 handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \message -> do
   let params = message._params
-  let uri = params._textDocument._uri
+  let _uri = params._textDocument._uri
   pure ()
 
 handleDidClose :: Handlers (LspT c StaticLsM)

@@ -13,6 +13,7 @@ module StaticLS.PositionDiff (
   diffLineColRange,
   diffRange,
   getDiffMap,
+  getDiffMapFromDiff,
   printDiffSummary,
   lexWithErrors,
   concatTokens,
@@ -184,6 +185,7 @@ data DiffMap = DiffMap
   { map :: !(RangeMap Delta)
   , last :: (Maybe (Range, Delta))
   }
+  deriving (Show, Eq)
 
 diffPos :: Pos -> DiffMap -> Pos
 diffPos pos DiffMap {map, last} =

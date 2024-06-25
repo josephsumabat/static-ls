@@ -10,6 +10,7 @@ module StaticLS.IDE.Monad (
   getHieSource,
   getHieFile,
   getHieCacheImpl,
+  RemovePath (..),
   CachedHieFile (..),
   MonadHieFile (..),
   SetHieCache (..),
@@ -21,11 +22,11 @@ module StaticLS.IDE.Monad (
   getHieToSource,
   getSourceToHie,
   removeDiffCache,
-  removePath,
   removeHieFromSourcePath,
   onNewSource,
   getHieTokenMap,
   getTokenMap,
+  removePathImpl,
 )
 where
 
@@ -58,6 +59,7 @@ type MonadIde m =
   , Semantic.SetSemantic m
   , HasLogger m
   , GetDiffCache m
+  , RemovePath m
   )
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
@@ -108,6 +110,7 @@ getFileState path = do
       case contents of
         Left e -> do
           logError $ "Failed to read file: " <> T.pack (show e)
+          removePath path
           pure Semantic.emptyFileState
         Right contents -> do
           let contentsRope = Rope.fromText contents
@@ -215,6 +218,12 @@ class GetDiffCache m where
 instance (Monad m, GetDiffCache m) => GetDiffCache (MaybeT m) where
   getDiffCache = lift . getDiffCache
 
+class RemovePath m where
+  removePath :: AbsPath -> m ()
+
+instance (Monad m, RemovePath m) => RemovePath (MaybeT m) where
+  removePath = lift . removePath
+
 getDiffCacheImpl :: (MonadIde m, HasDiffCacheRef m, MonadIO m) => AbsPath -> MaybeT m DiffCache
 getDiffCacheImpl path = do
   diffCacheRef <- getDiffCacheRef
@@ -243,8 +252,8 @@ removeDiffCache path = do
   diffCacheMap <- IORef.readIORef diffCacheRef
   IORef.writeIORef diffCacheRef $ HashMap.delete path diffCacheMap
 
-removePath :: (MonadIde m, HasDiffCacheRef m, MonadIO m) => AbsPath -> m ()
-removePath path = do
+removePathImpl :: (MonadIde m, HasDiffCacheRef m, MonadIO m) => AbsPath -> m ()
+removePathImpl path = do
   Semantic.removePath path
   removeDiffCache path
 

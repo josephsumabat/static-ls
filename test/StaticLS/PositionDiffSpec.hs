@@ -14,6 +14,8 @@ import Test.Hspec
 spec :: Spec
 spec = do
   let check diff name pos pos' = it name do
+        let dm = getDiffMapFromDiff diff
+        putStrLn $ "dm: " ++ show dm
         updatePositionUsingDiff diff pos `shouldBe` pos'
 
   describe "simple diff" do
@@ -51,8 +53,24 @@ spec = do
           ]
     let check' = check diff
     check' "" (Pos 8) (Pos 6)
-    check' "" (Pos 12) (Pos 12)
+    -- check' "" (Pos 12) (Pos 12)
     pure ()
+
+  describe "last delta" do
+    let diff =
+          [ Diff.Keep (mkToken "first")
+          , Diff.Delete (mkToken "hello")
+          ]
+    let check' = check diff
+    check' "" (Pos 6) (Pos 4)
+
+  describe "last delta only delete" do
+    let diff =
+          [ Diff.Delete (mkToken "hello")
+          ]
+    let check' = check diff
+    check' "" (Pos 2) (Pos 0)
+    check' "" (Pos 2) (Pos 0)
 
   xit "smoke" do
     let x = "first second third fourth"

@@ -10,7 +10,6 @@ module StaticLS.IDE.Monad (
   getHieSource,
   getHieFile,
   getHieCacheImpl,
-  RemovePath (..),
   CachedHieFile (..),
   MonadHieFile (..),
   SetHieCache (..),
@@ -22,11 +21,12 @@ module StaticLS.IDE.Monad (
   getHieToSource,
   getSourceToHie,
   removeDiffCache,
+  RemovePath (..),
+  removePathImpl,
   removeHieFromSourcePath,
   onNewSource,
   getHieTokenMap,
   getTokenMap,
-  removePathImpl,
 )
 where
 
@@ -205,6 +205,7 @@ data DiffCache = DiffCache
   { hieToSource :: PositionDiff.DiffMap
   , sourceToHie :: PositionDiff.DiffMap
   }
+  deriving (Show, Eq)
 
 class HasDiffCacheRef m where
   getDiffCacheRef :: m (IORef.IORef (HashMap.HashMap AbsPath DiffCache))

@@ -16,6 +16,7 @@ module StaticLS.PositionDiff (
   getDiffMap,
   getDiffMapFromDiff,
   printDiffSummary,
+  getDiffMapFromDiff,
   lexWithErrors,
   concatTokens,
   tokensToRangeMap,
@@ -153,7 +154,11 @@ getDelta (DeleteDelta d) = d
 applyLastDelta :: Pos -> Range -> Delta -> Pos
 applyLastDelta (Pos pos) range delta = case delta of
   SimpleDelta d -> Pos (pos + d)
-  DeleteDelta d -> Pos (range.start.pos - 1 + d)
+  -- We do a max 0 here because if there was only one delete,
+  -- then the position would end up at zero, but we don't want it going to -1
+  -- We subtract one normally because if it is the last delete,
+  -- we want it to be at the end of the actually new source
+  DeleteDelta d -> Pos (max 0 (range.start.pos - 1 + d))
 
 -- invariant: range must contain pos
 applyDelta :: Pos -> Range -> Delta -> Pos

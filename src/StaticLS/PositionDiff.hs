@@ -2,9 +2,10 @@
 
 module StaticLS.PositionDiff (
   Token (..),
+  TokenKind (..),
   mkToken,
   lex,
-  lexCooked,
+  lexNonResilient,
   diffText,
   updatePositionUsingDiff,
   DiffMap,
@@ -73,13 +74,15 @@ lexWithErrors s = (res, es)
       ts
   ts = (Lexer.lexerPass0 s)
 
+-- | A resilient extension to our default lexing which continues lexing
+-- "TheRest" and "Error" tokens to maximize the accuracy of our lexing
 lex :: String -> [Token]
 lex source =
   concatMap f ts
  where
   ts = Lexer.lexerPass0 source
 
-  f (t, (p, s)) =
+  f (t, (_p, s)) =
     case t of
       Lexer.ErrorToken -> onError
       Lexer.TheRest -> onError
@@ -93,13 +96,15 @@ lex source =
           Token {text = T.singleton c, len = 1, kind = TokenKind t} : lex cs
         [] -> []
 
-lexCooked :: String -> [Token]
-lexCooked source =
+-- | Use default lexing - you probably want to use `lex` instead, this is exported
+-- primarily for testing
+lexNonResilient :: String -> [Token]
+lexNonResilient source =
   fmap f ts
  where
   ts = Lexer.lexerPass0 source
 
-  f (t, (p, s)) =
+  f (t, (_p, s)) =
     let text = T.pack s
      in Token {text, len = T.length text, kind = TokenKind t}
 

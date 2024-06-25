@@ -21,7 +21,8 @@ module StaticLS.IDE.Monad
     getHieToSource,
     getSourceToHie,
     removeDiffCache,
-    removePath,
+    RemovePath(..),
+    removePathImpl,
     removeHieFromSourcePath,
     onNewSource,
     getHieTokenMap,
@@ -57,7 +58,8 @@ type MonadIde m =
     Semantic.HasSemantic m,
     Semantic.SetSemantic m,
     HasLogger m,
-    GetDiffCache m
+    GetDiffCache m,
+    RemovePath m
   )
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell

@@ -6,11 +6,13 @@ import Control.Lens.Operators
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
+import Data.LineColRange qualified as LineColRange
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
+import Data.Pos (LineCol (..))
 import Data.Rope qualified as Rope
-import Data.Row ((.==))
+import Data.Row ((.+), (.==))
 import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message (
@@ -27,6 +29,7 @@ import Language.LSP.Server (
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.HIE.File qualified as HIE.File
+import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
 import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
@@ -103,10 +106,15 @@ handlePrepareRenameRequest :: Handlers (LspT c StaticLsM)
 handlePrepareRenameRequest = LSP.requestHandler SMethod_TextDocumentPrepareRename $ \req res -> do
   lift $ logInfo "Received prepare rename request."
   let params = req._params
-  -- pos <- ProtoLSP.
-  -- get rid of this shit after lsp 2.3
-  res $ Right $ InL $ LSP.PrepareRenameResult $ InR $ InR $ #defaultBehavior .== True
-  pure ()
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  lineColRange <- lift $ IDE.Rename.canRenameAtPos path (ProtoLSP.lineColFromProto params._position)
+  case lineColRange of
+    Nothing -> res $ Right $ InR LSP.Null
+    Just lineColRange -> do
+      let resp = LSP.PrepareRenameResult $ InL (ProtoLSP.lineColRangeToProto lineColRange)
+      lift $ logInfo $ T.pack $ "resp: " ++ show resp
+      res $ Right $ InL resp
+      pure ()
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)
 handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()

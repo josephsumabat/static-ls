@@ -57,15 +57,6 @@ findModulesForDef name = do
       pure []
     Right res -> pure $ Hir.parseModuleFromText <$> res
 
-type AutoImportTypes =
-  Haskell.Name
-    :+ Haskell.Constructor
-    :+ Haskell.Qualified
-    :+ Haskell.Variable
-    :+ Haskell.Operator
-    :+ Haskell.ConstructorOperator
-    :+ Nil
-
 data ModulesToImport = ModulesToImport
   { moduleNames :: [Hir.Module]
   , moduleQualifier :: Maybe Hir.Module
@@ -81,7 +72,7 @@ getModulesToImport path pos = do
   let astPoint = lineColToAstPoint pos
   -- TODO: Remove double traversal of AST
   let qualified = Hir.getQualifiedAtPoint pos haskell
-  let importable = AST.getDeepestContaining @AutoImportTypes astPoint (AST.getDynNode haskell)
+  let importable = AST.getDeepestContaining @Hir.NameTypes astPoint (AST.getDynNode haskell)
   case qualified of
     Left e -> do
       logError $ T.pack $ "Error getting qualified: " <> show e

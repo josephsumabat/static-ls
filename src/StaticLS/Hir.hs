@@ -11,6 +11,8 @@ import Data.Pos (LineCol)
 import Data.Text (Text)
 import Data.Text qualified as T
 import StaticLS.Semantic.Position (lineColToAstPoint)
+import Data.Sum ((:+), Nil)
+import qualified AST.Haskell as Haskell
 
 data Name = Name
   { text :: Text
@@ -150,3 +152,12 @@ parseHaskell h = do
   case res of
     Right (es, program) -> (es, program)
     Left e -> ([e], emptyProgram)
+
+type NameTypes = 
+  Haskell.Name
+    :+ Haskell.Constructor
+    :+ Haskell.Qualified
+    :+ Haskell.Variable
+    :+ Haskell.Operator
+    :+ Haskell.ConstructorOperator
+    :+ Nil

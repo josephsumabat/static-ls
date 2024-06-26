@@ -48,14 +48,14 @@ findModulesForDefQuery (getConn -> conn) name = do
       (Only (T.pack "_:" <> name))
   pure (coerce res)
 
-findModulesForDef :: Text -> StaticLsM [Text]
+findModulesForDef :: Text -> StaticLsM [Hir.Module]
 findModulesForDef name = do
   res <- runExceptT $ runHieDbExceptT (\db -> findModulesForDefQuery db name)
   case res of
     Left e -> do
       logError $ T.pack $ "Error finding modules for def: " <> show e
       pure []
-    Right res -> pure res
+    Right res -> pure $ Hir.parseModuleFromText <$> res
 
 type AutoImportTypes =
   Haskell.Name
@@ -67,8 +67,8 @@ type AutoImportTypes =
     :+ Nil
 
 data ModulesToImport = ModulesToImport
-  { moduleNames :: [Text]
-  , moduleQualifier :: Maybe Text
+  { moduleNames :: [Hir.Module]
+  , moduleQualifier :: Maybe Hir.Module
   }
 
 getModulesToImport ::
@@ -111,15 +111,15 @@ getModulesToImport path pos = do
       pure $
         ModulesToImport
           { moduleNames = res
-          , moduleQualifier = Just qualified.mod.text
+          , moduleQualifier = Just qualified.mod
           }
 
-createAutoImportCodeActions :: AbsPath -> Maybe Text -> Text -> StaticLsM [Assist]
-createAutoImportCodeActions path mQualifier toImport =
+createAutoImportCodeActions :: AbsPath -> Maybe Hir.Module -> Hir.Module -> StaticLsM [Assist]
+createAutoImportCodeActions path mQualifier importMod =
   let importText =
         ( maybe
-            ("import " <> toImport)
-            (\qualifier -> ("import qualified " <> toImport <> " as " <> qualifier))
+            ("import " <> importMod.text)
+            (\qualifier -> ("import qualified " <> importMod.text <> " as " <> qualifier.text))
             mQualifier
         )
    in pure
@@ -130,13 +130,25 @@ createAutoImportCodeActions path mQualifier toImport =
 
 codeAction :: CodeActionContext -> StaticLsM [Assist]
 codeAction CodeActionContext {path, lineCol} = do
+  hir <- getHir path
   modulesToImport <- getModulesToImport path lineCol
-  let moduleNamesToImport = modulesToImport.moduleNames
-      mModuleQualifier = modulesToImport.moduleQualifier
-  importCodeActions <-
-    concat
-      <$> mapM (createAutoImportCodeActions path mModuleQualifier) moduleNamesToImport
-  pure importCodeActions
+  let isModAlreadyImported mod =
+        any
+          ( \imp ->
+              case (modulesToImport.moduleQualifier, imp) of
+                (Just qual, imp) -> Hir.importQualifier imp == qual && imp.mod == mod
+                (Nothing, Hir.OpenImport impMod) -> mod == impMod
+                _ -> False
+          )
+          hir.imports
+  if any isModAlreadyImported modulesToImport.moduleNames
+    then pure []
+    else do
+      let mModuleQualifier = modulesToImport.moduleQualifier
+      importCodeActions <-
+        concat
+          <$> mapM (createAutoImportCodeActions path mModuleQualifier) modulesToImport.moduleNames
+      pure importCodeActions
 
 data ImportInsertPoint
   = HeaderInsertPoint !Pos

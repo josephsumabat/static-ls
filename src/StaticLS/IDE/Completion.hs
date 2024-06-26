@@ -149,9 +149,7 @@ getFileCompletions cx = do
 getUnqualifiedImportCompletions :: Context -> StaticLsM [Completion]
 getUnqualifiedImportCompletions cx = do
   let path = cx.path
-  haskell <- getHaskell path
-  let prog = Hir.parseHaskell haskell
-  (_errs, prog) <- isRightOrThrowT prog
+  prog <- getHir path
   let imports = prog.imports
   let unqualifiedImports = filter (\imp -> not imp.qualified) imports
   completions <- getCompletionsForMods $ (.mod.text) <$> unqualifiedImports
@@ -294,10 +292,7 @@ getCompletion cx = do
       importCompletions <- getUnqualifiedImportCompletions cx
       pure (False, nubOrd $ importCompletions ++ fileCompletions)
     QualifiedMode mod match -> do
-      let path = cx.path
-      haskell <- getHaskell path
-      let prog = Hir.parseHaskell haskell
-      (_errs, prog) <- isRightOrThrowT prog
+      prog <- getHir cx.path
       let imports = prog.imports
       let importsWithAlias = filter (\imp -> fmap (.text) imp.alias == Just mod) imports
       -- TODO: append both flyimports and normal ones

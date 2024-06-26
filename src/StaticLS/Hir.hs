@@ -41,6 +41,26 @@ data Import = Import
   }
   deriving (Show, Eq)
 
+pattern OpenImport :: Module -> Import
+pattern OpenImport mod = Import {mod, alias = Nothing, qualified = False, hiding = False, importList = []}
+
+parseModuleFromText :: Text -> Module
+parseModuleFromText text =
+  Module
+    { parts = NE.fromList (T.splitOn "." text)
+    , text
+    }
+
+importQualifier :: Import -> Module
+importQualifier i =
+  -- even if something is not imported qualified,
+  -- it still produced a namespace that can be used as a qualifier
+  -- for example
+  -- `import Data.Text`
+  -- allows you to use `Data.Text.Text` with the qualifier
+  -- or just `FilePath` without the qualifier
+  Maybe.fromMaybe i.mod i.alias
+
 findNode :: (AST.DynNode -> Maybe b) -> AST.DynNode -> Maybe b
 findNode f n = go n
  where
@@ -116,10 +136,17 @@ data Program = Program
   }
   deriving (Show, Eq)
 
-parseHaskell :: H.Haskell -> AST.Err ([Text], Program)
+emptyProgram :: Program
+emptyProgram = Program {imports = []}
+
+parseHaskell :: H.Haskell -> ([Text], Program)
 parseHaskell h = do
-  imports <- AST.collapseErr h.imports
-  (es, imports) <- case imports of
-    Nothing -> pure ([], [])
-    Just imports -> parseImports imports
-  pure (es, Program {imports})
+  let res = do
+        imports <- AST.collapseErr h.imports
+        (es, imports) <- case imports of
+          Nothing -> pure ([], [])
+          Just imports -> parseImports imports
+        pure (es, Program {imports})
+  case res of
+    Right (es, program) -> (es, program)
+    Left e -> ([e], emptyProgram)

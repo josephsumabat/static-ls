@@ -232,7 +232,9 @@ handleCompletionItemResolve = LSP.requestHandler SMethod_CompletionItemResolve $
   lift $ logInfo "handleCompletionItemResolve"
   let params = req._params
   case params._data_ of
-    Nothing -> pure ()
+    Nothing -> do
+      _ <- Exception.throwString "No param data found"
+      pure ()
     Just _data -> do
       let resultSuccessOrThrow res = case res of
             Aeson.Success a -> pure a

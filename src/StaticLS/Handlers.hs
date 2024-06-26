@@ -6,13 +6,9 @@ import Control.Lens.Operators
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
-import Data.LineColRange qualified as LineColRange
 import Data.Maybe qualified as Maybe
-import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Pos (LineCol (..))
 import Data.Rope qualified as Rope
-import Data.Row ((.+), (.==))
 import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message (
@@ -29,7 +25,6 @@ import Language.LSP.Server (
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.HIE.File qualified as HIE.File
-import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
 import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
@@ -45,7 +40,6 @@ import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.ProtoLSP qualified as ProtoLSP
-import StaticLS.Semantic qualified as Semantic
 import StaticLS.Utils
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
@@ -125,10 +119,6 @@ handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -
   let params = message._params
   updateFileStateForUri params._textDocument._uri
 
-updateFileState :: AbsPath -> Rope.Rope -> StaticLsM ()
-updateFileState path contentsRope = do
-  Semantic.updateSemantic path contentsRope
-
 updateFileStateForUri :: Uri -> (LspT c StaticLsM) ()
 updateFileStateForUri uri = do
   let normalizedUri = toNormalizedUri uri
@@ -147,7 +137,7 @@ handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \messa
 handleDidSave :: Handlers (LspT c StaticLsM)
 handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \message -> do
   let params = message._params
-  let uri = params._textDocument._uri
+  let _uri = params._textDocument._uri
   pure ()
 
 handleDidClose :: Handlers (LspT c StaticLsM)
@@ -247,7 +237,9 @@ handleCompletionItemResolve = LSP.requestHandler SMethod_CompletionItemResolve $
   lift $ logInfo "handleCompletionItemResolve"
   let params = req._params
   case params._data_ of
-    Nothing -> pure ()
+    Nothing -> do
+      _ <- Exception.throwString "No param data found"
+      pure ()
     Just _data -> do
       let resultSuccessOrThrow res = case res of
             Aeson.Success a -> pure a

@@ -119,12 +119,15 @@ serverDef argOptions logger = do
       forall (a :: LSP.Method LSP.ClientToServer LSP.Request) c.
       LSP.Handler (LSP.LspT c StaticLsM) a ->
       LSP.Handler (LSP.LspM c) a
-    goReq f = \msg k -> do
+    goReq f = \msg responseCont -> do
       env <- LSP.getLspEnv
-      let k' resp = do
-            liftIO $ LSP.runLspT env (k resp)
+      let responseCont' resp = do
+            liftIO $ LSP.runLspT env (responseCont resp)
       Conc.writeChan reactorChan $ ReactorMsgAct $ LSP.runLspT env do
-        catchAndLog $ f msg k'
+        Exception.catchAny (f msg responseCont') $ \e -> do
+          logException e
+          _ <- respondWithError responseCont' e
+          pure ()
 
     goNot ::
       forall (a :: LSP.Method LSP.ClientToServer LSP.Notification) c.
@@ -174,7 +177,12 @@ serverDef argOptions logger = do
  where
   catchAndLog m = do
     Exception.catchAny m $ \e ->
-      LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
+      logException e
+
+  respondWithError res e = res $ Left $ ResponseError (InR ErrorCodes_InvalidRequest) ("An error was caught: " <> T.pack (show e)) Nothing
+
+  logException e = do
+    LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
 
 lspOptions :: LSP.Options
 lspOptions =

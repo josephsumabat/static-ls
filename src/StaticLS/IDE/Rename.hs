@@ -1,5 +1,6 @@
 module StaticLS.IDE.Rename (
   rename,
+  canRenameAtPos,
 )
 where
 
@@ -13,6 +14,7 @@ import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Traversable (for)
+import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.FileWith (FileWith (..))
 import StaticLS.IDE.Monad
 import StaticLS.IDE.References qualified as References
@@ -49,3 +51,14 @@ rename path lineCol newName = do
         pure $ SourceEdit.single ref.path edit
   let sourceEdit = mconcat sourceEdits
   pure sourceEdit
+
+canRenameAtPos :: AbsPath -> LineCol -> StaticLsM (Maybe LineColRange)
+canRenameAtPos path lineCol = do
+  let astPoint = Semantic.Position.lineColToAstPoint lineCol
+  haskell <- getHaskell path
+  let name = AST.getDeepestContaining @Hir.NameTypes astPoint (AST.getDynNode haskell)
+  case name of
+    Just n -> do
+      let range = AST.nodeToRange n
+      pure $ Just $ Semantic.Position.astRangeToLineColRange range
+    Nothing -> pure Nothing

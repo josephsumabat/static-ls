@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedLabels #-}
-
 module StaticLS.Handlers where
 
 import Control.Lens.Operators
@@ -9,7 +7,7 @@ import Data.Aeson qualified as Aeson
 import Data.Maybe qualified as Maybe
 import Data.Path qualified as Path
 import Data.Rope qualified as Rope
-import Data.Row ((.==))
+import Data.Text qualified as T
 import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message (
   SMethod (..),
@@ -99,11 +97,16 @@ handleRenameRequest = LSP.requestHandler SMethod_TextDocumentRename $ \req res -
 handlePrepareRenameRequest :: Handlers (LspT c StaticLsM)
 handlePrepareRenameRequest = LSP.requestHandler SMethod_TextDocumentPrepareRename $ \req res -> do
   lift $ logInfo "Received prepare rename request."
-  let _params = req._params
-  -- pos <- ProtoLSP.
-  -- get rid of this shit after lsp 2.3
-  res $ Right $ InL $ LSP.PrepareRenameResult $ InR $ InR $ #defaultBehavior .== True
-  pure ()
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  lineColRange <- lift $ IDE.Rename.canRenameAtPos path (ProtoLSP.lineColFromProto params._position)
+  case lineColRange of
+    Nothing -> res $ Right $ InR LSP.Null
+    Just lineColRange -> do
+      let resp = LSP.PrepareRenameResult $ InL (ProtoLSP.lineColRangeToProto lineColRange)
+      lift $ logInfo $ T.pack $ "resp: " ++ show resp
+      res $ Right $ InL resp
+      pure ()
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)
 handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()

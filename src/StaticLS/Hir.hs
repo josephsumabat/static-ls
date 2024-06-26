@@ -2,17 +2,17 @@ module StaticLS.Hir where
 
 import AST qualified
 import AST.Haskell qualified as H
+import AST.Haskell qualified as Haskell
 import Control.Applicative (asum, (<|>))
 import Data.Either qualified as Either
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
 import Data.Pos (LineCol)
+import Data.Sum (Nil, (:+))
 import Data.Text (Text)
 import Data.Text qualified as T
 import StaticLS.Semantic.Position (lineColToAstPoint)
-import Data.Sum ((:+), Nil)
-import qualified AST.Haskell as Haskell
 
 data Name = Name
   { text :: Text
@@ -153,7 +153,7 @@ parseHaskell h = do
     Right (es, program) -> (es, program)
     Left e -> ([e], emptyProgram)
 
-type NameTypes = 
+type NameTypes =
   Haskell.Name
     :+ Haskell.Constructor
     :+ Haskell.Qualified

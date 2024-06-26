@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedLabels #-}
-
 module StaticLS.Handlers where
 
 import Control.Lens.Operators

@@ -11,6 +11,7 @@ import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
+import StaticLS.Hir qualified as Hir
 import StaticLS.PositionDiff qualified as PositionDiff
 
 class (Monad m) => HasSemantic m where
@@ -30,6 +31,8 @@ data FileState = FileState
   { contentsRope :: Rope
   , contentsText :: Text
   , tree :: Haskell.Haskell
+  , hir :: Hir.Program
+  , hirParseErrors :: [Text]
   , tokens :: [PositionDiff.Token]
   , tokenMap :: RangeMap PositionDiff.Token
   }
@@ -51,10 +54,14 @@ mkSemantic =
 mkFileState :: Text -> Rope -> FileState
 mkFileState contentsText contentsRope = do
   let tokens = PositionDiff.lex $ T.unpack contentsText
+  let tree = Haskell.parse contentsText
+  let (es, hir) = Hir.parseHaskell tree
   FileState
     { contentsRope
     , contentsText
-    , tree = Haskell.parse contentsText
+    , tree
+    , hir = hir
+    , hirParseErrors = es
     , tokens
     , tokenMap = PositionDiff.tokensToRangeMap tokens
     }

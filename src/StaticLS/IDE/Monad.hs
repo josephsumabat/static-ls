@@ -27,6 +27,7 @@ module StaticLS.IDE.Monad (
   onNewSource,
   getHieTokenMap,
   getTokenMap,
+  getHir,
 )
 where
 
@@ -44,6 +45,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import StaticLS.HIE.File qualified as HIE.File
+import StaticLS.Hir qualified as Hir
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic qualified as Semantic
@@ -66,6 +68,11 @@ getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
 getHaskell uri = do
   fileState <- getFileState uri
   pure fileState.tree
+
+getHir :: (MonadIde m, MonadIO m) => AbsPath -> m Hir.Program
+getHir hir = do
+  fileState <- getFileState hir
+  pure fileState.hir
 
 getSourceRope :: (MonadIde m, MonadIO m) => AbsPath -> m Rope
 getSourceRope uri = do

@@ -196,7 +196,9 @@ completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, de
             }
     , _kind = Just LSP.CompletionItemKind_Function
     , _textEditText = Nothing
-    , _data_ = Aeson.toJSON @IDE.Completion.CompletionMessage <$> msg
+    , _data_ = case msg of
+        Nothing -> Nothing
+        Just msg -> Just $ Aeson.toJSON @IDE.Completion.CompletionMessage msg
     , _tags = Nothing
     , _insertTextMode = Nothing
     , _deprecated = Nothing

@@ -185,16 +185,18 @@ handleResolveCodeAction :: Handlers (LspT c StaticLsM)
 handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req res -> do
   _ <- lift $ logInfo "handleResolveCodeAction"
   let codeAction = req._params
-  jsonData <- codeAction._data_ & isJustOrThrowS "code action didn't come with json data"
-  let resultSuccessOrThrow res = case res of
-        Aeson.Success a -> pure a
-        Aeson.Error e -> Exception.throwString ("failed to parse json: " ++ e)
-  codeActionMessage <- Aeson.fromJSON @IDE.CodeActions.CodeActionMessage jsonData & resultSuccessOrThrow
-  sourceEdit <- lift $ IDE.CodeActions.resolveLazyAssist codeActionMessage
-  workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
-  let newCodeAction = codeAction & LSP.edit ?~ workspaceEdit
-  res $ Right newCodeAction
-  pure ()
+  case codeAction._data_ of
+    Just jsonData -> do
+      let resultSuccessOrThrow res = case res of
+            Aeson.Success a -> pure a
+            Aeson.Error e -> Exception.throwString ("failed to parse json: " ++ e)
+      codeActionMessage <- Aeson.fromJSON @IDE.CodeActions.CodeActionMessage jsonData & resultSuccessOrThrow
+      sourceEdit <- lift $ IDE.CodeActions.resolveLazyAssist codeActionMessage
+      workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
+      let newCodeAction = codeAction & LSP.edit ?~ workspaceEdit
+      res $ Right newCodeAction
+      pure ()
+    Nothing -> res $ Right codeAction
 
 handleFormat :: Handlers (LspT c StaticLsM)
 handleFormat = LSP.requestHandler SMethod_TextDocumentFormatting $ \req res -> do
@@ -235,9 +237,7 @@ handleCompletionItemResolve = LSP.requestHandler SMethod_CompletionItemResolve $
   lift $ logInfo "handleCompletionItemResolve"
   let params = req._params
   case params._data_ of
-    Nothing -> do
-      _ <- Exception.throwString "No param data found"
-      pure ()
+    Nothing -> res $ Right params
     Just _data -> do
       let resultSuccessOrThrow res = case res of
             Aeson.Success a -> pure a

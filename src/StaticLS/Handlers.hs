@@ -14,7 +14,7 @@ import Language.LSP.Protocol.Lens qualified as LSP
 import Language.LSP.Protocol.Message (
   SMethod (..),
   TNotificationMessage (..),
-  TRequestMessage (..),
+  TRequestMessage (..), ResponseError (ResponseError),
  )
 import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
@@ -43,6 +43,7 @@ import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.Utils
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
+import qualified Data.Text as T
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -232,17 +233,24 @@ handleCompletionItemResolve = LSP.requestHandler SMethod_CompletionItemResolve $
   lift $ logInfo "handleCompletionItemResolve"
   let params = req._params
   case params._data_ of
-    Nothing -> pure ()
+    Nothing -> do
+      lift $ logInfo "No params?"
+      res $ Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No params sent" Nothing
+      pure ()
     Just _data -> do
       let resultSuccessOrThrow res = case res of
             Aeson.Success a -> pure a
             Aeson.Error e -> Exception.throwString ("failed to parse json: " ++ e)
       msg <- Aeson.fromJSON @IDE.Completion.CompletionMessage _data & resultSuccessOrThrow
+      lift $ logInfo "TEST here0"
       let path = msg.path
       edit <- lift $ IDE.Completion.resolveCompletionEdit msg
+      lift $ logInfo "TEST here"
       rope <- lift $ IDE.getSourceRope path
       let textEdits = ProtoLSP.editToProto rope edit
+      lift $ logInfo "TEST here1"
       let newCompletion = params & LSP.additionalTextEdits ?~ textEdits
+      lift $ logInfo (T.pack $ show newCompletion)
       res $ Right newCompletion
       pure ()
 

@@ -2,9 +2,10 @@
 
 module StaticLS.PositionDiff (
   Token (..),
+  TokenKind (..),
   mkToken,
   lex,
-  lexCooked,
+  lexNonResilient,
   diffText,
   updatePositionUsingDiff,
   DiffMap,
@@ -13,7 +14,9 @@ module StaticLS.PositionDiff (
   diffLineColRange,
   diffRange,
   getDiffMap,
+  getDiffMapFromDiff,
   printDiffSummary,
+  getDiffMapFromDiff,
   lexWithErrors,
   concatTokens,
   tokensToRangeMap,
@@ -32,6 +35,7 @@ import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
+import GHC.Stack (HasCallStack)
 import Language.Haskell.Lexer qualified as Lexer
 import Prelude hiding (lex)
 
@@ -72,13 +76,15 @@ lexWithErrors s = (res, es)
       ts
   ts = (Lexer.lexerPass0 s)
 
+-- | A resilient extension to our default lexing which continues lexing
+-- "TheRest" and "Error" tokens to maximize the accuracy of our lexing
 lex :: String -> [Token]
 lex source =
   concatMap f ts
  where
   ts = Lexer.lexerPass0 source
 
-  f (t, (p, s)) =
+  f (t, (_p, s)) =
     case t of
       Lexer.ErrorToken -> onError
       Lexer.TheRest -> onError
@@ -92,13 +98,15 @@ lex source =
           Token {text = T.singleton c, len = 1, kind = TokenKind t} : lex cs
         [] -> []
 
-lexCooked :: String -> [Token]
-lexCooked source =
+-- | Use default lexing - you probably want to use `lex` instead, this is exported
+-- primarily for testing
+lexNonResilient :: String -> [Token]
+lexNonResilient source =
   fmap f ts
  where
   ts = Lexer.lexerPass0 source
 
-  f (t, (p, s)) =
+  f (t, (_p, s)) =
     let text = T.pack s
      in Token {text, len = T.length text, kind = TokenKind t}
 
@@ -146,7 +154,11 @@ getDelta (DeleteDelta d) = d
 applyLastDelta :: Pos -> Range -> Delta -> Pos
 applyLastDelta (Pos pos) range delta = case delta of
   SimpleDelta d -> Pos (pos + d)
-  DeleteDelta d -> Pos (range.start.pos - 1 + d)
+  -- We do a max 0 here because if there was only one delete,
+  -- then the position would end up at zero, but we don't want it going to -1
+  -- We subtract one normally because if it is the last delete,
+  -- we want it to be at the end of the actually new source
+  DeleteDelta d -> Pos (max 0 (range.start.pos - 1 + d))
 
 -- invariant: range must contain pos
 applyDelta :: Pos -> Range -> Delta -> Pos
@@ -184,14 +196,15 @@ data DiffMap = DiffMap
   { map :: !(RangeMap Delta)
   , last :: (Maybe (Range, Delta))
   }
+  deriving (Show, Eq)
 
-diffPos :: Pos -> DiffMap -> Pos
+diffPos :: (HasCallStack) => Pos -> DiffMap -> Pos
 diffPos pos DiffMap {map, last} =
   case last of
     Nothing -> pos
     Just (finalRange, finalDelta) ->
       if
-        | finalRange.end <= pos -> Pos (pos.pos + getDelta finalDelta)
+        | finalRange.end <= pos -> Pos (max 0 (pos.pos + getDelta finalDelta))
         | finalRange.start <= pos -> applyLastDelta pos finalRange finalDelta
         | otherwise ->
             -- since the ranges are contiguous, there must be a range that contains the position

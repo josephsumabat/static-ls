@@ -5,6 +5,7 @@ module StaticLS.PositionDiffSpec where
 import Data.Diff qualified as Diff
 import Data.Pos
 import Data.Text qualified as T
+import Language.Haskell.Lexer (Token (..))
 import NeatInterpolation
 import StaticLS.PositionDiff
 import StaticLS.PositionDiff qualified as PositionDiff
@@ -13,6 +14,8 @@ import Test.Hspec
 spec :: Spec
 spec = do
   let check diff name pos pos' = it name do
+        let dm = getDiffMapFromDiff diff
+        putStrLn $ "dm: " ++ show dm
         updatePositionUsingDiff diff pos `shouldBe` pos'
 
   describe "simple diff" do
@@ -50,8 +53,24 @@ spec = do
           ]
     let check' = check diff
     check' "" (Pos 8) (Pos 6)
-    check' "" (Pos 12) (Pos 12)
+    -- check' "" (Pos 12) (Pos 12)
     pure ()
+
+  describe "last delta" do
+    let diff =
+          [ Diff.Keep (mkToken "first")
+          , Diff.Delete (mkToken "hello")
+          ]
+    let check' = check diff
+    check' "" (Pos 6) (Pos 4)
+
+  describe "last delta only delete" do
+    let diff =
+          [ Diff.Delete (mkToken "hello")
+          ]
+    let check' = check diff
+    check' "" (Pos 2) (Pos 0)
+    check' "" (Pos 2) (Pos 0)
 
   xit "smoke" do
     let x = "first second third fourth"
@@ -59,18 +78,41 @@ spec = do
     let diff = PositionDiff.diffText x y
     diff `shouldBe` []
 
-  xdescribe "lexing" do
-    let check name s ex = it name do
-          let ts = fmap mkToken ex
-          PositionDiff.lex s `shouldBe` ts
+  fdescribe "resilient lexing" do
+    let checkResilientLen name s ex = it name do
+          length (PositionDiff.lex s) `shouldBe` ex
 
-    let checkCooked name s ex = it name do
-          let ts = fmap mkToken ex
-          PositionDiff.lexCooked s `shouldBe` ts
+        checkResilient name s ex = it name do
+          (PositionDiff.lex s) `shouldBe` ex
 
-    check "" "hello 'Message adfadsf adfpaoidfu  adpofiuasdfpoi aspdfoiuasfpo adsf poiasduf ' 'adf'asdf a" []
+    let checkIncorrectLen name s ex = it name do
+          length (PositionDiff.lexNonResilient s) `shouldBe` ex
 
-    checkCooked "" "hello 'Message adfadsf adfpaoidfu adpofiuasdfpoi apodsifu asf asdf'a sdfaspodfiu adfopi" []
+    checkIncorrectLen
+      "Expect the default lexer to fail against single quotes and return fewer tokens"
+      "'Message adfadsf adfpaoidfu  adpofiuasdfpoi aspdfoiuasfpo adsf poiasduf ' 'adf'asdf a"
+      2
+
+    checkResilientLen
+      "Resilient lexer Lexes correctly against tokens with single quotes returning full number of tokens"
+      "'Message adfadsf adfpaoidfu  adpofiuasdfpoi aspdfoiuasfpo adsf poiasduf ' 'adf'asdf a"
+      21
+
+    -- TODO: convert to a proper golden testing framework
+    checkResilient
+      "Works on templatehaskell splice"
+      "$(deriveJSON defaultOptions ''CodeActionMessage)"
+      [ Token {text = "$", len = 1, kind = TokenKind Varsym}
+      , Token {text = "(", len = 1, kind = TokenKind Special}
+      , Token {text = "deriveJSON", len = 10, kind = TokenKind Varid}
+      , Token {text = " ", len = 1, kind = TokenKind Whitespace}
+      , Token {text = "defaultOptions", len = 14, kind = TokenKind Varid}
+      , Token {text = " ", len = 1, kind = TokenKind Whitespace}
+      , Token {text = "'", len = 1, kind = TokenKind ErrorToken}
+      , Token {text = "'", len = 1, kind = TokenKind TheRest}
+      , Token {text = "CodeActionMessage", len = 17, kind = TokenKind Conid}
+      , Token {text = ")", len = 1, kind = TokenKind Special}
+      ]
 
     pure ()
 

@@ -145,7 +145,7 @@ editToProto rope edit =
 
 -- TODO: convert fsEdits
 sourceEditToProto :: SourceEdit -> StaticLsM LSP.WorkspaceEdit
-sourceEditToProto SourceEdit {fileEdits, fsEdits} = do
+sourceEditToProto SourceEdit {fileEdits} = do
   documentChanges <- for (HashMap.toList fileEdits) \(path, edit) -> do
     rope <- IDE.Monad.getSourceRope path
     pure
@@ -185,7 +185,7 @@ assistToCodeAction Assist {label, sourceEdit} = do
       }
 
 completionToProto :: Rope -> IDE.Completion.Completion -> LSP.CompletionItem
-completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, description, insertText, edit, msg} =
+completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, description, insertText, edit, msg, isSnippet} =
   LSP.CompletionItem
     { _label = label
     , _labelDetails =
@@ -196,7 +196,9 @@ completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, de
             }
     , _kind = Just LSP.CompletionItemKind_Function
     , _textEditText = Nothing
-    , _data_ = Aeson.toJSON @IDE.Completion.CompletionMessage <$> msg
+    , _data_ = case msg of
+        Nothing -> Nothing
+        Just msg -> Just $ Aeson.toJSON @IDE.Completion.CompletionMessage msg
     , _tags = Nothing
     , _insertTextMode = Nothing
     , _deprecated = Nothing
@@ -206,7 +208,9 @@ completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, de
     , _sortText = Just "AAAAA"
     , _filterText = Nothing
     , _insertText = Just insertText
-    , _insertTextFormat = Just LSP.InsertTextFormat_Snippet
+    , _insertTextFormat = Just case isSnippet of
+        True -> LSP.InsertTextFormat_Snippet
+        False -> LSP.InsertTextFormat_PlainText
     , _textEdit = Nothing
     , _additionalTextEdits = case Edit.getChanges edit of
         [] -> Nothing

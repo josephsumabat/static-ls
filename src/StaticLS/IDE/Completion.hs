@@ -285,7 +285,14 @@ getCompletion cx = do
       pure (False, textCompletion <$> modsWithoutPrefix)
     HeaderMode mod -> do
       let label = "module " <> mod <> " where"
-      pure (False, [mkCompletion label (label <> "\n$0")])
+      pure
+        ( False
+        ,
+          [ (mkCompletion label (label <> "\n$0"))
+              { isSnippet = True
+              }
+          ]
+        )
     UnqualifiedMode -> do
       fileCompletions <- getFileCompletions cx
       importCompletions <- getUnqualifiedImportCompletions cx
@@ -343,6 +350,7 @@ data Completion = Completion
   , detail :: Maybe Text
   , edit :: !Edit
   , msg :: Maybe CompletionMessage
+  , isSnippet :: !Bool
   }
   deriving (Show, Eq, Ord)
 
@@ -371,6 +379,7 @@ mkCompletion label insertText =
     , insertText
     , edit = Edit.empty
     , msg = Nothing
+    , isSnippet = False
     }
 
 data TriggerKind = TriggerCharacter | TriggerUnknown

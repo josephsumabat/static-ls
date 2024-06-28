@@ -15,8 +15,6 @@ where
 import AST qualified
 import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
-import Control.Applicative
-import Control.Monad
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Aeson qualified as Aeson
 import Data.Char qualified as Char
@@ -31,7 +29,6 @@ import Data.HashSet qualified as HashSet
 import Data.List qualified as List
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
-import Data.Path qualified as Path
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
@@ -47,31 +44,13 @@ import StaticLS.HIE.Queries (allGlobalSymbols)
 import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.CodeActions.AutoImport qualified as IDE.CodeActions.AutoImport
 import StaticLS.IDE.Monad
+import StaticLS.IDE.Utils qualified as IDE.Utils
 import StaticLS.Logger (logInfo)
 import StaticLS.Monad
 import StaticLS.Semantic.Position qualified as Semantic.Position
 import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
-import System.FilePath
-
-makeRelativeMaybe :: FilePath -> FilePath -> Maybe FilePath
-makeRelativeMaybe base path = do
-  let rel = makeRelative base path
-  guard $ path /= rel
-  pure rel
-
-pathToModule :: AbsPath -> StaticLsM (Maybe Text)
-pathToModule absPath = do
-  let fp = Path.toFilePath absPath
-  staticEnv <- getStaticEnv
-  let srcDirs = staticEnv.srcDirs
-  pure $ do
-    modPath <- asum ((\srcDir -> makeRelativeMaybe (Path.toFilePath srcDir) fp) <$> srcDirs)
-    let (modPathWithoutExt, ext) = splitExtension modPath
-    guard $ ext == ".hs"
-    let modText = T.replace (T.pack [pathSeparator]) "." (T.pack modPathWithoutExt)
-    pure modText
 
 stripNameSpacePrefix :: Text -> Text
 stripNameSpacePrefix t = snd $ T.breakOnEnd ":" t
@@ -194,9 +173,9 @@ getCompletionMode cx = do
   haskell <- getHaskell path
   header <- Tree.getHeader haskell & isRightOrThrowT
   sourceRope <- getSourceRope path
-  mod <- pathToModule path
+  mod <- IDE.Utils.pathToModule path
   if
-    | (Nothing, Just mod) <- (header, mod) -> pure $ HeaderMode mod
+    | (Nothing, Just mod) <- (header, mod) -> pure $ HeaderMode mod.text
     | Just modPrefix <- getImportPrefix cx sourceRope haskell -> do
         pure $ ImportMode modPrefix
     | Just (mod, match) <- getModulePrefix cx sourceRope -> do

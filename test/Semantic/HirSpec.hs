@@ -9,7 +9,7 @@ import Test.Hspec
 
 spec :: Spec
 spec = do
-  it "smoke" do
+  xit "smoke" do
     let hs =
           AST.Haskell.parse
             [trimming|

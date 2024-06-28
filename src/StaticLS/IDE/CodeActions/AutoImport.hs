@@ -18,7 +18,6 @@ import Data.Path (AbsPath)
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
-import Data.Sum
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
@@ -28,6 +27,7 @@ import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
+import StaticLS.IDE.Utils qualified as IDE.Utils
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.Semantic.Position
@@ -123,6 +123,10 @@ codeAction :: CodeActionContext -> StaticLsM [Assist]
 codeAction CodeActionContext {path, lineCol} = do
   hir <- getHir path
   modulesToImport <- getModulesToImport path lineCol
+
+  -- TODO: get module from ast instead of path
+  mCurrentModule <- IDE.Utils.pathToModule path
+
   let isModAlreadyImported mod =
         any
           ( \imp ->
@@ -132,6 +136,7 @@ codeAction CodeActionContext {path, lineCol} = do
                 _ -> False
           )
           hir.imports
+          || ((Just mod) == mCurrentModule)
   if any isModAlreadyImported modulesToImport.moduleNames
     then pure []
     else do

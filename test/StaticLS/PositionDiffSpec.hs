@@ -4,9 +4,7 @@ module StaticLS.PositionDiffSpec where
 
 import Data.Diff qualified as Diff
 import Data.Pos
-import Data.Text qualified as T
 import Language.Haskell.Lexer (Token (..))
-import NeatInterpolation
 import StaticLS.PositionDiff
 import StaticLS.PositionDiff qualified as PositionDiff
 import Test.Hspec
@@ -14,8 +12,7 @@ import Test.Hspec
 spec :: Spec
 spec = do
   let check diff name pos pos' = it name do
-        let dm = getDiffMapFromDiff diff
-        putStrLn $ "dm: " ++ show dm
+        let _dm = getDiffMapFromDiff diff
         updatePositionUsingDiff diff pos `shouldBe` pos'
 
   describe "simple diff" do
@@ -78,7 +75,7 @@ spec = do
     let diff = PositionDiff.diffText x y
     diff `shouldBe` []
 
-  fdescribe "resilient lexing" do
+  describe "resilient lexing" do
     let checkResilientLen name s ex = it name do
           length (PositionDiff.lex s) `shouldBe` ex
 

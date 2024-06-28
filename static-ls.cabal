@@ -74,6 +74,7 @@ library
       StaticLS.IDE.Rename
       StaticLS.IDE.SourceEdit
       StaticLS.IDE.SymbolKind
+      StaticLS.IDE.Utils
       StaticLS.IDE.Workspace.Symbol
       StaticLS.Logger
       StaticLS.Maybe

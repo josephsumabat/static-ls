@@ -43,6 +43,9 @@ instance SetHieCache StaticLsM where
 instance HasDiffCacheRef StaticLsM where
   getDiffCacheRef = asks (.diffCache)
 
+instance RemovePath StaticLsM where
+  removePath = removePathImpl
+
 instance GetDiffCache StaticLsM where
   getDiffCache = getDiffCacheImpl
 

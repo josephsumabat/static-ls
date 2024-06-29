@@ -2,15 +2,29 @@ module StaticLS.Hir where
 
 import AST qualified
 import AST.Haskell qualified as H
+import AST.Haskell qualified as Haskell
 import Control.Applicative (asum, (<|>))
 import Data.Either qualified as Either
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
+import Data.Pos (LineCol)
+import Data.Sum (Nil, (:+))
 import Data.Text (Text)
+import Data.Text qualified as T
+import StaticLS.Semantic.Position (lineColToAstPoint)
+
+data Name = Name
+  { text :: Text
+  }
+
+data Qualified = Qualified
+  { mod :: Module
+  , name :: Name
+  }
 
 data Module = Module
-  { ids :: NonEmpty Text
+  { parts :: NonEmpty Text
   , text :: Text
   }
   deriving (Show, Eq)
@@ -28,6 +42,26 @@ data Import = Import
   , importList :: [ImportName]
   }
   deriving (Show, Eq)
+
+pattern OpenImport :: Module -> Import
+pattern OpenImport mod = Import {mod, alias = Nothing, qualified = False, hiding = False, importList = []}
+
+parseModuleFromText :: Text -> Module
+parseModuleFromText text =
+  Module
+    { parts = NE.fromList (T.splitOn "." text)
+    , text
+    }
+
+importQualifier :: Import -> Module
+importQualifier i =
+  -- even if something is not imported qualified,
+  -- it still produced a namespace that can be used as a qualifier
+  -- for example
+  -- `import Data.Text`
+  -- allows you to use `Data.Text.Text` with the qualifier
+  -- or just `FilePath` without the qualifier
+  Maybe.fromMaybe i.mod i.alias
 
 findNode :: (AST.DynNode -> Maybe b) -> AST.DynNode -> Maybe b
 findNode f n = go n
@@ -50,8 +84,10 @@ parseModule m = do
   ids <- AST.collapseErr m.children
   pure $
     Module
-      { text = AST.nodeToText m
-      , ids = fmap AST.nodeToText ids
+      { text =
+          -- the text sometimes includes trailing dots
+          T.dropWhileEnd (== '.') (AST.nodeToText m)
+      , parts = fmap AST.nodeToText ids
       }
 
 parseImport :: H.Import -> AST.Err Import
@@ -74,6 +110,21 @@ parseImport i = do
       , importList
       }
 
+parseQualified :: H.Qualified -> AST.Err Qualified
+parseQualified q = do
+  mod <- q.module'
+  mod <- parseModule mod
+  name <- q.id
+  name <- pure $ Name {text = AST.nodeToText name}
+  pure $ Qualified {mod, name}
+
+getQualifiedAtPoint :: LineCol -> H.Haskell -> AST.Err (Maybe Qualified)
+getQualifiedAtPoint lineCol h = do
+  let astPoint = lineColToAstPoint lineCol
+  let node = AST.getDeepestContaining @H.Qualified astPoint (AST.getDynNode h)
+  qualified <- traverse parseQualified node
+  pure qualified
+
 parseImports :: H.Imports -> AST.Err ([Text], [Import])
 parseImports i = do
   import' <- i.import'
@@ -87,10 +138,26 @@ data Program = Program
   }
   deriving (Show, Eq)
 
-parseHaskell :: H.Haskell -> AST.Err ([Text], Program)
+emptyProgram :: Program
+emptyProgram = Program {imports = []}
+
+parseHaskell :: H.Haskell -> ([Text], Program)
 parseHaskell h = do
-  imports <- AST.collapseErr h.imports
-  (es, imports) <- case imports of
-    Nothing -> pure ([], [])
-    Just imports -> parseImports imports
-  pure (es, Program {imports})
+  let res = do
+        imports <- AST.collapseErr h.imports
+        (es, imports) <- case imports of
+          Nothing -> pure ([], [])
+          Just imports -> parseImports imports
+        pure (es, Program {imports})
+  case res of
+    Right (es, program) -> (es, program)
+    Left e -> ([e], emptyProgram)
+
+type NameTypes =
+  Haskell.Name
+    :+ Haskell.Constructor
+    :+ Haskell.Qualified
+    :+ Haskell.Variable
+    :+ Haskell.Operator
+    :+ Haskell.ConstructorOperator
+    :+ Nil

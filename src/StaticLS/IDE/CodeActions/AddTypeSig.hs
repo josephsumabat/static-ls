@@ -7,6 +7,7 @@ import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
 import Data.Edit qualified as Edit
 import Data.Either.Extra qualified as Either.Extra
+import Data.Maybe qualified as Maybe
 import Data.Pos (LineCol (..), Pos (..))
 import Data.Range qualified as Range
 import Data.Rope qualified as Rope
@@ -15,6 +16,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import StaticLS.HIE.Queries
 import StaticLS.IDE.CodeActions.Types
+import StaticLS.IDE.HiePos qualified as HiePos
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Logger
@@ -62,7 +64,9 @@ codeActionWith CodeActionContext {path, pos, lineCol} getTypes = do
     Just name -> do
       let nameText = AST.nodeToText name
       logInfo $ T.pack $ "got name " <> show nameText
-      let types = getTypes lineCol
+      hieLineCol <- runMaybeT $ HiePos.lineColToHieLineCol path lineCol
+      hieLineCol <- pure $ Maybe.fromMaybe lineCol hieLineCol
+      let types = getTypes hieLineCol
       let mk tyName = do
             let lineColStart = lineCol {col = 0}
             let posStart = Rope.lineColToPos rope lineColStart

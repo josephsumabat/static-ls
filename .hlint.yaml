@@ -83,6 +83,7 @@
 - ignore: {name: Redundant bracket}
 - ignore: {name: Use <$>}
 - ignore: {name: Use for_}
+- ignore: {name: Use if}
 - ignore: {name: Redundant id}
 - ignore: {name: Use forM_}
 - ignore: {name: Move concatMap out}

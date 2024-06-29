@@ -15,11 +15,13 @@ import TestImport.Compilation qualified
 
 spec :: Spec
 spec = do
-  it "" do
+  it "Auto imports tests" do
+    let firstRelPath = "src/First.hs"
+        secondRelPath = "src/Second.hs"
     TestImport.Compilation.setupCompilation
       "AutoImportSpec"
       ( [
-          ( "first.hs"
+          ( firstRelPath
           , [trimming|
             module First where
 
@@ -31,7 +33,7 @@ spec = do
             |]
           )
         ,
-          ( "second.hs"
+          ( secondRelPath
           , [trimming|
             module Second where
 
@@ -40,13 +42,16 @@ spec = do
               putStrLn "second"
               @0first
               pure ()
+
+            somethingElse :: IO ()
+            somethingElse = @1second
             |]
           )
         ]
       )
       ( \dir sources -> do
-          let second = dir Path.</> "second.hs"
-          (_, placeholders) <- Map.lookup second sources & isJustOrThrowS ""
+          let second = dir Path.</> secondRelPath
+          (_, placeholders) <- Map.lookup second sources & isJustOrThrowS "placeholders not found"
           pos <- IntMap.lookup 0 placeholders & isJustOrThrowS ""
           let expected =
                 [trimming|
@@ -59,6 +64,9 @@ spec = do
             putStrLn "second"
             first
             pure ()
+
+          somethingElse :: IO ()
+          somethingElse = second
           |]
 
           CodeActions.TestUtils.checkCodeAction
@@ -66,6 +74,15 @@ spec = do
             pos
             CodeActions.AutoImport.codeAction
             (Just (expected, (\case (x : _) -> Just x; [] -> Nothing)))
+
+          secondPos <- IntMap.lookup 1 placeholders & isJustOrThrowS ""
+
+          -- Expect no assist when function is in same module
+          CodeActions.TestUtils.checkCodeAction
+            second
+            secondPos
+            CodeActions.AutoImport.codeAction
+            Nothing
 
           pure ()
       )

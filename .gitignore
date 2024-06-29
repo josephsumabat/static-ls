@@ -1,3 +1,4 @@
+.envrc
 dist
 dist-*
 cabal-dev

@@ -17,6 +17,7 @@ module StaticLS.ProtoLSP (
   assistToCodeAction,
   locationToFileLcRange,
   triggerKindFromProto,
+  completionToProto,
 )
 where
 
@@ -28,7 +29,6 @@ import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineColRange
-import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos
@@ -145,7 +145,7 @@ editToProto rope edit =
 
 -- TODO: convert fsEdits
 sourceEditToProto :: SourceEdit -> StaticLsM LSP.WorkspaceEdit
-sourceEditToProto SourceEdit {fileEdits, fsEdits} = do
+sourceEditToProto SourceEdit {fileEdits} = do
   documentChanges <- for (HashMap.toList fileEdits) \(path, edit) -> do
     rope <- IDE.Monad.getSourceRope path
     pure
@@ -183,3 +183,38 @@ assistToCodeAction Assist {label, sourceEdit} = do
           Left _ -> Nothing
           Right data_ -> Just $ Aeson.toJSON data_
       }
+
+completionToProto :: Rope -> IDE.Completion.Completion -> LSP.CompletionItem
+completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, description, insertText, edit, msg, isSnippet} =
+  LSP.CompletionItem
+    { _label = label
+    , _labelDetails =
+        Just
+          LSP.CompletionItemLabelDetails
+            { _detail = labelDetail
+            , _description = description
+            }
+    , _kind = Just LSP.CompletionItemKind_Function
+    , _textEditText = Nothing
+    , _data_ = case msg of
+        Nothing -> Nothing
+        Just msg -> Just $ Aeson.toJSON @IDE.Completion.CompletionMessage msg
+    , _tags = Nothing
+    , _insertTextMode = Nothing
+    , _deprecated = Nothing
+    , _preselect = Nothing
+    , _detail = detail
+    , _documentation = Nothing
+    , _sortText = Just "AAAAA"
+    , _filterText = Nothing
+    , _insertText = Just insertText
+    , _insertTextFormat = Just case isSnippet of
+        True -> LSP.InsertTextFormat_Snippet
+        False -> LSP.InsertTextFormat_PlainText
+    , _textEdit = Nothing
+    , _additionalTextEdits = case Edit.getChanges edit of
+        [] -> Nothing
+        changes -> Just $ changeToProto rope <$> changes
+    , _commitCharacters = Nothing
+    , _command = Nothing
+    }

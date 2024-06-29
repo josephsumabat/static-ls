@@ -63,6 +63,8 @@ library
       StaticLS.IDE.CodeActions.Types
       StaticLS.IDE.Completion
       StaticLS.IDE.Definition
+      StaticLS.IDE.Diagnostics
+      StaticLS.IDE.Diagnostics.ParseGHC
       StaticLS.IDE.DocumentSymbols
       StaticLS.IDE.FileWith
       StaticLS.IDE.Format
@@ -139,6 +141,7 @@ library
     , neat-interpolation
     , parsec >=3.1.0 && <3.2
     , pretty-simple
+    , raw-strings-qq
     , regex-tdfa
     , row-types
     , sqlite-simple >=0.4.18 && <0.5
@@ -209,6 +212,7 @@ executable static-ls
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
     , pretty-simple
+    , raw-strings-qq
     , regex-tdfa
     , row-types
     , sqlite-simple >=0.4.18 && <0.5
@@ -243,6 +247,7 @@ test-suite static-ls-test
       StaticLS.IDE.CodeActions.AutoImportSpec
       StaticLS.IDE.CodeActions.TestUtils
       StaticLS.IDE.DefinitionSpec
+      StaticLS.IDE.Diagnostics.ParseGHCSpec
       StaticLS.IDE.HoverSpec
       StaticLS.PositionDiffSpec
       StaticLS.PositionSpec
@@ -307,6 +312,7 @@ test-suite static-ls-test
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , quickcheck-instances
+    , raw-strings-qq
     , regex-tdfa
     , row-types
     , sqlite-simple >=0.4.18 && <0.5

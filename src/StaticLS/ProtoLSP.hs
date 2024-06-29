@@ -18,6 +18,8 @@ module StaticLS.ProtoLSP (
   locationToFileLcRange,
   triggerKindFromProto,
   completionToProto,
+  diagnosticToProto,
+  diagnosticsToProto,
 )
 where
 
@@ -27,6 +29,7 @@ import Data.Aeson qualified as Aeson
 import Data.Change (Change (..))
 import Data.Edit (Edit)
 import Data.Edit qualified as Edit
+import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineColRange
 import Data.Path (AbsPath)
@@ -38,8 +41,9 @@ import Data.Traversable (for)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.CodeActions.Types (Assist (..))
 import StaticLS.IDE.Completion qualified as IDE.Completion
+import StaticLS.IDE.Diagnostics qualified as IDE.Diagnostics
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
-import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
 import StaticLS.IDE.SymbolKind (SymbolKind)
@@ -218,3 +222,31 @@ completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, de
     , _commitCharacters = Nothing
     , _command = Nothing
     }
+
+diagnosticSeverityToProto :: IDE.Diagnostics.Severity -> LSP.DiagnosticSeverity
+diagnosticSeverityToProto = \case
+  IDE.Diagnostics.Error -> LSP.DiagnosticSeverity_Error
+  IDE.Diagnostics.Warning -> LSP.DiagnosticSeverity_Warning
+
+diagnosticToProto :: IDE.Diagnostics.Diagnostic -> LSP.Diagnostic
+diagnosticToProto IDE.Diagnostics.Diagnostic {range, severity, message} =
+  LSP.Diagnostic
+    { _range = lineColRangeToProto range.loc
+    , _severity = Just $ diagnosticSeverityToProto severity
+    , _code = Nothing
+    , _codeDescription = Nothing
+    , _source = Nothing
+    , _message = message
+    , _tags = Nothing
+    , _relatedInformation = Nothing
+    , _data_ = Nothing
+    }
+
+diagnosticsToProto :: [IDE.Diagnostics.Diagnostic] -> HashMap AbsPath [LSP.Diagnostic]
+diagnosticsToProto diags =
+  res
+ where
+  res = HashMap.fromListWith (++) $ do
+    diag <- diags
+    let path = diag.range.path
+    pure (path, [diagnosticToProto diag])

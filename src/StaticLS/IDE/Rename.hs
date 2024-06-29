@@ -15,7 +15,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Traversable (for)
 import StaticLS.Hir qualified as Hir
-import StaticLS.IDE.FileWith (FileWith (..))
+import StaticLS.IDE.FileWith (FileWith' (..))
 import StaticLS.IDE.Monad
 import StaticLS.IDE.References qualified as References
 import StaticLS.IDE.SourceEdit (SourceEdit)

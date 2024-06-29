@@ -18,7 +18,7 @@ import GHC.Plugins hiding ((<>))
 import HieDb qualified
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
 import StaticLS.HIE.Position
-import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.SymbolKind (SymbolKind (..))
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.Maybe

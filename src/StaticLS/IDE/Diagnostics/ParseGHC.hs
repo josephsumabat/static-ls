@@ -114,6 +114,8 @@ parseRest t
  where
   split = T.splitOn ":" t
 
+-- ghc error messages are one based with include ranges
+-- so we use dec accordingly to convert to zero based exclusive ranges
 parseHeader :: Text -> Maybe Header
 parseHeader line =
   if
@@ -133,7 +135,7 @@ parseHeader line =
     , Just (sev, rest) <- parseRest rest
     , Just (dec -> line) <- readInt line
     , Just (dec -> col1) <- readInt col1
-    , Just (dec -> col2) <- readInt col2 ->
+    , Just col2 <- readInt col2 ->
         Just $
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)
@@ -147,7 +149,7 @@ parseHeader line =
     , Just (dec -> line1) <- readInt line1
     , Just (dec -> col1) <- readInt col1
     , Just (dec -> line2) <- readInt line2
-    , Just (dec -> col2) <- readInt col2 ->
+    , Just col2 <- readInt col2 ->
         Just $
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)

@@ -10,5 +10,17 @@ data Diagnostic = Diagnostic
   { range :: !FileLcRange
   , severity :: !Severity
   , message :: !Text
+  , code :: Maybe Text
+  , codeUri :: Maybe Text
   }
   deriving (Show, Eq)
+
+mkDiagnostic :: FileLcRange -> Severity -> Text -> Diagnostic
+mkDiagnostic range severity message =
+  Diagnostic
+    { range
+    , severity
+    , message
+    , code = Nothing
+    , codeUri = Nothing
+    }

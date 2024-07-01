@@ -229,12 +229,12 @@ diagnosticSeverityToProto = \case
   IDE.Diagnostics.Warning -> LSP.DiagnosticSeverity_Warning
 
 diagnosticToProto :: IDE.Diagnostics.Diagnostic -> LSP.Diagnostic
-diagnosticToProto IDE.Diagnostics.Diagnostic {range, severity, message} =
+diagnosticToProto IDE.Diagnostics.Diagnostic {range, severity, message, code, codeUri} =
   LSP.Diagnostic
     { _range = lineColRangeToProto range.loc
     , _severity = Just $ diagnosticSeverityToProto severity
-    , _code = Nothing
-    , _codeDescription = Nothing
+    , _code = LSP.InR <$> code
+    , _codeDescription = LSP.CodeDescription . LSP.Uri <$> codeUri
     , _source = Just "haskell"
     , _message = message
     , _tags = Nothing

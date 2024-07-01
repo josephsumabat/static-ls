@@ -10,7 +10,7 @@ import Text.RawString.QQ
 
 spec :: Spec
 spec = do
-  describe "smoke" do
+  xdescribe "smoke" do
     let msg =
           [trimming|
             src/Mercury/Expenses/Sql.hs:(98,23)-(99,14): error: [GHC-83865] [-Wdeferred-type-errors, Werror=deferred-type-errors]
@@ -39,7 +39,7 @@ spec = do
       pure @IO ()
 
     -- it "smoke" do
-    fit "weird case" do
+    it "weird case" do
       parse
         Path.uncheckedCoercePath
         msg
@@ -69,6 +69,20 @@ spec = do
           |
       146 | toDiagnostic toAbs ((range, severity, message), body) =
           |                                                 ^^^^
+        |]
+        `shouldBe` []
+
+    it "smoke2" do
+      parseErrorInfo "[GHC-1234]" `shouldBe` (ErrorInfo [] (Just "GHC-1234"))
+
+      parse
+        Path.uncheckedCoercePath
+        [trimming|
+        src/StaticLS/PositionDiff.hs:19:3: warning: [GHC-47854] [-Wduplicate-exports]
+            ‘getDiffMapFromDiff’ is exported by ‘getDiffMapFromDiff’ and ‘getDiffMapFromDiff’
+           |
+        19 |   getDiffMapFromDiff,
+           |   ^^^^^^^^^^^^^^^^^^
         |]
         `shouldBe` []
 

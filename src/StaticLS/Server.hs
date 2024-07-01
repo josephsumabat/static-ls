@@ -117,6 +117,9 @@ initServer reactorChan staticEnvOptions logger serverConfig _ = do
     env <- ExceptT $ Right <$> initEnv wsRoot staticEnvOptions logger
     _ <- liftIO $ Conc.forkIO $ runStaticLsM env $ reactor reactorChan serverConfig logger
     _ <- liftIO $ Conc.forkIO $ fileWatcher reactorChan env.staticEnv logger
+    -- pretend that the ghcid file changed so we can get diagnostics immediately when the editor opens
+    -- the ghcid file may still have diagnostics from the last usage, so show them here
+    Conc.writeChan reactorChan $ ReactorMsgLspAct Handlers.handleGhcidFileChange
     pure serverConfig
  where
   getWsRoot :: LSP.LspM config (Either ResponseError FilePath)

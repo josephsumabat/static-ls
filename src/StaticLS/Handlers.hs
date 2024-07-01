@@ -140,19 +140,6 @@ handleDidSave :: Handlers (LspT c StaticLsM)
 handleDidSave = LSP.notificationHandler LSP.SMethod_TextDocumentDidSave $ \message -> do
   let params = message._params
   let _uri = params._textDocument._uri
-  let diags =
-        [ LSP.Diagnostic
-            (LSP.Range (LSP.Position 0 1) (LSP.Position 0 5))
-            (Just LSP.DiagnosticSeverity_Warning) -- severity
-            Nothing -- code
-            Nothing
-            (Just "lsp-hello") -- source
-            "Example diagnostic message"
-            Nothing -- tags
-            (Just [])
-            Nothing
-        ]
-  -- sendDiagnostics (LSP.toNormalizedUri _uri) Nothing diags
   pure ()
 
 handleDidClose :: Handlers (LspT c StaticLsM)

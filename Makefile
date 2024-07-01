@@ -1,6 +1,6 @@
 .PHONY: watch
 watch:
-	ghciwatch --command "cabal repl -f dev" --before-startup-shell "hpack package.yaml" --error-file errors.txt
+	ghciwatch --command "cabal repl -f dev" --before-startup-shell "hpack package.yaml" --error-file ghcid.txt --enable-eval
 
 .PHONY: hpack
 hpack:

@@ -9,7 +9,7 @@ import StaticLS.HI.File
 import StaticLS.HIE.File
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
-import StaticLS.IDE.FileWith (FileWith (..))
+import StaticLS.IDE.FileWith (FileWith' (..))
 import Test.Hspec
 import TestImport.Assert qualified as Test
 import TestImport.TestData

@@ -68,10 +68,19 @@ parseSeverity t = case T.toLower t of
 dec :: Int -> Int
 dec x = max 0 (x - 1)
 
+parseRest :: Text -> Maybe (Text, Text)
+parseRest t
+  | [sev] <- split = Just (sev, "")
+  | [sev, rest] <- split = Just (sev, rest)
+  | otherwise = Nothing
+ where
+  split = T.splitOn ":" t
+
 parseHeader :: Text -> Maybe Header
 parseHeader line =
   if
-    | Just [file, line, col, sev, rest] <- getCaptures line r1
+    | Just [file, line, col, rest] <- getCaptures line r1
+    , Just (sev, rest) <- parseRest rest
     , Just (dec -> line) <- readInt line
     , Just (dec -> col) <- readInt col ->
         Just $
@@ -82,7 +91,8 @@ parseHeader line =
           , parseSeverity sev
           , rest
           )
-    | Just [file, line, col1, col2, sev, rest] <- getCaptures line r2
+    | Just [file, line, col1, col2, rest] <- getCaptures line r2
+    , Just (sev, rest) <- parseRest rest
     , Just (dec -> line) <- readInt line
     , Just (dec -> col1) <- readInt col1
     , Just (dec -> col2) <- readInt col2 ->
@@ -94,7 +104,8 @@ parseHeader line =
           , parseSeverity sev
           , rest
           )
-    | Just [file, line1, col1, line2, col2, sev, rest] <- getCaptures line r3
+    | Just [file, line1, col1, line2, col2, rest] <- getCaptures line r3
+    , Just (sev, rest) <- parseRest rest
     , Just (dec -> line1) <- readInt line1
     , Just (dec -> col1) <- readInt col1
     , Just (dec -> line2) <- readInt line2
@@ -109,9 +120,9 @@ parseHeader line =
           )
     | otherwise -> Nothing
  where
-  r1 = mkRegex [r|(..[^:]+):([0-9]+):([0-9]+): ([^:]+): ([^:]+)|]
-  r2 = mkRegex [r|(..[^:]+):([0-9]+):([0-9]+)-([0-9]+): ([^:]+): ([^:]+)|]
-  r3 = mkRegex [r|(..[^:]+):\(([0-9]+),([0-9]+)\)-\(([0-9]+),([0-9]+)\): ([^:]+): ([^:]+)|]
+  r1 = mkRegex [r|(..[^:]+):([0-9]+):([0-9]+): (.*)|]
+  r2 = mkRegex [r|(..[^:]+):([0-9]+):([0-9]+)-([0-9]+): (.*)|]
+  r3 = mkRegex [r|(..[^:]+):\(([0-9]+),([0-9]+)\)-\(([0-9]+),([0-9]+)\): (.*)|]
 
 isMessageBody :: Text -> Bool
 isMessageBody t = isIndented || hasNum

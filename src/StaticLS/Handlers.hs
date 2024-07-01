@@ -284,6 +284,7 @@ handleGhcidFileChange = do
   staticEnv <- lift $ StaticEnv.getStaticEnv
   let diags = IDE.Diagnostics.ParseGHC.parse (staticEnv.wsRoot Path.</>) contents
   lift $ logInfo $ "diags: " <> T.pack (show diags)
+  clearDiagnostics
   sendDiagnostics Nothing diags
   pure ()
 
@@ -294,3 +295,6 @@ sendDiagnostics version diags = do
     let uri = absPathToUri path
     let normUri = LSP.toNormalizedUri uri
     LSP.publishDiagnostics 100 normUri version (LSP.partitionBySource diags)
+
+clearDiagnostics :: (LSP.MonadLsp c m) => m ()
+clearDiagnostics = LSP.flushDiagnosticsBySource 100 (Just "haskell")

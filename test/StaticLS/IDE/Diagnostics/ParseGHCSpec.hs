@@ -10,7 +10,7 @@ import Text.RawString.QQ
 
 spec :: Spec
 spec = do
-  xdescribe "smoke" do
+  describe "smoke" do
     let msg =
           [trimming|
             src/Mercury/Expenses/Sql.hs:(98,23)-(99,14): error: [GHC-83865] [-Wdeferred-type-errors, Werror=deferred-type-errors]
@@ -25,12 +25,12 @@ spec = do
                         (\ (expense :& expenseData)
                             -> expense.latestDataId ==. expenseData.id)’
               |
-            98 |           `innerJoin` table @ExpenseData
+           98 |           `innerJoin` table @ExpenseData
               |                       ^^^^^^^^^^^^^^^^^^...
             src/Mercury/Expenses/Sql.hs:99:11-14: error: [GHC-88464] [-Wdeferred-out-of-scope-variables, Werror=deferred-out-of-scope-variables]
                 Variable not in scope: asfd
               |
-            99 |             `on` (\(expense :& expenseData) -> expense.latestDataId ==. expenseData.id)
+           99 |             `on` (\(expense :& expenseData) -> expense.latestDataId ==. expenseData.id)
               |           ^^^^
             |]
 
@@ -39,9 +39,11 @@ spec = do
       pure @IO ()
 
     -- it "smoke" do
-    --   parse
-    --     Path.uncheckedCoercePath
-    --     `shouldBe` []
+    fit "weird case" do
+      parse
+        Path.uncheckedCoercePath
+        msg
+        `shouldBe` []
 
     it "smoke2" do
       parse
@@ -53,19 +55,19 @@ spec = do
               except perhaps to import instances from ‘Data.Int’
           To import instances alone, use: import Data.Int()
           |
-        18 | import Data.Int
+       18 | import Data.Int
           | ^^^^^^^^^^^^^^^
         src/StaticLS/IDE/Diagnostics/ParseGHC.hs:19:1: warning: [-Wunused-imports]
           The import of ‘Data.Either’ is redundant
               except perhaps to import instances from ‘Data.Either’
           To import instances alone, use: import Data.Either()
           |
-        19 | import Data.Either
+       19 | import Data.Either
           | ^^^^^^^^^^^^^^^^^^
         src/StaticLS/IDE/Diagnostics/ParseGHC.hs:146:49: warning: [-Wunused-matches]
           Defined but not used: ‘body’
           |
-        146 | toDiagnostic toAbs ((range, severity, message), body) =
+      146 | toDiagnostic toAbs ((range, severity, message), body) =
           |                                                 ^^^^
         |]
         `shouldBe` []

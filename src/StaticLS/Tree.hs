@@ -16,8 +16,8 @@ import Data.Foldable qualified as Foldable
 import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe qualified as Maybe
 import Data.Pos (Pos (..))
-import Data.Rope (Rope)
 import Data.Range (Range)
+import Data.Rope (Rope)
 
 byteToPos :: Rope -> Int -> Pos
 byteToPos _rope byte = Pos byte

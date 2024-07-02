@@ -8,13 +8,13 @@ import Control.Monad (join)
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Pos (Pos(..))
-import Data.LineCol (LineCol (..))
+import Data.Pos (Pos (..))
 import Data.Text qualified as T
 import Data.Traversable (for)
 import GHC.Plugins qualified as GHC

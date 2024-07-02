@@ -23,6 +23,7 @@ module StaticLS.PositionDiff (
 where
 
 import Data.Diff qualified as Diff
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
@@ -37,7 +38,6 @@ import Data.Text qualified as T
 import GHC.Stack (HasCallStack)
 import Language.Haskell.Lexer qualified as Lexer
 import Prelude hiding (lex)
-import Data.LineCol (LineCol(..))
 
 data TokenKind where
   TokenKind :: forall a. (Show a, Eq a) => a -> TokenKind

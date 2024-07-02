@@ -14,6 +14,7 @@ where
 import Data.Bifunctor (second)
 import Data.Char qualified as Char
 import Data.Function ((&))
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.LineColRange qualified as LineColRange
 import Data.List qualified as List
@@ -21,8 +22,7 @@ import Data.List.NonEmpty qualified as NE
 import Data.List.NonEmpty.Extra (minimum1)
 import Data.Maybe qualified as Maybe
 import Data.Path qualified as Path
-import Data.LineCol (LineCol (..))
-import Data.Pos (Pos(..))
+import Data.Pos (Pos (..))
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Read qualified as T.Read

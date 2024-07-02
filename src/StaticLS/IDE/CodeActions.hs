@@ -5,9 +5,9 @@
 
 module StaticLS.IDE.CodeActions where
 
-import Data.Path (AbsPath)
 import Data.LineCol (LineCol (..))
-import Data.Pos (Pos(..))
+import Data.Path (AbsPath)
+import Data.Pos (Pos (..))
 import Data.Rope qualified as Rope
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
 import StaticLS.IDE.CodeActions.AutoImport qualified as AutoImport

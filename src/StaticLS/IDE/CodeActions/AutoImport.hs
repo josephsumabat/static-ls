@@ -17,6 +17,7 @@ import Data.LineCol (LineCol (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Path (AbsPath)
 import Data.Pos (Pos (..))
+import Data.Range qualified as Range
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
@@ -34,7 +35,6 @@ import StaticLS.Monad
 import StaticLS.StaticEnv (runHieDbExceptT)
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils
-import qualified Data.Range as Range
 
 findModulesForDefQuery :: HieDb -> Text -> IO [Text]
 findModulesForDefQuery (getConn -> conn) name = do
@@ -59,8 +59,8 @@ findModulesForDef name = do
     Right res -> pure $ Hir.parseModuleFromText <$> res
 
 data ModulesToImport = ModulesToImport
-  { moduleNames :: [Hir.Module],
-    moduleQualifier :: Maybe Hir.Module
+  { moduleNames :: [Hir.Module]
+  , moduleQualifier :: Maybe Hir.Module
   }
 
 getModulesToImport ::
@@ -78,8 +78,8 @@ getModulesToImport path pos = do
       logError $ T.pack $ "Error getting qualified: " <> show e
       pure
         ModulesToImport
-          { moduleNames = [],
-            moduleQualifier = Nothing
+          { moduleNames = []
+          , moduleQualifier = Nothing
           }
     Right Nothing -> case importable of
       Just importableNode -> do
@@ -88,21 +88,21 @@ getModulesToImport path pos = do
         res <- findModulesForDef nodeText
         pure $
           ModulesToImport
-            { moduleNames = res,
-              moduleQualifier = Nothing
+            { moduleNames = res
+            , moduleQualifier = Nothing
             }
       Nothing -> do
         pure
           ModulesToImport
-            { moduleNames = [],
-              moduleQualifier = Nothing
+            { moduleNames = []
+            , moduleQualifier = Nothing
             }
     Right (Just qualified) -> do
       res <- findModulesForDef qualified.name.text
       pure $
         ModulesToImport
-          { moduleNames = res,
-            moduleQualifier = Just qualified.mod
+          { moduleNames = res
+          , moduleQualifier = Just qualified.mod
           }
 
 createAutoImportCodeActions :: AbsPath -> Maybe Hir.Module -> Hir.Module -> StaticLsM [Assist]

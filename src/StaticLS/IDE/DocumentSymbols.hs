@@ -3,19 +3,19 @@ module StaticLS.IDE.DocumentSymbols (SymbolTree (..), getDocumentSymbols) where
 
 import AST qualified
 import AST.Haskell qualified as Haskell
+import AST.Sum
 import Data.Either.Extra (eitherToMaybe)
 import Data.Foldable qualified as Foldable
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
-import AST.Sum
+import Data.Range (Range)
 import Data.Text (Text)
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SymbolKind (SymbolKind)
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.Logger
 import StaticLS.Monad
-import Data.Range (Range)
 
 data SymbolTree = SymbolTree
   { name :: !Text

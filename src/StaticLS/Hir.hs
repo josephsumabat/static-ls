@@ -3,17 +3,17 @@ module StaticLS.Hir where
 import AST qualified
 import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
+import AST.Sum (Nil, (:+))
 import Control.Applicative (asum, (<|>))
 import Data.Either qualified as Either
+import Data.LineCol (LineCol (..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
-import Data.Pos (Pos(..))
-import Data.LineCol (LineCol(..))
-import AST.Sum (Nil, (:+))
+import Data.Pos (Pos (..))
+import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Data.Range (Range)
 
 data Name = Name
   { text :: Text

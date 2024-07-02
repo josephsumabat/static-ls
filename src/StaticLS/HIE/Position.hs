@@ -2,7 +2,7 @@ module StaticLS.HIE.Position where
 
 import Control.Exception (Exception)
 import Data.LineCol (LineCol (..))
-import Data.Pos (Pos(..))
+import Data.Pos (Pos (..))
 
 -- | LSP Position is 0 indexed
 -- Note HieDbCoords are 1 indexed

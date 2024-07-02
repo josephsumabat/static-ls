@@ -1,9 +1,9 @@
 module Data.RopeSpec (spec) where
 
 import Data.Edit qualified as Edit
-import Data.LineColRange (LineColRange (..))
-import Data.Pos ( Pos (..))
 import Data.LineCol (LineCol (..))
+import Data.LineColRange (LineColRange (..))
+import Data.Pos (Pos (..))
 import Data.Range (Range (..))
 import Data.Rope qualified as Rope
 import Data.Text qualified as T

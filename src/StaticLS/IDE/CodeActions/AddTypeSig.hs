@@ -2,17 +2,17 @@ module StaticLS.IDE.CodeActions.AddTypeSig where
 
 import AST qualified
 import AST.Haskell qualified as Haskell
+import AST.Sum (Nil, (:+), pattern Inj)
 import Control.Monad qualified as Monad
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
 import Data.Edit qualified as Edit
 import Data.Either.Extra qualified as Either.Extra
+import Data.LineCol (LineCol (..))
 import Data.Maybe qualified as Maybe
 import Data.Pos (Pos (..))
-import Data.LineCol (LineCol (..))
 import Data.Range qualified as Range
 import Data.Rope qualified as Rope
-import AST.Sum (Nil, (:+), pattern Inj)
 import Data.Text (Text)
 import Data.Text qualified as T
 import StaticLS.HIE.Queries

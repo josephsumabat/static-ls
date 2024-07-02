@@ -3,6 +3,7 @@
 
 module StaticLS.PositionSpec where
 
+import Data.Function ((&))
 import Data.LineCol (LineCol (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Pos
@@ -13,11 +14,10 @@ import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck
 import Test.QuickCheck.Instances ()
-import Data.Function ((&))
 
 data TextAndPos = TextAndPos
-  { text :: Text,
-    pos :: Pos
+  { text :: Text
+  , pos :: Pos
   }
   deriving (Show)
 
@@ -28,8 +28,8 @@ instance Arbitrary TextAndPos where
     pure $ TextAndPos text (Pos pos)
 
 data TextAndLineCol = TextAndLineCol
-  { text :: Text,
-    lineCol :: LineCol
+  { text :: Text
+  , lineCol :: LineCol
   }
   deriving (Show)
 
@@ -62,11 +62,10 @@ spec = do
     pure @IO ()
   pure ()
 
-  
 lineColToPos :: Text -> LineCol -> Pos
 lineColToPos source LineCol {line, col} =
   UnsafePos pos
-  where
+ where
   (before, after) = splitAt line.pos lines
   (beforeCol, _afterCol) = T.splitAt col.pos (T.concat after)
   pos = sum (T.length <$> before) + T.length beforeCol
@@ -75,7 +74,7 @@ lineColToPos source LineCol {line, col} =
 posToLineCol :: Text -> Pos -> LineCol
 posToLineCol source UnsafePos {pos} =
   LineCol {line, col}
-  where
+ where
   (beforePos, _afterPos) = T.splitAt pos source
   linesBeforePos = splitLinesWithEnd beforePos
   lastLineBeforePos = NE.last linesBeforePos

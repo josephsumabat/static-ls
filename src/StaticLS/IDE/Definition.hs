@@ -5,6 +5,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Foldable qualified as Foldable
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
@@ -12,8 +13,7 @@ import Data.List.Extra (nubOrd)
 import Data.Maybe (catMaybes, fromMaybe, maybeToList)
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Pos (Pos(..))
-import Data.LineCol (LineCol (..))
+import Data.Pos (Pos (..))
 import Data.Text qualified as T
 import Development.IDE.GHC.Compat.Util qualified as IDE.GHC.Compat.Util
 import Development.IDE.GHC.Error (

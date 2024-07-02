@@ -26,11 +26,12 @@ import Data.Function ((&))
 import Data.Functor.Identity qualified as Identity
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
+import Data.LineCol (LineCol (..))
 import Data.List qualified as List
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Pos (Pos (..))
-import Data.LineCol (LineCol(..))
+import Data.Range qualified as Range
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
@@ -51,7 +52,6 @@ import StaticLS.Monad
 import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
-import qualified Data.Range as Range
 
 stripNameSpacePrefix :: Text -> Text
 stripNameSpacePrefix t = snd $ T.breakOnEnd ":" t

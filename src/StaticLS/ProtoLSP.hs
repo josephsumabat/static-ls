@@ -31,6 +31,7 @@ import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
+import Data.LineCol (LineCol (..))
 import Data.LineColRange
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
@@ -51,7 +52,6 @@ import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.IDE.Workspace.Symbol (Symbol (..))
 import StaticLS.Monad
 import StaticLS.Utils
-import Data.LineCol (LineCol(..))
 
 lineColToProto :: LineCol -> LSP.Position
 lineColToProto (LineCol (Pos line) (Pos col)) =

@@ -6,12 +6,12 @@ where
 import Control.Exception (SomeException)
 import Data.IntSet (IntSet)
 import Data.IntSet qualified as IntSet
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.ListUtils
 import Data.Maybe qualified as Maybe
-import Data.LineCol (LineCol (..))
 import Data.Pos (Pos (..))
 import Data.Range (Range)
 import Data.Rope (Rope)

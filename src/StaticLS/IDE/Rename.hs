@@ -6,11 +6,12 @@ where
 
 import AST qualified
 import Data.Edit qualified as Edit
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.Path (AbsPath)
-import Data.Pos ( Pos (..))
-import Data.LineCol (LineCol (..))
+import Data.Pos (Pos (..))
 import Data.Range (Range (..))
+import Data.Range qualified as Range
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -24,7 +25,6 @@ import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.Tree qualified as Tree
-import qualified Data.Range as Range
 
 rename :: AbsPath -> LineCol -> Text -> StaticLsM SourceEdit
 rename path lineCol newName = do

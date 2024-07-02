@@ -27,9 +27,9 @@ import Data.Change (Change (..))
 import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.Foldable qualified as Foldable
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.Pos (Pos (..))
-import Data.LineCol (LineCol(..))
 import Data.Range (Range (..))
 import Data.String (IsString)
 import Data.Text (Text)

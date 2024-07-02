@@ -1,7 +1,8 @@
 module Data.Path (
-  Path (path, Path),
+  Path (path, Path, UncheckedPath),
   KnownPathKind (sPathKind),
   AbsPath,
+  PathKind (..),
   RelPath,
   filePathToAbs,
   unsafeFilePathToAbs,
@@ -13,12 +14,14 @@ module Data.Path (
   (<.>),
   (-<.>),
   filePathToAbsThrow,
+  uncheckedCoercePath,
 )
 where
 
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Data.Aeson qualified as Aeson
+import Data.Coerce (coerce)
 import Data.Hashable (Hashable)
 import Data.String (IsString (..))
 import GHC.Stack (HasCallStack)
@@ -44,6 +47,9 @@ instance KnownPathKind Rel where
 
 newtype Path p = UncheckedPath {path :: FilePath}
   deriving (Show, Eq, Ord, Hashable, Aeson.FromJSON, Aeson.ToJSON)
+
+uncheckedCoercePath :: Path p -> Path q
+uncheckedCoercePath = coerce
 
 instance IsString (Path Rel) where
   fromString = UncheckedPath

@@ -30,7 +30,7 @@ import HieDb qualified
 import StaticLS.HIE.File
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
-import StaticLS.IDE.FileWith (FileLcRange, FileWith (..))
+import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
 import StaticLS.Logger

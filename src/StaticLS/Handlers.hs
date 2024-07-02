@@ -4,16 +4,16 @@ import Control.Lens.Operators
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
+import Data.Foldable (for_)
+import Data.HashMap.Strict qualified as HashMap
 import Data.Maybe qualified as Maybe
 import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
-import Language.LSP.Protocol.Lens qualified as LSP
-import Language.LSP.Protocol.Message (
-  SMethod (..),
-  TNotificationMessage (..),
-  TRequestMessage (..),
- )
+import Data.Text.IO qualified as T.IO
+import Language.LSP.Diagnostics qualified as LSP
+import Language.LSP.Protocol.Lens qualified as LSP hiding (publishDiagnostics)
+import Language.LSP.Protocol.Message qualified as LSP
 import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
 import Language.LSP.Server (
@@ -28,6 +28,8 @@ import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
 import StaticLS.IDE.CodeActions.Types qualified as IDE.CodeActions
 import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Definition
+import StaticLS.IDE.Diagnostics qualified as IDE.Diagnostics
+import StaticLS.IDE.Diagnostics.ParseGHC qualified as IDE.Diagnostics.ParseGHC
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Format qualified as IDE.Format
 import StaticLS.IDE.Hover
@@ -37,7 +39,9 @@ import StaticLS.IDE.Rename qualified as IDE.Rename
 import StaticLS.IDE.Workspace.Symbol
 import StaticLS.Logger
 import StaticLS.Monad
+import StaticLS.ProtoLSP (absPathToUri)
 import StaticLS.ProtoLSP qualified as ProtoLSP
+import StaticLS.StaticEnv qualified as StaticEnv
 import StaticLS.Utils
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
@@ -47,20 +51,20 @@ import UnliftIO.Exception qualified as Exception
 -----------------------------------------------------------------
 
 handleChangeConfiguration :: Handlers (LspT c StaticLsM)
-handleChangeConfiguration = LSP.notificationHandler SMethod_WorkspaceDidChangeConfiguration $ pure $ pure ()
+handleChangeConfiguration = LSP.notificationHandler LSP.SMethod_WorkspaceDidChangeConfiguration $ pure $ pure ()
 
 handleInitialized :: Handlers (LspT c StaticLsM)
-handleInitialized = LSP.notificationHandler SMethod_Initialized $ pure $ pure ()
+handleInitialized = LSP.notificationHandler LSP.SMethod_Initialized $ pure $ pure ()
 
 handleTextDocumentHoverRequest :: Handlers (LspT c StaticLsM)
-handleTextDocumentHoverRequest = LSP.requestHandler SMethod_TextDocumentHover $ \req resp -> do
+handleTextDocumentHoverRequest = LSP.requestHandler LSP.SMethod_TextDocumentHover $ \req resp -> do
   let hoverParams = req._params
   path <- ProtoLSP.tdiToAbsPath hoverParams._textDocument
   hover <- lift $ retrieveHover path (ProtoLSP.lineColFromProto hoverParams._position)
   resp $ Right $ maybeToNull hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLsM)
-handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \req resp -> do
+handleDefinitionRequest = LSP.requestHandler LSP.SMethod_TextDocumentDefinition $ \req resp -> do
   lift $ logInfo "Received definition request."
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
@@ -69,7 +73,7 @@ handleDefinitionRequest = LSP.requestHandler SMethod_TextDocumentDefinition $ \r
   resp $ Right . InR . InL $ locations
 
 handleTypeDefinitionRequest :: Handlers (LspT c StaticLsM)
-handleTypeDefinitionRequest = LSP.requestHandler SMethod_TextDocumentTypeDefinition $ \req resp -> do
+handleTypeDefinitionRequest = LSP.requestHandler LSP.SMethod_TextDocumentTypeDefinition $ \req resp -> do
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   defs <- lift $ getTypeDefinition path (ProtoLSP.lineColFromProto params._position)
@@ -77,7 +81,7 @@ handleTypeDefinitionRequest = LSP.requestHandler SMethod_TextDocumentTypeDefinit
   resp $ Right . InR . InL $ locations
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
-handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \req res -> do
+handleReferencesRequest = LSP.requestHandler LSP.SMethod_TextDocumentReferences $ \req res -> do
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   refs <- lift $ findRefs path (ProtoLSP.lineColFromProto params._position)
@@ -85,7 +89,7 @@ handleReferencesRequest = LSP.requestHandler SMethod_TextDocumentReferences $ \r
   res $ Right . InL $ locations
 
 handleRenameRequest :: Handlers (LspT c StaticLsM)
-handleRenameRequest = LSP.requestHandler SMethod_TextDocumentRename $ \req res -> do
+handleRenameRequest = LSP.requestHandler LSP.SMethod_TextDocumentRename $ \req res -> do
   lift $ logInfo "Received rename request."
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
@@ -95,7 +99,7 @@ handleRenameRequest = LSP.requestHandler SMethod_TextDocumentRename $ \req res -
   pure ()
 
 handlePrepareRenameRequest :: Handlers (LspT c StaticLsM)
-handlePrepareRenameRequest = LSP.requestHandler SMethod_TextDocumentPrepareRename $ \req res -> do
+handlePrepareRenameRequest = LSP.requestHandler LSP.SMethod_TextDocumentPrepareRename $ \req res -> do
   lift $ logInfo "Received prepare rename request."
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
@@ -109,10 +113,10 @@ handlePrepareRenameRequest = LSP.requestHandler SMethod_TextDocumentPrepareRenam
       pure ()
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)
-handleCancelNotification = LSP.notificationHandler SMethod_CancelRequest $ \_ -> pure ()
+handleCancelNotification = LSP.notificationHandler LSP.SMethod_CancelRequest $ \_ -> pure ()
 
 handleDidOpen :: Handlers (LspT c StaticLsM)
-handleDidOpen = LSP.notificationHandler SMethod_TextDocumentDidOpen $ \message -> do
+handleDidOpen = LSP.notificationHandler LSP.SMethod_TextDocumentDidOpen $ \message -> do
   lift $ logInfo "did open"
   let params = message._params
   updateFileStateForUri params._textDocument._uri
@@ -127,19 +131,19 @@ updateFileStateForUri uri = do
   pure ()
 
 handleDidChange :: Handlers (LspT c StaticLsM)
-handleDidChange = LSP.notificationHandler SMethod_TextDocumentDidChange $ \message -> do
+handleDidChange = LSP.notificationHandler LSP.SMethod_TextDocumentDidChange $ \message -> do
   let params = message._params
   let uri = params._textDocument._uri
   updateFileStateForUri uri
 
 handleDidSave :: Handlers (LspT c StaticLsM)
-handleDidSave = LSP.notificationHandler SMethod_TextDocumentDidSave $ \message -> do
+handleDidSave = LSP.notificationHandler LSP.SMethod_TextDocumentDidSave $ \message -> do
   let params = message._params
   let _uri = params._textDocument._uri
   pure ()
 
 handleDidClose :: Handlers (LspT c StaticLsM)
-handleDidClose = LSP.notificationHandler SMethod_TextDocumentDidClose $ \_ -> do
+handleDidClose = LSP.notificationHandler LSP.SMethod_TextDocumentDidClose $ \_ -> do
   -- TODO: remove stuff from file state
   lift $ logInfo "did close"
   pure ()
@@ -161,16 +165,16 @@ handleHieFileChangeEvent event = do
   pure ()
 
 handleWorkspaceSymbol :: Handlers (LspT c StaticLsM)
-handleWorkspaceSymbol = LSP.requestHandler SMethod_WorkspaceSymbol $ \req res -> do
+handleWorkspaceSymbol = LSP.requestHandler LSP.SMethod_WorkspaceSymbol $ \req res -> do
   -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
   symbols <- lift (symbolInfo req._params._query)
   res $ Right . InL $ fmap ProtoLSP.symbolToProto symbols
 
 handleSetTrace :: Handlers (LspT c StaticLsM)
-handleSetTrace = LSP.notificationHandler SMethod_SetTrace $ \_ -> pure ()
+handleSetTrace = LSP.notificationHandler LSP.SMethod_SetTrace $ \_ -> pure ()
 
 handleCodeAction :: Handlers (LspT c StaticLsM)
-handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req res -> do
+handleCodeAction = LSP.requestHandler LSP.SMethod_TextDocumentCodeAction $ \req res -> do
   let params = req._params
   let tdi = params._textDocument
   path <- ProtoLSP.uriToAbsPath tdi._uri
@@ -182,7 +186,7 @@ handleCodeAction = LSP.requestHandler SMethod_TextDocumentCodeAction $ \req res 
   pure ()
 
 handleResolveCodeAction :: Handlers (LspT c StaticLsM)
-handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req res -> do
+handleResolveCodeAction = LSP.requestHandler LSP.SMethod_CodeActionResolve $ \req res -> do
   _ <- lift $ logInfo "handleResolveCodeAction"
   let codeAction = req._params
   case codeAction._data_ of
@@ -199,7 +203,7 @@ handleResolveCodeAction = LSP.requestHandler SMethod_CodeActionResolve $ \req re
     Nothing -> res $ Right codeAction
 
 handleFormat :: Handlers (LspT c StaticLsM)
-handleFormat = LSP.requestHandler SMethod_TextDocumentFormatting $ \req res -> do
+handleFormat = LSP.requestHandler LSP.SMethod_TextDocumentFormatting $ \req res -> do
   let params = req._params
   let tdi = params._textDocument
   path <- ProtoLSP.tdiToAbsPath tdi
@@ -211,7 +215,7 @@ handleFormat = LSP.requestHandler SMethod_TextDocumentFormatting $ \req res -> d
   pure ()
 
 handleCompletion :: Handlers (LspT c StaticLsM)
-handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res -> do
+handleCompletion = LSP.requestHandler LSP.SMethod_TextDocumentCompletion $ \req res -> do
   let params = req._params
   let tdi = params._textDocument
   path <- ProtoLSP.tdiToAbsPath tdi
@@ -233,7 +237,7 @@ handleCompletion = LSP.requestHandler SMethod_TextDocumentCompletion $ \req res 
   pure ()
 
 handleCompletionItemResolve :: Handlers (LspT c StaticLsM)
-handleCompletionItemResolve = LSP.requestHandler SMethod_CompletionItemResolve $ \req res -> do
+handleCompletionItemResolve = LSP.requestHandler LSP.SMethod_CompletionItemResolve $ \req res -> do
   lift $ logInfo "handleCompletionItemResolve"
   let params = req._params
   case params._data_ of
@@ -252,10 +256,32 @@ handleCompletionItemResolve = LSP.requestHandler SMethod_CompletionItemResolve $
       pure ()
 
 handleDocumentSymbols :: Handlers (LspT c StaticLsM)
-handleDocumentSymbols = LSP.requestHandler SMethod_TextDocumentDocumentSymbol $ \req res -> do
+handleDocumentSymbols = LSP.requestHandler LSP.SMethod_TextDocumentDocumentSymbol $ \req res -> do
   let params = req._params
   let uri = params._textDocument._uri
   path <- ProtoLSP.uriToAbsPath uri
   symbols <- lift $ getDocumentSymbols path
   res $ Right $ InR $ InL $ fmap ProtoLSP.symbolTreeToProto symbols
   pure ()
+
+handleGhcidFileChange :: LspT c StaticLsM ()
+handleGhcidFileChange = do
+  lift $ logInfo "handleGhcidFileChange"
+  contents <- liftIO $ T.IO.readFile "ghcid.txt"
+  staticEnv <- lift $ StaticEnv.getStaticEnv
+  let diags = IDE.Diagnostics.ParseGHC.parse (staticEnv.wsRoot Path.</>) contents
+  lift $ logInfo $ "diags: " <> T.pack (show diags)
+  clearDiagnostics
+  sendDiagnostics Nothing diags
+  pure ()
+
+sendDiagnostics :: (LSP.MonadLsp c m) => Maybe Int32 -> [IDE.Diagnostics.Diagnostic] -> m ()
+sendDiagnostics version diags = do
+  diags <- pure $ ProtoLSP.diagnosticsToProto diags
+  for_ (HashMap.toList diags) \(path, diags) -> do
+    let uri = absPathToUri path
+    let normUri = LSP.toNormalizedUri uri
+    LSP.publishDiagnostics 100 normUri version (LSP.partitionBySource diags)
+
+clearDiagnostics :: (LSP.MonadLsp c m) => m ()
+clearDiagnostics = LSP.flushDiagnosticsBySource 100 (Just "haskell")

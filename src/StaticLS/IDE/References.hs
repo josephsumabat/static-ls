@@ -22,7 +22,7 @@ import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
 import StaticLS.IDE.Definition qualified as Definition
-import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith (..))
+import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith' (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
 import StaticLS.Logger

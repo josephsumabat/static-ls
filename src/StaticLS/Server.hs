@@ -43,12 +43,15 @@ import System.FilePath qualified as FilePath
 import UnliftIO.Concurrent qualified as Conc
 import UnliftIO.Exception qualified as Exception
 
+type LspConfig = ()
+
 data ReactorMsg where
   ReactorMsgAct :: StaticLsM () -> ReactorMsg
   ReactorMsgRequest :: StaticLsM a -> Conc.MVar a -> ReactorMsg
+  ReactorMsgLspAct :: LSP.LspT LspConfig StaticLsM () -> ReactorMsg
 
-reactor :: Conc.Chan ReactorMsg -> LoggerM IO -> StaticLsM ()
-reactor chan _logger = do
+reactor :: Conc.Chan ReactorMsg -> LSP.LanguageContextEnv LspConfig -> LoggerM IO -> StaticLsM ()
+reactor chan lspEnv _logger = do
   Monad.forever do
     msg <- liftIO $ Conc.readChan chan
     case msg of
@@ -56,6 +59,8 @@ reactor chan _logger = do
       ReactorMsgRequest act resp -> do
         a <- act
         Conc.putMVar resp a
+      ReactorMsgLspAct act -> do
+        LSP.runLspT lspEnv act
 
 fileWatcher :: Conc.Chan ReactorMsg -> StaticEnv -> LoggerM IO -> IO ()
 fileWatcher chan staticEnv _logger = do
@@ -85,22 +90,36 @@ fileWatcher chan staticEnv _logger = do
           )
       pure ()
 
-    pure ()
+  _stop <-
+    FSNotify.watchDir
+      mgr
+      (Path.toFilePath staticEnv.wsRoot)
+      (\e -> FilePath.takeFileName e.eventPath == "ghcid.txt")
+      ( \e -> Conc.writeChan chan $ ReactorMsgLspAct $ do
+          lift $ logInfo $ "ghcid file changed: " <> T.pack (show e)
+          Handlers.handleGhcidFileChange
+          pure ()
+      )
+
+  pure ()
 
 initServer ::
   Conc.Chan ReactorMsg ->
   StaticEnvOptions ->
   LoggerM IO ->
-  LanguageContextEnv config ->
+  LanguageContextEnv LspConfig ->
   TMessage 'Method_Initialize ->
-  IO (Either ResponseError (LanguageContextEnv config))
+  IO (Either ResponseError (LanguageContextEnv LspConfig))
 initServer reactorChan staticEnvOptions logger serverConfig _ = do
   runExceptT $ do
     wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
     wsRoot <- Path.filePathToAbs wsRoot
     env <- ExceptT $ Right <$> initEnv wsRoot staticEnvOptions logger
-    _ <- liftIO $ Conc.forkIO $ runStaticLsM env $ reactor reactorChan logger
+    _ <- liftIO $ Conc.forkIO $ runStaticLsM env $ reactor reactorChan serverConfig logger
     _ <- liftIO $ Conc.forkIO $ fileWatcher reactorChan env.staticEnv logger
+    -- pretend that the ghcid file changed so we can get diagnostics immediately when the editor opens
+    -- the ghcid file may still have diagnostics from the last usage, so show them here
+    Conc.writeChan reactorChan $ ReactorMsgLspAct Handlers.handleGhcidFileChange
     pure serverConfig
  where
   getWsRoot :: LSP.LspM config (Either ResponseError FilePath)

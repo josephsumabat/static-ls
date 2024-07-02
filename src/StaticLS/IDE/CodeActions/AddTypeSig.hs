@@ -8,10 +8,11 @@ import Control.Monad.Trans.Maybe
 import Data.Edit qualified as Edit
 import Data.Either.Extra qualified as Either.Extra
 import Data.Maybe qualified as Maybe
-import Data.Pos (LineCol (..), Pos (..))
+import Data.Pos (Pos (..))
+import Data.LineCol (LineCol (..))
 import Data.Range qualified as Range
 import Data.Rope qualified as Rope
-import Data.Sum (Nil, (:+), pattern Inj)
+import AST.Sum (Nil, (:+), pattern Inj)
 import Data.Text (Text)
 import Data.Text qualified as T
 import StaticLS.HIE.Queries
@@ -21,7 +22,6 @@ import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Logger
 import StaticLS.Monad
-import StaticLS.Semantic.Position
 import StaticLS.Utils (isRightOrThrowT)
 
 type AddTypeContext = Haskell.Bind :+ Haskell.Function :+ Nil
@@ -31,8 +31,7 @@ type BindName = Haskell.PrefixId :+ Haskell.Variable :+ Nil
 -- For now, it only works with top level declarations
 getDeclarationNameAtPos :: Haskell.Haskell -> Pos -> LineCol -> AST.Err (Maybe BindName)
 getDeclarationNameAtPos haskell pos lineCol = do
-  let astPoint = lineColToAstPoint lineCol
-  let node = AST.getDeepestContaining @AddTypeContext astPoint haskell.dynNode.unDynNode
+  let node = AST.getDeepestContaining @AddTypeContext (Range.empty pos) haskell.dynNode.unDynNode
   case node of
     Just bind
       | let dynNode = AST.getDynNode bind
@@ -48,7 +47,7 @@ getDeclarationNameAtPos haskell pos lineCol = do
                   pure name
                 _ -> Left "No Name found"
       , Just name <- bindName
-      , let nameRange = astRangeToRange $ AST.nodeToRange name
+      , let nameRange = AST.nodeToRange name
       , nameRange `Range.contains` pos ->
           pure $ Just name
     _ -> pure Nothing
@@ -68,7 +67,7 @@ codeActionWith CodeActionContext {path, pos, lineCol} getTypes = do
       hieLineCol <- pure $ Maybe.fromMaybe lineCol hieLineCol
       let types = getTypes hieLineCol
       let mk tyName = do
-            let lineColStart = lineCol {col = 0}
+            let lineColStart = lineCol {col = Pos 0}
             let posStart = Rope.lineColToPos rope lineColStart
             let sig = (nameText <> " :: " <> (T.replace "\n" " " tyName))
             mkAssist sig (SourceEdit.single path (Edit.insert posStart (sig <> "\n")))

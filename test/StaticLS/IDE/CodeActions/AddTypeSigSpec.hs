@@ -109,7 +109,7 @@ spec = do
     let check name src ident =
           it name $ do
             (src, placeholders) <- Placeholder.parseM src
-            let haskell = Haskell.parse src
+            let haskell = Haskell.parse (id, id) src
             let rope = Rope.fromText src
             for_ (IntMap.toList placeholders) \(_i, pos) -> do
               let lineCol = Rope.posToLineCol rope pos

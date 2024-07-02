@@ -10,7 +10,8 @@ import Data.LineColRange
 import Data.Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Pos (LineCol)
+import Data.Pos (Pos(..))
+import Data.LineCol (LineCol(..))
 import Data.Text (Text, intercalate)
 import Data.Text qualified as T
 import GHC.Iface.Ext.Types qualified as GHC

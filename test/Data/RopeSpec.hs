@@ -2,7 +2,8 @@ module Data.RopeSpec (spec) where
 
 import Data.Edit qualified as Edit
 import Data.LineColRange (LineColRange (..))
-import Data.Pos (LineCol (..), Pos (..))
+import Data.Pos ( Pos (..))
+import Data.LineCol (LineCol (..))
 import Data.Range (Range (..))
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
@@ -28,12 +29,12 @@ spec = do
           after' `shouldBe` after
           pure @IO ()
 
-    check "index past the line" "abcd\n1234" (LineCol 0 4) ("abcd", "\n1234")
+    check "index past the line" "abcd\n1234" (LineCol (Pos 0) (Pos 4)) ("abcd", "\n1234")
 
     it "index on newline" do
       let t = "abcd\n1234"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAtLineCol (LineCol 0 5) r
+      let (before, after) = Rope.splitAtLineCol (LineCol (Pos 0) (Pos 5)) r
       before `shouldBe` "abcd\n"
       after `shouldBe` "1234"
       pure @IO ()
@@ -42,7 +43,7 @@ spec = do
     it "index past newline" do
       let t = "abcd\n1234"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAtLineCol (LineCol 0 6) r
+      let (before, after) = Rope.splitAtLineCol (LineCol (Pos 0) (Pos 6)) r
       before `shouldBe` "abcd\n1"
       after `shouldBe` "234"
       pure @IO ()
@@ -50,7 +51,7 @@ spec = do
     it "index past newline" do
       let t = "abcd\n1234\n"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAtLineCol (LineCol 2 0) r
+      let (before, after) = Rope.splitAtLineCol (LineCol (Pos 2) (Pos 0)) r
       before `shouldBe` "abcd\n1234\n"
       after `shouldBe` ""
       pure @IO ()
@@ -58,7 +59,7 @@ spec = do
     it "convert line col at the end" do
       let t = "abcd\n1234"
       let r = Rope.fromText t
-      let lineCol = Rope.lineColToPos r (LineCol 1 4)
+      let lineCol = Rope.lineColToPos r (LineCol (Pos 1) (Pos 4))
       lineCol `shouldBe` (Pos (T.length t))
       pure @IO ()
 
@@ -72,9 +73,9 @@ spec = do
           lineCol' `shouldBe` lineCol
           pure @IO ()
 
-    check "" "abcd\n1234" (Pos 5) (LineCol 1 0)
+    check "" "abcd\n1234" (Pos 5) (LineCol (Pos 1) (Pos 0))
 
-    check "pos on newline" "abcd\n1234" (Pos 4) (LineCol 0 4)
+    check "pos on newline" "abcd\n1234" (Pos 4) (LineCol (Pos 0) (Pos 4))
 
   describe "range to line col range" do
     let check name t range lineColRange = it name do
@@ -88,6 +89,6 @@ spec = do
       "abcd\n1234"
       (Range (Pos 0) (Pos 5))
       -- instead of (LineCol 0 5)
-      (LineColRange (LineCol 0 0) (LineCol 1 0))
+      (LineColRange (LineCol (Pos 0) (Pos 0)) (LineCol (Pos 1) (Pos 0)))
 
   pure ()

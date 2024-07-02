@@ -2,9 +2,10 @@ module StaticLS.IDE.HiePos where
 
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
+import Data.LineCol (LineCol (..))
 import Data.LineColRange
 import Data.Path (AbsPath)
-import Data.Pos (LineCol, Pos)
+import Data.Pos (Pos (..))
 import Data.Rope qualified as Rope
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad

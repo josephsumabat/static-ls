@@ -8,7 +8,8 @@ import AST qualified
 import Data.Edit qualified as Edit
 import Data.LineColRange (LineColRange (..))
 import Data.Path (AbsPath)
-import Data.Pos (LineCol (..), Pos (..))
+import Data.Pos ( Pos (..))
+import Data.LineCol (LineCol (..))
 import Data.Range (Range (..))
 import Data.Rope qualified as Rope
 import Data.Text (Text)
@@ -22,8 +23,8 @@ import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Logger
 import StaticLS.Monad
-import StaticLS.Semantic.Position qualified as Semantic.Position
 import StaticLS.Tree qualified as Tree
+import qualified Data.Range as Range
 
 rename :: AbsPath -> LineCol -> Text -> StaticLsM SourceEdit
 rename path lineCol newName = do
@@ -32,9 +33,9 @@ rename path lineCol newName = do
     let path = ref.path
     sourceRope <- getSourceRope path
     haskell <- getHaskell path
-    let lineColRange = Rope.rangeToLineColRange sourceRope ref.loc
-    let astPoint = Semantic.Position.lineColToAstPoint lineColRange.start
-    let qualified = Tree.getQualifiedAtPoint haskell astPoint
+    -- let lineColRange = Rope.rangeToLineColRange sourceRope ref.loc
+    -- let astPoint = Semantic.Position.lineColToAstPoint lineColRange.start
+    let qualified = Tree.getQualifiedAtPoint haskell ref.loc
     let edit = Edit.replace ref.loc newName
     let sourceEdit = SourceEdit.single ref.path edit
     case qualified of
@@ -45,20 +46,19 @@ rename path lineCol newName = do
       Right (Just q) -> do
         logInfo "got qualified for rename"
         let id = q.id
-        let idStart = (AST.nodeToRange id).startByte
+        let idStart = (AST.nodeToRange id).start
         logInfo $ "idStart: " <> T.pack (show idStart) <> " oldStart: " <> T.pack (show ref.loc.start)
-        let edit = Edit.replace (Range (Pos idStart) ref.loc.end) newName
+        let edit = Edit.replace (Range idStart ref.loc.end) newName
         pure $ SourceEdit.single ref.path edit
   let sourceEdit = mconcat sourceEdits
   pure sourceEdit
 
-canRenameAtPos :: AbsPath -> LineCol -> StaticLsM (Maybe LineColRange)
-canRenameAtPos path lineCol = do
-  let astPoint = Semantic.Position.lineColToAstPoint lineCol
+canRenameAtPos :: AbsPath -> Pos -> StaticLsM (Maybe Range)
+canRenameAtPos path pos = do
   haskell <- getHaskell path
-  let name = AST.getDeepestContaining @Hir.NameTypes astPoint (AST.getDynNode haskell)
+  let name = AST.getDeepestContaining @Hir.NameTypes (Range.empty pos) (AST.getDynNode haskell)
   case name of
     Just n -> do
       let range = AST.nodeToRange n
-      pure $ Just $ Semantic.Position.astRangeToLineColRange range
+      pure $ Just range
     Nothing -> pure Nothing

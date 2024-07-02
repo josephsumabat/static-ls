@@ -12,7 +12,8 @@ import Data.List.Extra (nubOrd)
 import Data.Maybe (catMaybes, fromMaybe, maybeToList)
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Pos (LineCol (..))
+import Data.Pos (Pos(..))
+import Data.LineCol (LineCol (..))
 import Data.Text qualified as T
 import Development.IDE.GHC.Compat.Util qualified as IDE.GHC.Compat.Util
 import Development.IDE.GHC.Error (
@@ -72,7 +73,7 @@ getDefinition path lineCol = do
   modToLocation :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> m (Maybe FileLcRange)
   modToLocation modName = runMaybeT $ do
     srcFile <- modToSrcFile modName
-    pure $ FileWith srcFile (LineColRange.empty (LineCol 0 0))
+    pure $ FileWith srcFile (LineColRange.empty (LineCol (Pos 0) (Pos 0)))
 
 getTypeDefinition ::
   (MonadIde m, MonadIO m) =>

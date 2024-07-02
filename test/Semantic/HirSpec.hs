@@ -12,9 +12,10 @@ spec = do
   xit "smoke" do
     let hs =
           AST.Haskell.parse
+            (id, id)
             [trimming|
     module Testing where
-    
+
     import First.Seond.Third qualified as X.First (first, second third)
     import Third qualified as X.First (first, second third)
     |]

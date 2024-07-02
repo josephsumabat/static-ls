@@ -13,7 +13,8 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Pos (LineCol (..))
+import Data.Pos (Pos(..))
+import Data.LineCol (LineCol (..))
 import Data.Text qualified as T
 import Data.Traversable (for)
 import GHC.Plugins qualified as GHC

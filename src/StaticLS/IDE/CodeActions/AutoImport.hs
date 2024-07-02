@@ -13,9 +13,10 @@ import Data.Change qualified as Change
 import Data.Char qualified as Char
 import Data.Coerce (coerce)
 import Data.Edit qualified as Edit
+import Data.LineCol (LineCol (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Path (AbsPath)
-import Data.Pos (LineCol (..), Pos (..))
+import Data.Pos (Pos (..))
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
@@ -30,10 +31,10 @@ import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.IDE.Utils qualified as IDE.Utils
 import StaticLS.Logger
 import StaticLS.Monad
-import StaticLS.Semantic.Position
 import StaticLS.StaticEnv (runHieDbExceptT)
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils
+import qualified Data.Range as Range
 
 findModulesForDefQuery :: HieDb -> Text -> IO [Text]
 findModulesForDefQuery (getConn -> conn) name = do
@@ -58,28 +59,27 @@ findModulesForDef name = do
     Right res -> pure $ Hir.parseModuleFromText <$> res
 
 data ModulesToImport = ModulesToImport
-  { moduleNames :: [Hir.Module]
-  , moduleQualifier :: Maybe Hir.Module
+  { moduleNames :: [Hir.Module],
+    moduleQualifier :: Maybe Hir.Module
   }
 
 getModulesToImport ::
   (HasCallStack, ()) =>
   AbsPath ->
-  LineCol ->
+  Pos ->
   StaticLsM ModulesToImport
 getModulesToImport path pos = do
   haskell <- getHaskell path
-  let astPoint = lineColToAstPoint pos
   -- TODO: Remove double traversal of AST
-  let qualified = Hir.getQualifiedAtPoint pos haskell
-  let importable = AST.getDeepestContaining @Hir.NameTypes astPoint (AST.getDynNode haskell)
+  let qualified = Hir.getQualifiedAtPoint (Range.empty pos) haskell
+  let importable = AST.getDeepestContaining @Hir.NameTypes (Range.empty pos) (AST.getDynNode haskell)
   case qualified of
     Left e -> do
       logError $ T.pack $ "Error getting qualified: " <> show e
       pure
         ModulesToImport
-          { moduleNames = []
-          , moduleQualifier = Nothing
+          { moduleNames = [],
+            moduleQualifier = Nothing
           }
     Right Nothing -> case importable of
       Just importableNode -> do
@@ -88,21 +88,21 @@ getModulesToImport path pos = do
         res <- findModulesForDef nodeText
         pure $
           ModulesToImport
-            { moduleNames = res
-            , moduleQualifier = Nothing
+            { moduleNames = res,
+              moduleQualifier = Nothing
             }
       Nothing -> do
         pure
           ModulesToImport
-            { moduleNames = []
-            , moduleQualifier = Nothing
+            { moduleNames = [],
+              moduleQualifier = Nothing
             }
     Right (Just qualified) -> do
       res <- findModulesForDef qualified.name.text
       pure $
         ModulesToImport
-          { moduleNames = res
-          , moduleQualifier = Just qualified.mod
+          { moduleNames = res,
+            moduleQualifier = Just qualified.mod
           }
 
 createAutoImportCodeActions :: AbsPath -> Maybe Hir.Module -> Hir.Module -> StaticLsM [Assist]
@@ -120,9 +120,9 @@ createAutoImportCodeActions path mQualifier importMod =
         ]
 
 codeAction :: CodeActionContext -> StaticLsM [Assist]
-codeAction CodeActionContext {path, lineCol} = do
+codeAction CodeActionContext {path, lineCol, pos} = do
   hir <- getHir path
-  modulesToImport <- getModulesToImport path lineCol
+  modulesToImport <- getModulesToImport path pos
 
   -- TODO: get module from ast instead of path
   mCurrentModule <- IDE.Utils.pathToModule path
@@ -157,7 +157,7 @@ getImportsInsertPoint rope hs = do
   let headerPos =
         case header of
           Nothing -> Pos 0
-          Just header -> Tree.byteToPos rope $ (AST.nodeToRange header).endByte
+          Just header -> (AST.nodeToRange header).end
   case imports of
     Nothing -> do
       pure $ HeaderInsertPoint headerPos
@@ -166,13 +166,13 @@ getImportsInsertPoint rope hs = do
       case lastImport of
         Nothing -> pure $ HeaderInsertPoint headerPos
         Just lastImport -> do
-          let end = (AST.nodeToRange lastImport).endByte
-          pure $ AfterImportInsertPoint $ Tree.byteToPos rope end
+          let end = (AST.nodeToRange lastImport).end
+          pure $ AfterImportInsertPoint end
 
 shouldAddNewline :: Rope -> Pos -> Bool
 shouldAddNewline rope pos = do
   let lineCol = Rope.posToLineCol rope pos
-  let lineAfter = Rope.toText <$> Rope.getLine rope (Pos (lineCol.line + 1))
+  let lineAfter = Rope.toText <$> Rope.getLine rope (Pos (lineCol.line.pos + 1))
   case lineAfter of
     Just lineAfter -> not (T.all Char.isSpace lineAfter && T.elem '\n' lineAfter)
     Nothing -> True

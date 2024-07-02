@@ -17,7 +17,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe qualified as Maybe
 import Data.Pos (Pos (..))
 import Data.Rope (Rope)
-import Data.Text (Text)
+import Data.Range (Range)
 
 byteToPos :: Rope -> Int -> Pos
 byteToPos _rope byte = Pos byte
@@ -64,7 +64,7 @@ parseQualified qualified = do
   id <- pure $ AST.getDynNode id
   pure Qualified {modIds, id}
 
-getQualifiedAtPoint :: Haskell.Haskell -> AST.Point -> AST.Err (Maybe Qualified)
+getQualifiedAtPoint :: Haskell.Haskell -> Range -> AST.Err (Maybe Qualified)
 getQualifiedAtPoint hs pos = do
   let node = AST.getDeepestContaining @Haskell.Qualified pos (AST.getDynNode hs)
   case node of

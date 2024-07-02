@@ -5,7 +5,8 @@ import Control.Monad (join)
 import Data.Foldable qualified as Foldable
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
-import Data.Pos (LineCol (..))
+import Data.LineCol (LineCol (..))
+import Data.Pos (Pos (..))
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T

@@ -103,10 +103,14 @@ handlePrepareRenameRequest = LSP.requestHandler LSP.SMethod_TextDocumentPrepareR
   lift $ logInfo "Received prepare rename request."
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
-  lineColRange <- lift $ IDE.Rename.canRenameAtPos path (ProtoLSP.lineColFromProto params._position)
-  case lineColRange of
+  let lineCol = (ProtoLSP.lineColFromProto params._position)
+  rope <- lift $ IDE.getSourceRope path
+  let pos = Rope.lineColToPos rope lineCol
+  range <- lift $ IDE.Rename.canRenameAtPos path pos
+  case range of
     Nothing -> res $ Right $ InR LSP.Null
-    Just lineColRange -> do
+    Just range -> do
+      let lineColRange = Rope.rangeToLineColRange rope range
       let resp = LSP.PrepareRenameResult $ InL (ProtoLSP.lineColRangeToProto lineColRange)
       lift $ logInfo $ T.pack $ "resp: " ++ show resp
       res $ Right $ InL resp
@@ -260,8 +264,9 @@ handleDocumentSymbols = LSP.requestHandler LSP.SMethod_TextDocumentDocumentSymbo
   let params = req._params
   let uri = params._textDocument._uri
   path <- ProtoLSP.uriToAbsPath uri
+  rope <- lift $ IDE.getSourceRope path
   symbols <- lift $ getDocumentSymbols path
-  res $ Right $ InR $ InL $ fmap ProtoLSP.symbolTreeToProto symbols
+  res $ Right $ InR $ InL $ fmap (ProtoLSP.symbolTreeToProto rope) symbols
   pure ()
 
 handleGhcidFileChange :: LspT c StaticLsM ()

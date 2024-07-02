@@ -82,7 +82,6 @@ library
       StaticLS.ProtoLSP
       StaticLS.SDoc
       StaticLS.Semantic
-      StaticLS.Semantic.Position
       StaticLS.Semantic.Types
       StaticLS.Server
       StaticLS.SrcFiles

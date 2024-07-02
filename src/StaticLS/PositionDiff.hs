@@ -16,7 +16,6 @@ module StaticLS.PositionDiff (
   getDiffMap,
   getDiffMapFromDiff,
   printDiffSummary,
-  getDiffMapFromDiff,
   lexWithErrors,
   concatTokens,
   tokensToRangeMap,
@@ -228,3 +227,23 @@ diffLineColRange old diffMap new (LineColRange start end) =
 diffRange :: DiffMap -> Range -> Range
 diffRange diffMap (Range start end) =
   Range (diffPos start diffMap) (diffPos end diffMap)
+
+
+-- lineColToPos :: Text -> LineCol -> Pos
+-- lineColToPos source UnsafeLineCol {line, col} =
+--   UnsafePos pos
+--  where
+--   (before, after) = splitAt line lines
+--   (beforeCol, _afterCol) = T.splitAt col (T.concat after)
+--   pos = sum (T.length <$> before) + T.length beforeCol
+--   lines = splitLinesWithEnd source & NE.toList
+
+-- posToLineCol :: Text -> Pos -> LineCol
+-- posToLineCol source UnsafePos {pos} =
+--   UnsafeLineCol {line, col}
+--  where
+--   (beforePos, _afterPos) = T.splitAt pos source
+--   linesBeforePos = splitLinesWithEnd beforePos
+--   lastLineBeforePos = NE.last linesBeforePos
+--   line = length linesBeforePos - 1
+--   col = T.length lastLineBeforePos

@@ -27,8 +27,9 @@ import Data.Change (Change (..))
 import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.Foldable qualified as Foldable
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
-import Data.Pos (LineCol (..), Pos (..))
+import Data.Pos (Pos (..))
 import Data.Range (Range (..))
 import Data.String (IsString)
 import Data.Text (Text)
@@ -60,15 +61,15 @@ length = fromIntegral . Rope.charLength . (.rope)
 posToLineCol :: Rope -> Pos -> LineCol
 posToLineCol r (Pos pos) =
   LineCol
-    (fromIntegral (Rope.posLine ropePos))
-    (fromIntegral (Rope.posColumn ropePos))
+    (Pos (fromIntegral (Rope.posLine ropePos)))
+    (Pos (fromIntegral (Rope.posColumn ropePos)))
  where
   ropePos = Rope.charLengthAsPosition beforePos
   rope = r.rope
   (beforePos, _afterPos) = Rope.charSplitAt (fromIntegral pos) rope
 
 lineColToPos :: Rope -> LineCol -> Pos
-lineColToPos r (LineCol line col) =
+lineColToPos r (LineCol (Pos line) (Pos col)) =
   Pos (fromIntegral (Rope.charLength beforeLineCol))
  where
   (beforeLineCol, _) = Rope.charSplitAtPosition ropePos rope
@@ -102,7 +103,7 @@ splitAt (Pos pos) (Rope rope) = (Rope before, Rope after)
 
 -- TODO: return a maybe
 splitAtLineCol :: LineCol -> Rope -> (Rope, Rope)
-splitAtLineCol (LineCol line col) (Rope rope) = (Rope before, Rope after)
+splitAtLineCol (LineCol (Pos line) (Pos col)) (Rope rope) = (Rope before, Rope after)
  where
   (before, after) =
     Rope.charSplitAtPosition
@@ -123,7 +124,7 @@ indexRange (Rope r) (Range (Pos start) (Pos end))
   (indexed, _) = Rope.charSplitAt (fromIntegral (end - start)) afterStart
 
 isValidLineCol :: Rope -> LineCol -> Bool
-isValidLineCol r (LineCol line col) =
+isValidLineCol r (LineCol (Pos line) (Pos col)) =
   line >= 0
     && col >= 0
     && line < fromIntegral @Word @Int (Rope.lengthInLines rope)
@@ -133,7 +134,7 @@ isValidLineCol r (LineCol line col) =
 
 -- may point to the end of something in an exclusive range
 isValidLineColEnd :: Rope -> LineCol -> Bool
-isValidLineColEnd r (LineCol line col) =
+isValidLineColEnd r (LineCol (Pos line) (Pos col)) =
   line >= 0
     && col >= 0
     && line < fromIntegral @Word @Int (Rope.lengthInLines rope)

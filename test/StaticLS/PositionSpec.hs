@@ -3,6 +3,8 @@
 
 module StaticLS.PositionSpec where
 
+import Data.Function ((&))
+import Data.LineCol (LineCol (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Pos
 import Data.Text (Text)
@@ -38,7 +40,7 @@ instance Arbitrary TextAndLineCol where
     let theLine = NE.toList (splitLinesWithEnd text) !! line
     -- the last line could be empty, ex "a\n"
     col <- choose (0, max 0 (T.length theLine - 1))
-    pure $ TextAndLineCol text (LineCol line col)
+    pure $ TextAndLineCol text (LineCol (Pos line) (Pos col))
 
 spec :: Spec
 spec = do
@@ -54,8 +56,27 @@ spec = do
     let text = "=k"
     let pos = Pos 0
     let lineCol = posToLineCol text pos
-    lineCol `shouldBe` LineCol 0 0
+    lineCol `shouldBe` LineCol (Pos 0) (Pos 0)
     let pos' = lineColToPos text lineCol
     pos `shouldBe` pos'
     pure @IO ()
   pure ()
+
+lineColToPos :: Text -> LineCol -> Pos
+lineColToPos source LineCol {line, col} =
+  UnsafePos pos
+ where
+  (before, after) = splitAt line.pos lines
+  (beforeCol, _afterCol) = T.splitAt col.pos (T.concat after)
+  pos = sum (T.length <$> before) + T.length beforeCol
+  lines = splitLinesWithEnd source & NE.toList
+
+posToLineCol :: Text -> Pos -> LineCol
+posToLineCol source UnsafePos {pos} =
+  LineCol {line, col}
+ where
+  (beforePos, _afterPos) = T.splitAt pos source
+  linesBeforePos = splitLinesWithEnd beforePos
+  lastLineBeforePos = NE.last linesBeforePos
+  line = Pos (length linesBeforePos - 1)
+  col = Pos (T.length lastLineBeforePos)

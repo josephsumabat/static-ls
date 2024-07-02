@@ -3,26 +3,25 @@ module StaticLS.IDE.DocumentSymbols (SymbolTree (..), getDocumentSymbols) where
 
 import AST qualified
 import AST.Haskell qualified as Haskell
+import AST.Sum
 import Data.Either.Extra (eitherToMaybe)
 import Data.Foldable qualified as Foldable
-import Data.LineColRange (LineColRange)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
-import Data.Sum
+import Data.Range (Range)
 import Data.Text (Text)
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SymbolKind (SymbolKind)
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
 import StaticLS.Logger
 import StaticLS.Monad
-import StaticLS.Semantic.Position
 
 data SymbolTree = SymbolTree
   { name :: !Text
   , kind :: !SymbolKind
-  , range :: !LineColRange
-  , selectionRange :: !LineColRange
+  , range :: !Range
+  , selectionRange :: !Range
   , children :: [SymbolTree]
   }
   deriving (Show)
@@ -61,8 +60,8 @@ typeFamilyToSymbol typeFamily = do
       mkSymbolTree
         (nodeToText name)
         SymbolKind.Type
-        (astRangeToLineColRange $ AST.nodeToRange typeFamily)
-        (astRangeToLineColRange $ AST.nodeToRange name)
+        (AST.nodeToRange typeFamily)
+        (AST.nodeToRange name)
 
 typeSynonymToSymbol :: Haskell.TypeSynomym -> AST.Err [SymbolTree]
 typeSynonymToSymbol typeSynonym = do
@@ -73,8 +72,8 @@ typeSynonymToSymbol typeSynonym = do
       mkSymbolTree
         (nodeToText name)
         SymbolKind.Type
-        (astRangeToLineColRange $ AST.nodeToRange typeSynonym)
-        (astRangeToLineColRange $ AST.nodeToRange name)
+        (AST.nodeToRange typeSynonym)
+        (AST.nodeToRange name)
 
 newtypeToSymbol :: Haskell.Newtype -> AST.Err [SymbolTree]
 newtypeToSymbol newtype_ = do
@@ -85,8 +84,8 @@ newtypeToSymbol newtype_ = do
       mkSymbolTree
         (nodeToText name)
         SymbolKind.Type
-        (astRangeToLineColRange $ AST.nodeToRange newtype_)
-        (astRangeToLineColRange $ AST.nodeToRange name)
+        (AST.nodeToRange newtype_)
+        (AST.nodeToRange name)
 
 classToSymbol :: Haskell.Class -> AST.Err [SymbolTree]
 classToSymbol class_ = do
@@ -97,8 +96,8 @@ classToSymbol class_ = do
       mkSymbolTree
         (nodeToText name)
         SymbolKind.Class
-        (astRangeToLineColRange $ AST.nodeToRange class_)
-        (astRangeToLineColRange $ AST.nodeToRange name)
+        (AST.nodeToRange class_)
+        (AST.nodeToRange name)
 
 dataTypeToSymbol :: Haskell.DataType -> AST.Err [SymbolTree]
 dataTypeToSymbol dataType = do
@@ -109,8 +108,8 @@ dataTypeToSymbol dataType = do
       mkSymbolTree
         (nodeToText name)
         SymbolKind.Type
-        (astRangeToLineColRange $ AST.nodeToRange dataType)
-        (astRangeToLineColRange $ AST.nodeToRange name)
+        (AST.nodeToRange dataType)
+        (AST.nodeToRange name)
 
 declToSymbol :: Haskell.Decl -> AST.Err [SymbolTree]
 declToSymbol decl =
@@ -123,8 +122,8 @@ declToSymbol decl =
           mkSymbolTree
             (nodeToText name)
             SymbolKind.Function
-            (astRangeToLineColRange $ AST.nodeToRange decl)
-            (astRangeToLineColRange $ AST.nodeToRange name)
+            (AST.nodeToRange decl)
+            (AST.nodeToRange name)
     Inj @Haskell.Function fun -> do
       name <- AST.collapseErr fun.name
       pure $ Foldable.toList $ do
@@ -133,12 +132,12 @@ declToSymbol decl =
           mkSymbolTree
             (nodeToText name)
             SymbolKind.Function
-            (astRangeToLineColRange $ AST.nodeToRange decl)
-            (astRangeToLineColRange $ AST.nodeToRange name)
+            (AST.nodeToRange decl)
+            (AST.nodeToRange name)
     _ -> pure []
 
 -- TODO: check invariant that selectionRange is contained in range
-mkSymbolTree :: Text -> SymbolKind -> LineColRange -> LineColRange -> SymbolTree
+mkSymbolTree :: Text -> SymbolKind -> Range -> Range -> SymbolTree
 mkSymbolTree name kind range selectionRange =
   SymbolTree
     { name = name

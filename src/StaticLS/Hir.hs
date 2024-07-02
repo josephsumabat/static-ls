@@ -3,16 +3,17 @@ module StaticLS.Hir where
 import AST qualified
 import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
+import AST.Sum (Nil, (:+))
 import Control.Applicative (asum, (<|>))
 import Data.Either qualified as Either
+import Data.LineCol (LineCol (..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
-import Data.Pos (LineCol)
-import Data.Sum (Nil, (:+))
+import Data.Pos (Pos (..))
+import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.Semantic.Position (lineColToAstPoint)
 
 data Name = Name
   { text :: Text
@@ -118,10 +119,9 @@ parseQualified q = do
   name <- pure $ Name {text = AST.nodeToText name}
   pure $ Qualified {mod, name}
 
-getQualifiedAtPoint :: LineCol -> H.Haskell -> AST.Err (Maybe Qualified)
-getQualifiedAtPoint lineCol h = do
-  let astPoint = lineColToAstPoint lineCol
-  let node = AST.getDeepestContaining @H.Qualified astPoint (AST.getDynNode h)
+getQualifiedAtPoint :: Range -> H.Haskell -> AST.Err (Maybe Qualified)
+getQualifiedAtPoint range h = do
+  let node = AST.getDeepestContaining @H.Qualified range (AST.getDynNode h)
   qualified <- traverse parseQualified node
   pure qualified
 

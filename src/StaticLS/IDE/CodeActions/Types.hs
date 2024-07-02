@@ -3,8 +3,9 @@
 module StaticLS.IDE.CodeActions.Types where
 
 import Data.Aeson.TH
+import Data.LineCol (LineCol)
 import Data.Path (AbsPath)
-import Data.Pos (LineCol, Pos)
+import Data.Pos (Pos)
 import Data.Text
 import StaticLS.IDE.SourceEdit (SourceEdit)
 

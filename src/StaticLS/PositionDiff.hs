@@ -16,7 +16,6 @@ module StaticLS.PositionDiff (
   getDiffMap,
   getDiffMapFromDiff,
   printDiffSummary,
-  getDiffMapFromDiff,
   lexWithErrors,
   concatTokens,
   tokensToRangeMap,
@@ -24,6 +23,7 @@ module StaticLS.PositionDiff (
 where
 
 import Data.Diff qualified as Diff
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe

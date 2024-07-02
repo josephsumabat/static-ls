@@ -51,6 +51,7 @@ dependencies:
   - tree-sitter-haskell
   - tree-sitter-ast
   - haskell-ast
+  - text-range
   - pretty-simple
   - Diff
   - exceptions

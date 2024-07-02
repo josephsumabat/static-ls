@@ -2,10 +2,11 @@
 
 module TestImport.TestData where
 
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Pos (LineCol (..))
+import Data.Pos (Pos (..))
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 
@@ -26,15 +27,15 @@ myFunDefLocation = do
   pure $
     FileWith
       absPath
-      LineColRange
-        { start = LineCol 10 0
-        , end = LineCol 10 5
-        }
+      ( LineColRange
+          (LineCol (Pos 10) (Pos 0))
+          (LineCol (Pos 10) (Pos 5))
+      )
 
 myFunRef1TdiAndPosition :: IO (AbsPath, LineCol)
 myFunRef1TdiAndPosition = do
   path <- Path.filePathToAbs "test/TestData/Mod1.hs"
-  let pos = LineCol 10 18
+  let pos = LineCol (Pos 10) (Pos 18)
   pure (path, pos)
 
 unsafeIntToUInt :: Int -> LSP.UInt

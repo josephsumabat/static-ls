@@ -3,9 +3,10 @@ module StaticLS.HIE.Queries where
 import Control.Error.Util (hush)
 import Control.Monad (join)
 import Data.Foldable qualified as Foldable
+import Data.LineCol (LineCol (..))
 import Data.Map qualified as Map
 import Data.Maybe (mapMaybe)
-import Data.Pos (LineCol (..))
+import Data.Pos (Pos (..))
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T

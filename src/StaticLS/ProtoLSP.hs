@@ -31,6 +31,7 @@ import Data.Edit (Edit)
 import Data.Edit qualified as Edit
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
+import Data.LineCol (LineCol (..))
 import Data.LineColRange
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
@@ -53,12 +54,12 @@ import StaticLS.Monad
 import StaticLS.Utils
 
 lineColToProto :: LineCol -> LSP.Position
-lineColToProto (LineCol line col) =
+lineColToProto (LineCol (Pos line) (Pos col)) =
   LSP.Position {LSP._line = fromIntegral line, LSP._character = fromIntegral col}
 
 lineColFromProto :: LSP.Position -> LineCol
 lineColFromProto (LSP.Position {_line, _character}) =
-  LineCol (fromIntegral _line) (fromIntegral _character)
+  LineCol (Pos (fromIntegral _line)) (Pos (fromIntegral _character))
 
 lineColRangeFromProto :: LSP.Range -> LineColRange
 lineColRangeFromProto (LSP.Range start end) =
@@ -123,17 +124,17 @@ symbolToProto Symbol {name, kind, loc} =
     , _tags = Nothing
     }
 
-symbolTreeToProto :: SymbolTree -> LSP.DocumentSymbol
-symbolTreeToProto SymbolTree {name, kind, range, selectionRange, children} =
+symbolTreeToProto :: Rope -> SymbolTree -> LSP.DocumentSymbol
+symbolTreeToProto rope SymbolTree {name, kind, range, selectionRange, children} =
   LSP.DocumentSymbol
     { _name = name
     , _tags = Nothing
     , _detail = Nothing
     , _kind = symbolKindToProto kind
     , _deprecated = Nothing
-    , _range = lineColRangeToProto range
-    , _selectionRange = lineColRangeToProto selectionRange
-    , _children = Just $ symbolTreeToProto <$> children
+    , _range = lineColRangeToProto (Rope.rangeToLineColRange rope range)
+    , _selectionRange = lineColRangeToProto (Rope.rangeToLineColRange rope selectionRange)
+    , _children = Just $ (symbolTreeToProto rope) <$> children
     }
 
 changeToProto :: Rope -> Change -> LSP.TextEdit

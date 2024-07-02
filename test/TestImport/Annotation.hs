@@ -6,12 +6,13 @@ where
 import Control.Exception (SomeException)
 import Data.IntSet (IntSet)
 import Data.IntSet qualified as IntSet
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.ListUtils
 import Data.Maybe qualified as Maybe
-import Data.Pos (LineCol (..))
+import Data.Pos (Pos (..))
 import Data.Range (Range)
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
@@ -68,7 +69,7 @@ calculateAnns line anns =
  where
   go [] = []
   go ((pos, RangeAnn len) : anns) =
-    (LineCol line pos, len, text) : go restAnns
+    (LineCol (Pos line) (Pos pos), len, text) : go restAnns
    where
     (texts, restAnns) = spanMaybe (getTextAnn . snd) anns
     text = T.concat texts
@@ -93,8 +94,8 @@ calculatedAnnsFromLineTokens annLineTokens =
 --
 -- To do this, we sink each annotation by repeatedly testing if the previous line is valid
 sinkAnnotation :: Rope -> IntSet -> CalculatedAnn -> Maybe CalculatedAnn
-sinkAnnotation rope linesWithAnnotations (LineCol line col, len, text) =
-  (\sunkenLine -> (LineCol sunkenLine col, len, text)) <$> mSunkenLine
+sinkAnnotation rope linesWithAnnotations (LineCol (Pos line) (Pos col), len, text) =
+  (\sunkenLine -> (LineCol (Pos sunkenLine) (Pos col), len, text)) <$> mSunkenLine
  where
   trySink !currLine
     | currLine < 0 = Nothing
@@ -102,9 +103,9 @@ sinkAnnotation rope linesWithAnnotations (LineCol line col, len, text) =
     | otherwise = trySink (currLine - 1)
   isValidLine line =
     not (line `IntSet.member` linesWithAnnotations)
-      && Rope.isValidLineCol rope (traceShowId (LineCol line col))
+      && Rope.isValidLineCol rope (traceShowId (LineCol (Pos line) (Pos col)))
       -- don't include the newline here, so we don't use isValidLineColEnd
-      && Rope.isValidLineCol rope (traceShowId (LineCol line (col + len)))
+      && Rope.isValidLineCol rope (traceShowId (LineCol (Pos line) (Pos (col + len))))
   mSunkenLine = trySink line
 
 sinkAnnotations :: Rope -> [CalculatedAnn] -> Either SomeException [CalculatedAnn]
@@ -113,7 +114,7 @@ sinkAnnotations rope annotations =
     (show linesWithAnnotations)
     sunkAnnotations
  where
-  linesWithAnnotations = IntSet.fromList $ map (\(LineCol line _col, _, _) -> line) annotations
+  linesWithAnnotations = IntSet.fromList $ map (\(LineCol (Pos line) (Pos _col), _, _) -> line) annotations
   sunkAnnotations =
     mapM
       ( \ann ->
@@ -161,7 +162,7 @@ convertCalculatedAnn rope (lineCol, len, text) =
           lineCol
           ( lineCol
               { col =
-                  lineCol.col + len
+                  Pos (lineCol.col.pos + len)
               }
           )
       )

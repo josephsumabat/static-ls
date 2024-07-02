@@ -26,10 +26,12 @@ import Data.Function ((&))
 import Data.Functor.Identity qualified as Identity
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
+import Data.LineCol (LineCol (..))
 import Data.List qualified as List
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
-import Data.Pos (LineCol (..), Pos (..))
+import Data.Pos (Pos (..))
+import Data.Range qualified as Range
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
@@ -47,7 +49,6 @@ import StaticLS.IDE.Monad
 import StaticLS.IDE.Utils qualified as IDE.Utils
 import StaticLS.Logger (logInfo)
 import StaticLS.Monad
-import StaticLS.Semantic.Position qualified as Semantic.Position
 import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
@@ -143,8 +144,8 @@ data CompletionMode
 getModulePrefix :: Context -> Rope -> Maybe (Text, Text)
 getModulePrefix cx sourceRope = do
   let lineCol = cx.lineCol
-  let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope (Pos lineCol.line)
-  let (beforeCol, _afterCol) = T.splitAt lineCol.col line
+  let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
+  let (beforeCol, _afterCol) = T.splitAt lineCol.col.pos line
   let (_, prefix) = Identity.runIdentity $ T.spanEndM (pure . not . Char.isSpace) beforeCol
   let firstChar = fst <$> T.uncons prefix
   let firstIsUpper = case firstChar of
@@ -157,9 +158,9 @@ getModulePrefix cx sourceRope = do
 getImportPrefix :: Context -> Rope -> H.Haskell -> Maybe (Maybe Text)
 getImportPrefix cx sourceRope hs = do
   let lineCol = cx.lineCol
-  let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope (Pos lineCol.line)
-  let astPoint = Semantic.Position.lineColToAstPoint cx.lineCol
-  let imports = AST.getDeepestContaining @Haskell.Imports astPoint (AST.getDynNode hs)
+  let pos = cx.pos
+  let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
+  let imports = AST.getDeepestContaining @Haskell.Imports (Range.empty pos) (AST.getDynNode hs)
   case "import" `T.stripPrefix` line of
     Just rest | Maybe.isJust imports -> do
       let mod = T.dropWhile Char.isSpace rest

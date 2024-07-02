@@ -14,6 +14,7 @@ where
 import Data.Bifunctor (second)
 import Data.Char qualified as Char
 import Data.Function ((&))
+import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.LineColRange qualified as LineColRange
 import Data.List qualified as List
@@ -21,7 +22,7 @@ import Data.List.NonEmpty qualified as NE
 import Data.List.NonEmpty.Extra (minimum1)
 import Data.Maybe qualified as Maybe
 import Data.Path qualified as Path
-import Data.Pos (LineCol (..))
+import Data.Pos (Pos (..))
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Read qualified as T.Read
@@ -93,10 +94,6 @@ readInt t = do
     Right (i, "") -> Just i
     _ -> Nothing
 
--- $> -- parseHeader "src/StaticLS/ParseErrors.hs:(10,11)-(5,11): warning: [-Wunused-imports]"
-
--- $> -- parseHeader "src/StaticLS/ParseErrors.hs:10:5-11: warning: [-Wunused-imports]"
-
 parseSeverity :: Text -> Diagnostics.Severity
 parseSeverity t = case T.toLower t of
   "error" -> Diagnostics.Error
@@ -126,7 +123,7 @@ parseHeader line =
         Just $
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)
-              , loc = LineColRange.empty (LineCol line col)
+              , loc = LineColRange.empty (LineCol (Pos line) (Pos col))
               }
           , sev
           , rest
@@ -139,7 +136,7 @@ parseHeader line =
         Just $
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)
-              , loc = LineColRange (LineCol line col1) (LineCol line col2)
+              , loc = LineColRange (LineCol (Pos line) (Pos col1)) (LineCol (Pos line) (Pos col2))
               }
           , sev
           , rest
@@ -153,7 +150,7 @@ parseHeader line =
         Just $
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)
-              , loc = LineColRange (LineCol line1 col1) (LineCol line2 col2)
+              , loc = LineColRange (LineCol (Pos line1) (Pos col1)) (LineCol (Pos line2) (Pos col2))
               }
           , sev
           , rest

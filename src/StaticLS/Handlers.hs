@@ -16,10 +16,10 @@ import Language.LSP.Protocol.Lens qualified as LSP hiding (publishDiagnostics)
 import Language.LSP.Protocol.Message qualified as LSP
 import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
-import Language.LSP.Server (
-  Handlers,
-  LspT,
- )
+import Language.LSP.Server
+  ( Handlers,
+    LspT,
+  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.HIE.File qualified as HIE.File
@@ -93,7 +93,10 @@ handleRenameRequest = LSP.requestHandler LSP.SMethod_TextDocumentRename $ \req r
   lift $ logInfo "Received rename request."
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
-  sourceEdit <- lift $ IDE.Rename.rename path (ProtoLSP.lineColFromProto params._position) params._newName
+  sourceRope <- lift $ IDE.getSourceRope path
+  let lineCol = (ProtoLSP.lineColFromProto params._position)
+  let pos = Rope.lineColToPos sourceRope lineCol
+  sourceEdit <- lift $ IDE.Rename.rename path pos lineCol params._newName
   lift $ logInfo $ "sourceEdit: " <> T.pack (show sourceEdit)
   workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
   res $ Right $ InL workspaceEdit
@@ -234,9 +237,9 @@ handleCompletion = LSP.requestHandler LSP.SMethod_TextDocumentCompletion $ \req 
   let lspCompletions = fmap (ProtoLSP.completionToProto sourceRope) completions
   let lspList =
         LSP.CompletionList
-          { _isIncomplete = isIncomplete
-          , _itemDefaults = Nothing
-          , _items = lspCompletions
+          { _isIncomplete = isIncomplete,
+            _itemDefaults = Nothing,
+            _items = lspCompletions
           }
   res $ Right $ InR $ InL lspList
   pure ()

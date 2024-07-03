@@ -78,15 +78,17 @@ renameSplice node old new = do
       -- logInfo $ "splice changes: " <> T.pack (show changes)
       changes
 
-rename :: AbsPath -> LineCol -> Text -> StaticLsM SourceEdit
-rename path lineCol newName = do
-  sourceRope <- getSourceRope path
-  let pos = Rope.lineColToPos sourceRope lineCol
+rename :: AbsPath -> Pos -> LineCol -> Text -> StaticLsM SourceEdit
+rename path pos lineCol newName = do
   refs <- References.findRefsPos path lineCol
-  haskell <- getHaskell path
-  let nameTypes = Hir.getNameTypes (Range.empty pos) haskell
-  let nameText = AST.nodeToText <$> nameTypes
+  nameText <- do
+    haskell <- getHaskell path
+    let nameTypes = Hir.getNameTypes (Range.empty pos) haskell
+    let nameText = AST.nodeToText <$> nameTypes
+    pure nameText
   sourceEdits <- for refs \ref -> do
+    haskell <- getHaskell path
+    sourceRope <- getSourceRope ref.path
     logInfo $ "ref: " <> T.pack (show ref)
     let context = getRenameContext haskell ref.loc
     let defaultEdit = Edit.replace ref.loc newName

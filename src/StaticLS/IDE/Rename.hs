@@ -86,6 +86,7 @@ rename path lineCol newName = do
   let nameTypes = Hir.getNameTypes (Range.empty pos) haskell
   let nameText = AST.nodeToText <$> nameTypes
   sourceEdits <- for refs \ref -> do
+    logInfo $ "ref: " <> T.pack (show ref)
     let context = getRenameContext haskell ref.loc
     let defaultEdit = Edit.replace ref.loc newName
     let defaultSourceEdit = SourceEdit.single ref.path defaultEdit

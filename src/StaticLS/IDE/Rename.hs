@@ -38,14 +38,14 @@ data RenameContext
   | RenameSplice H.Splice
   | RenameOther
   deriving (Show)
-  
+
 showContext :: RenameContext -> Text
 showContext = \case
   RenameQualified _ -> "Qualified"
   RenameTopSplice _ -> "TopSplice"
   RenameSplice _ -> "Splice"
   RenameOther -> "Other"
-  
+
 getRenameContext :: H.Haskell -> Range -> AST.Err RenameContext
 getRenameContext hs range = do
   let topSplice = AST.getDeepestContaining @H.TopSplice range hs.dynNode
@@ -105,16 +105,12 @@ rename path lineCol newName = do
         logInfo $ "loc: " <> T.pack (show lineColLoc) <> " context: " <> showContext context
         case context of
           RenameQualified q -> do
-            logInfo "got qualified for rename"
             let start = q.node.dynNode.nodeRange.start
-            logInfo $ "idStart: " <> T.pack (show start) <> " oldStart: " <> T.pack (show ref.loc.start)
             let edit = Edit.replace (Range start ref.loc.end) newName
             pure $ SourceEdit.single ref.path edit
           RenameTopSplice topSplice -> do
-            logInfo "on splice"
             onSplice topSplice.dynNode
           RenameSplice splice -> do
-            logInfo "on splice"
             onSplice splice.dynNode
           RenameOther -> do
             pure defaultSourceEdit

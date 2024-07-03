@@ -68,11 +68,9 @@ findRefs path lineCol = do
         locations <- traverse (Definition.realSrcSpanToFileLcRange . fst) localRefs
         pure locations
   let res = fromMaybe [] mLocList
-  logInfo $ T.pack $ "res: " <> show res
   newRes <- for res \fileLcRange -> do
     new <- runMaybeT $ hieFileLcToFileLc fileLcRange
     pure $ fromMaybe fileLcRange new
-  logInfo $ T.pack $ "newRes: " <> show newRes
   pure newRes
 
 -- TODO: we converted positions to hie positions to run the references,

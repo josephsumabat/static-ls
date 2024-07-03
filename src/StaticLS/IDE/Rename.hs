@@ -1,7 +1,7 @@
-module StaticLS.IDE.Rename
-  ( rename,
-    canRenameAtPos,
-  )
+module StaticLS.IDE.Rename (
+  rename,
+  canRenameAtPos,
+)
 where
 
 import AST (Cast)
@@ -59,9 +59,6 @@ rename path lineCol newName = do
   let nameTypes = Hir.getNameTypes (Range.empty pos) haskell
   let nameText = AST.nodeToText <$> nameTypes
   sourceEdits <- for refs \ref -> do
-    let path = ref.path
-    -- let lineColRange = Rope.rangeToLineColRange sourceRope ref.loc
-    -- let astPoint = Semantic.Position.lineColToAstPoint lineColRange.start
     let context = getRenameContext haskell ref.loc
     let defaultEdit = Edit.replace ref.loc newName
     let defaultSourceEdit = SourceEdit.single ref.path defaultEdit

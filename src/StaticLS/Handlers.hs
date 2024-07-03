@@ -94,6 +94,7 @@ handleRenameRequest = LSP.requestHandler LSP.SMethod_TextDocumentRename $ \req r
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   sourceEdit <- lift $ IDE.Rename.rename path (ProtoLSP.lineColFromProto params._position) params._newName
+  lift $ logInfo $ "sourceEdit: " <> T.pack (show sourceEdit)
   workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
   res $ Right $ InL workspaceEdit
   pure ()

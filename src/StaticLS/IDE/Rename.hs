@@ -87,7 +87,7 @@ rename path pos lineCol newName = do
     let nameText = AST.nodeToText <$> nameTypes
     pure nameText
   sourceEdits <- for refs \ref -> do
-    haskell <- getHaskell path
+    haskell <- getHaskell ref.path
     sourceRope <- getSourceRope ref.path
     logInfo $ "ref: " <> T.pack (show ref)
     let context = getRenameContext haskell ref.loc

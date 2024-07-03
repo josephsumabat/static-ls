@@ -105,16 +105,22 @@ rename path lineCol newName = do
       Right context -> do
         let lineColLoc = Rope.rangeToLineColRange sourceRope ref.loc
         let isValidStart = Rope.isValidLineCol sourceRope lineColLoc.start
+        let startLine = Rope.getLine sourceRope lineColLoc.start.line
+        let endLine = Rope.getLine sourceRope lineColLoc.end.line
         let isValidEnd = Rope.isValidLineColEnd sourceRope lineColLoc.end
         logInfo $
           "loc: "
             <> T.pack (show lineColLoc)
             <> " context: "
             <> showContext context
-            <> "isValidStart: "
+            <> " isValidStart: "
             <> T.pack (show isValidStart)
             <> " isValidEnd: "
             <> T.pack (show isValidEnd)
+            <> " startLine: "
+            <> T.pack (show startLine)
+            <> " endLine: "
+            <> T.pack (show endLine)
         case context of
           RenameQualified q -> do
             let start = q.node.dynNode.nodeRange.start

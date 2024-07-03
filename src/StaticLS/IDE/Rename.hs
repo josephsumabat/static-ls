@@ -1,7 +1,7 @@
-module StaticLS.IDE.Rename (
-  rename,
-  canRenameAtPos,
-)
+module StaticLS.IDE.Rename
+  ( rename,
+    canRenameAtPos,
+  )
 where
 
 import AST (Cast)
@@ -62,7 +62,8 @@ rename path lineCol newName = do
     let context = getRenameContext haskell ref.loc
     let defaultEdit = Edit.replace ref.loc newName
     let defaultSourceEdit = SourceEdit.single ref.path defaultEdit
-    let onSplice dynNode =
+    let onSplice dynNode = do
+          logInfo "on splice"
           case nameText of
             Nothing -> pure SourceEdit.empty
             Just nameText -> do
@@ -75,18 +76,19 @@ rename path lineCol newName = do
                         Maybe.mapMaybe
                           ( \quoted ->
                               if quoted.node.nodeText == nameText
-                                then Just $ Change.replace (quoted.node.nodeRange) newName
+                                then Just $ Change.replace quoted.node.nodeRange newName
                                 else Nothing
                           )
                           everything
-                  logInfo $ "splice changes: " <> T.pack (show changes)
+                  -- logInfo $ "splice changes: " <> T.pack (show changes)
                   pure $ SourceEdit.single ref.path (Edit.changesToEdit changes)
     case context of
       Left e -> do
         logError $ T.pack $ show e
         pure defaultSourceEdit
       Right context -> do
-        logInfo $ "got context: " <> T.pack (show context)
+        let lineColLoc = Rope.rangeToLineColRange sourceRope ref.loc
+        logInfo $ "loc: " <> T.pack (show lineColLoc)
         case context of
           RenameQualified q -> do
             logInfo "got qualified for rename"
@@ -94,9 +96,14 @@ rename path lineCol newName = do
             logInfo $ "idStart: " <> T.pack (show start) <> " oldStart: " <> T.pack (show ref.loc.start)
             let edit = Edit.replace (Range start ref.loc.end) newName
             pure $ SourceEdit.single ref.path edit
-          RenameTopSplice topSplice -> onSplice topSplice.dynNode
-          RenameSplice splice -> onSplice splice.dynNode
-          RenameOther -> pure defaultSourceEdit
+          RenameTopSplice topSplice -> do
+            logInfo "on splice"
+            onSplice topSplice.dynNode
+          RenameSplice splice -> do
+            logInfo "on splice"
+            onSplice splice.dynNode
+          RenameOther -> do
+            pure defaultSourceEdit
   let sourceEdit = mconcat sourceEdits
   pure sourceEdit
 

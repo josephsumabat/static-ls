@@ -14,6 +14,7 @@ import Data.Change (Change)
 import Data.Change qualified as Change
 import Data.Edit qualified as Edit
 import Data.LineCol (LineCol (..))
+import Data.LineColRange (LineColRange (..))
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Pos (Pos (..))
@@ -103,7 +104,8 @@ rename path lineCol newName = do
         pure defaultSourceEdit
       Right context -> do
         let lineColLoc = Rope.rangeToLineColRange sourceRope ref.loc
-        logInfo $ "loc: " <> T.pack (show lineColLoc) <> " context: " <> showContext context
+        let isValid = Rope.isValidLineColEnd sourceRope lineColLoc.end
+        logInfo $ "loc: " <> T.pack (show lineColLoc) <> " context: " <> showContext context <> " isValid: " <> T.pack (show isValid)
         case context of
           RenameQualified q -> do
             let start = q.node.dynNode.nodeRange.start

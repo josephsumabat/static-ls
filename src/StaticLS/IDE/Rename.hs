@@ -12,7 +12,6 @@ import Control.Applicative ((<|>))
 import Data.Change qualified as Change
 import Data.Edit qualified as Edit
 import Data.LineCol (LineCol (..))
-import Data.LineColRange (LineColRange (..))
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Pos (Pos (..))
@@ -30,7 +29,6 @@ import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Logger
 import StaticLS.Monad
-import StaticLS.Tree qualified as Tree
 
 data RenameContext
   = RenameQualified Hir.Qualified
@@ -71,7 +69,7 @@ rename path lineCol newName = do
           case nameText of
             Nothing -> pure SourceEdit.empty
             Just nameText -> do
-              let everything = traverse Hir.parseThQuotedName (getEverything @H.ThQuotedName haskell.dynNode)
+              let everything = traverse Hir.parseThQuotedName (getEverything @H.ThQuotedName dynNode)
               case everything of
                 Left _e -> do
                   pure SourceEdit.empty

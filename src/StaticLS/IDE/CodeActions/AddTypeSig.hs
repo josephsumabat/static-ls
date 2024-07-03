@@ -31,7 +31,7 @@ type BindName = Haskell.PrefixId :+ Haskell.Variable :+ Nil
 -- For now, it only works with top level declarations
 getDeclarationNameAtPos :: Haskell.Haskell -> Pos -> LineCol -> AST.Err (Maybe BindName)
 getDeclarationNameAtPos haskell pos lineCol = do
-  let node = AST.getDeepestContaining @AddTypeContext (Range.empty pos) haskell.dynNode.unDynNode
+  let node = AST.getDeepestContaining @AddTypeContext (Range.empty pos) haskell.dynNode
   case node of
     Just bind
       | let dynNode = AST.getDynNode bind

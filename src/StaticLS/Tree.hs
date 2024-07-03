@@ -47,7 +47,7 @@ getImports hs = do
         Just
           Imports
             { imports = importsFiltered
-            , dynNode = imports.dynNode.unDynNode
+            , dynNode = imports.dynNode
             }
 
 data Qualified = Qualified

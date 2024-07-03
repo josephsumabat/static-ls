@@ -1,16 +1,15 @@
 module StaticLS.Hir where
 
+import AST (DynNode)
 import AST qualified
 import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
 import AST.Sum (Nil, (:+))
 import Control.Applicative (asum, (<|>))
 import Data.Either qualified as Either
-import Data.LineCol (LineCol (..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
-import Data.Pos (Pos (..))
 import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -18,15 +17,18 @@ import Data.Text qualified as T
 data Name = Name
   { text :: Text
   }
+  deriving (Show)
 
 data Qualified = Qualified
-  { mod :: Module
-  , name :: Name
+  { mod :: Module,
+    name :: Name,
+    node :: H.Qualified
   }
+  deriving (Show)
 
 data Module = Module
-  { parts :: NonEmpty Text
-  , text :: Text
+  { parts :: NonEmpty Text,
+    text :: Text
   }
   deriving (Show, Eq)
 
@@ -36,11 +38,11 @@ data ImportName = ImportName
   deriving (Show, Eq)
 
 data Import = Import
-  { mod :: Module
-  , alias :: Maybe Module
-  , qualified :: !Bool
-  , hiding :: !Bool
-  , importList :: [ImportName]
+  { mod :: Module,
+    alias :: Maybe Module,
+    qualified :: !Bool,
+    hiding :: !Bool,
+    importList :: [ImportName]
   }
   deriving (Show, Eq)
 
@@ -50,8 +52,8 @@ pattern OpenImport mod = Import {mod, alias = Nothing, qualified = False, hiding
 parseModuleFromText :: Text -> Module
 parseModuleFromText text =
   Module
-    { parts = NE.fromList (T.splitOn "." text)
-    , text
+    { parts = NE.fromList (T.splitOn "." text),
+      text
     }
 
 importQualifier :: Import -> Module
@@ -66,8 +68,8 @@ importQualifier i =
 
 findNode :: (AST.DynNode -> Maybe b) -> AST.DynNode -> Maybe b
 findNode f n = go n
- where
-  go n = f n <|> asum (go <$> (AST.nodeChildren n))
+  where
+    go n = f n <|> asum (go <$> (AST.nodeChildren n))
 
 parseImportName :: H.ImportName -> AST.Err ImportName
 parseImportName name = do
@@ -87,8 +89,8 @@ parseModule m = do
     Module
       { text =
           -- the text sometimes includes trailing dots
-          T.dropWhileEnd (== '.') (AST.nodeToText m)
-      , parts = fmap AST.nodeToText ids
+          T.dropWhileEnd (== '.') (AST.nodeToText m),
+        parts = fmap AST.nodeToText ids
       }
 
 parseImport :: H.Import -> AST.Err Import
@@ -104,11 +106,11 @@ parseImport i = do
   let hiding = Maybe.isJust $ findNode (AST.cast @(AST.Token "hiding")) (AST.getDynNode i)
   pure
     Import
-      { mod
-      , alias
-      , qualified
-      , hiding
-      , importList
+      { mod,
+        alias,
+        qualified,
+        hiding,
+        importList
       }
 
 parseQualified :: H.Qualified -> AST.Err Qualified
@@ -117,7 +119,7 @@ parseQualified q = do
   mod <- parseModule mod
   name <- q.id
   name <- pure $ Name {text = AST.nodeToText name}
-  pure $ Qualified {mod, name}
+  pure $ Qualified {mod, name, node = q}
 
 getQualifiedAtPoint :: Range -> H.Haskell -> AST.Err (Maybe Qualified)
 getQualifiedAtPoint range h = do
@@ -161,3 +163,20 @@ type NameTypes =
     :+ Haskell.Operator
     :+ Haskell.ConstructorOperator
     :+ Nil
+
+getNameTypes :: Range -> H.Haskell -> Maybe NameTypes
+getNameTypes range hs = AST.getDeepestContaining @NameTypes range hs.dynNode
+
+data ThQuotedName = ThQuotedName
+  { isTy :: Bool,
+    node :: AST.DynNode
+  }
+
+parseThQuotedName :: H.ThQuotedName -> AST.Err ThQuotedName
+parseThQuotedName thQuotedName = do
+  name <- AST.collapseErr thQuotedName.name
+  type' <- AST.collapseErr thQuotedName.type'
+  case (ThQuotedName False . AST.getDynNode <$> name)
+    <|> (ThQuotedName True . AST.getDynNode <$> type') of
+    Just text -> pure text
+    Nothing -> Left "ThQuotedName must have either a name or a type"

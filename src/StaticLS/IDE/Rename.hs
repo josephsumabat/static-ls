@@ -40,11 +40,16 @@ data RenameContext
 
 getRenameContext :: H.Haskell -> Range -> AST.Err RenameContext
 getRenameContext hs range = do
+  let nameTypes = Hir.getNameTypes range hs
   let topSplice = AST.getDeepestContaining @H.TopSplice range hs.dynNode
   let splice = AST.getDeepestContaining @H.Splice range hs.dynNode
   qualified <- Hir.getQualifiedAtPoint range hs
-  let res = (RenameQualified <$> qualified) <|> (RenameTopSplice <$> topSplice) <|> (RenameSplice <$> splice)
-  pure $ Maybe.fromMaybe RenameOther res
+  let res = (RenameOther <$ nameTypes) <|> (RenameQualified <$> qualified) <|> (RenameTopSplice <$> topSplice) <|> (RenameSplice <$> splice)
+  case res of
+    Nothing -> do
+      Left $ "Could not find a name to rename"
+    Just res -> do
+      pure res
 
 getEverything :: (Cast b) => DynNode -> [b]
 getEverything node = case AST.cast node of

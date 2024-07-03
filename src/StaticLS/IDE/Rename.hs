@@ -14,13 +14,11 @@ import Data.Change (Change)
 import Data.Change qualified as Change
 import Data.Edit qualified as Edit
 import Data.LineCol (LineCol (..))
-import Data.LineColRange (LineColRange (..))
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Pos (Pos (..))
 import Data.Range (Range (..))
 import Data.Range qualified as Range
-import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Traversable (for)
@@ -39,13 +37,6 @@ data RenameContext
   | RenameSplice H.Splice
   | RenameOther
   deriving (Show)
-
-showContext :: RenameContext -> Text
-showContext = \case
-  RenameQualified _ -> "Qualified"
-  RenameTopSplice _ -> "TopSplice"
-  RenameSplice _ -> "Splice"
-  RenameOther -> "Other"
 
 getRenameContext :: H.Haskell -> Range -> AST.Err RenameContext
 getRenameContext hs range = do
@@ -75,7 +66,6 @@ renameSplice node old new = do
                     else Nothing
               )
               everything
-      -- logInfo $ "splice changes: " <> T.pack (show changes)
       changes
 
 rename :: AbsPath -> Pos -> LineCol -> Text -> StaticLsM SourceEdit
@@ -88,8 +78,6 @@ rename path pos lineCol newName = do
     pure nameText
   sourceEdits <- for refs \ref -> do
     haskell <- getHaskell ref.path
-    sourceRope <- getSourceRope ref.path
-    logInfo $ "ref: " <> T.pack (show ref)
     let context = getRenameContext haskell ref.loc
     let defaultEdit = Edit.replace ref.loc newName
     let defaultSourceEdit = SourceEdit.single ref.path defaultEdit
@@ -105,24 +93,6 @@ rename path pos lineCol newName = do
         logError $ T.pack $ show e
         pure defaultSourceEdit
       Right context -> do
-        let lineColLoc = Rope.rangeToLineColRange sourceRope ref.loc
-        let isValidStart = Rope.isValidLineCol sourceRope lineColLoc.start
-        let startLine = Rope.getLine sourceRope lineColLoc.start.line
-        let endLine = Rope.getLine sourceRope lineColLoc.end.line
-        let isValidEnd = Rope.isValidLineColEnd sourceRope lineColLoc.end
-        logInfo $
-          "loc: "
-            <> T.pack (show lineColLoc)
-            <> " context: "
-            <> showContext context
-            <> " isValidStart: "
-            <> T.pack (show isValidStart)
-            <> " isValidEnd: "
-            <> T.pack (show isValidEnd)
-            <> " startLine: "
-            <> T.pack (show startLine)
-            <> " endLine: "
-            <> T.pack (show endLine)
         case context of
           RenameQualified q -> do
             let start = q.node.dynNode.nodeRange.start

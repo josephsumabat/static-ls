@@ -1,6 +1,7 @@
 module StaticLS.IDE.Rename
   ( rename,
     canRenameAtPos,
+    renameSplice,
   )
 where
 
@@ -9,6 +10,7 @@ import AST qualified
 import AST.Haskell qualified as H
 import AST.Node (DynNode)
 import Control.Applicative ((<|>))
+import Data.Change (Change)
 import Data.Change qualified as Change
 import Data.Edit qualified as Edit
 import Data.LineCol (LineCol (..))
@@ -50,6 +52,24 @@ getEverything node = case AST.cast node of
   Just n -> n : concatMap getEverything node.nodeChildren
   Nothing -> concatMap getEverything node.nodeChildren
 
+renameSplice :: DynNode -> Text -> Text -> [Change]
+renameSplice node old new = do
+  let everything = traverse Hir.parseThQuotedName (getEverything @H.ThQuotedName node)
+  case everything of
+    Left _e -> do
+      []
+    Right everything -> do
+      let changes =
+            Maybe.mapMaybe
+              ( \quoted ->
+                  if quoted.node.nodeText == old
+                    then Just $ Change.replace quoted.node.nodeRange new
+                    else Nothing
+              )
+              everything
+      -- logInfo $ "splice changes: " <> T.pack (show changes)
+      changes
+
 rename :: AbsPath -> LineCol -> Text -> StaticLsM SourceEdit
 rename path lineCol newName = do
   sourceRope <- getSourceRope path
@@ -67,21 +87,8 @@ rename path lineCol newName = do
           case nameText of
             Nothing -> pure SourceEdit.empty
             Just nameText -> do
-              let everything = traverse Hir.parseThQuotedName (getEverything @H.ThQuotedName dynNode)
-              case everything of
-                Left _e -> do
-                  pure SourceEdit.empty
-                Right everything -> do
-                  let changes =
-                        Maybe.mapMaybe
-                          ( \quoted ->
-                              if quoted.node.nodeText == nameText
-                                then Just $ Change.replace quoted.node.nodeRange newName
-                                else Nothing
-                          )
-                          everything
-                  -- logInfo $ "splice changes: " <> T.pack (show changes)
-                  pure $ SourceEdit.single ref.path (Edit.changesToEdit changes)
+              let changes = renameSplice dynNode nameText newName
+              pure $ SourceEdit.single ref.path (Edit.changesToEdit changes)
     case context of
       Left e -> do
         logError $ T.pack $ show e

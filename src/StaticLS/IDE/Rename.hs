@@ -44,7 +44,11 @@ getRenameContext hs range = do
   let topSplice = AST.getDeepestContaining @H.TopSplice range hs.dynNode
   let splice = AST.getDeepestContaining @H.Splice range hs.dynNode
   qualified <- Hir.getQualifiedAtPoint range hs
-  let res = (RenameOther <$ nameTypes) <|> (RenameQualified <$> qualified) <|> (RenameTopSplice <$> topSplice) <|> (RenameSplice <$> splice)
+  let res =
+        (RenameOther <$ nameTypes)
+          <|> (RenameQualified <$> qualified)
+          <|> (RenameTopSplice <$> topSplice)
+          <|> (RenameSplice <$> splice)
   case res of
     Nothing -> do
       Left $ "Could not find a name to rename"

@@ -131,7 +131,7 @@ data Identifier
   = IdentModule !InternStr
   | IdentName !Name
   deriving (Show, Eq, Generic)
-  
+
 instance Hashable Identifier
 
 identiferName :: Identifier -> Maybe Name

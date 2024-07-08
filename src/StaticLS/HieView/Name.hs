@@ -5,7 +5,8 @@ module StaticLS.HieView.Name (
   toText,
   toString,
   getUnit,
-  getLineColRange,
+  getRange,
+  getFileRange,
 )
 where
 
@@ -17,7 +18,7 @@ import GHC.Plugins qualified as GHC
 import GHC.Types.Unique qualified
 import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
-import StaticLS.HieView.Utils (srcSpanToLineColRange)
+import StaticLS.HieView.Utils
 
 newtype Name = Name {name :: GHC.Name}
   deriving (Eq)
@@ -46,5 +47,8 @@ instance Show Name where
 getUnit :: Name -> Text
 getUnit = T.pack . GHC.unitString . GHC.moduleUnit . GHC.nameModule . (.name)
 
-getLineColRange :: Name -> Maybe LineColRange
-getLineColRange = srcSpanToLineColRange . GHC.nameSrcSpan . (.name)
+getRange :: Name -> Maybe LineColRange
+getRange = srcSpanToLcRange . GHC.nameSrcSpan . (.name)
+
+getFileRange :: Name -> Maybe FileRange
+getFileRange = srcSpanToFileLcRange . GHC.nameSrcSpan . (.name)

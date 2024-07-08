@@ -9,17 +9,19 @@ module StaticLS.HieView.View (
   Identifier (..),
   IdentifierDetails (..),
   ContextInfo (..),
+  identifierModule,
+  identiferName,
 )
 where
 
-import Data.HashMap.Strict (HashMap)
-import Data.HashMap.Strict qualified as HashMap
+import Data.HashMap.Lazy (HashMap)
+import Data.HashMap.Lazy qualified as HashMap
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.Hashable (Hashable)
 import Data.LineColRange (LineColRange)
-import Data.Map.Strict (Map)
-import Data.Map.Strict qualified as Map
+import Data.Map.Lazy (Map)
+import Data.Map.Lazy qualified as Map
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text.Encoding qualified as T.Encoding
@@ -67,7 +69,7 @@ viewNodeOrigin = \case
   GHC.GeneratedInfo -> GeneratedInfo
 
 data Ast a = Ast
-  { sourcedNodeInfo :: !(Map NodeOrigin (NodeInfo a))
+  { sourcedNodeInfo :: SourcedNodeInfo a
   , range :: LineColRange
   , children :: [Ast a]
   }
@@ -80,9 +82,9 @@ viewAst hieAst =
     , children = viewAst <$> GHC.nodeChildren hieAst
     }
 
-type SourcedNodeInfo = Map NodeOrigin (NodeInfo TypeIndex)
+type SourcedNodeInfo a = Map NodeOrigin (NodeInfo a)
 
-viewSourcedNodeInfo :: GHC.SourcedNodeInfo GHC.TypeIndex -> SourcedNodeInfo
+viewSourcedNodeInfo :: GHC.SourcedNodeInfo GHC.TypeIndex -> SourcedNodeInfo TypeIndex
 viewSourcedNodeInfo (GHC.SourcedNodeInfo sourcedNodeInfo) =
   Map.fromList
     ( ( \(k, v) ->
@@ -129,8 +131,18 @@ data Identifier
   = IdentModule !InternStr
   | IdentName !Name
   deriving (Show, Eq, Generic)
-
+  
 instance Hashable Identifier
+
+identiferName :: Identifier -> Maybe Name
+identiferName = \case
+  IdentModule _ -> Nothing
+  IdentName name -> Just name
+
+identifierModule :: Identifier -> Maybe InternStr
+identifierModule = \case
+  IdentModule modName -> Just modName
+  IdentName _ -> Nothing
 
 viewIdentifier :: GHC.Identifier -> Identifier
 viewIdentifier identifier = case identifier of

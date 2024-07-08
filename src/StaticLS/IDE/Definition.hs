@@ -15,7 +15,9 @@ import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (Pos (..))
+import Data.Text (Text)
 import Data.Text qualified as T
+import Database.SQLite.Simple qualified as SQL
 import Development.IDE.GHC.Compat.Util qualified as IDE.GHC.Compat.Util
 import Development.IDE.GHC.Error (
   realSrcSpanToRange,
@@ -28,6 +30,7 @@ import GHC.Iface.Ext.Utils qualified as GHC
 import GHC.Iface.Type qualified as GHC
 import GHC.Plugins qualified as GHC
 import GHC.Utils.Monad (mapMaybeM)
+import HieDb (HieDb)
 import HieDb qualified
 import StaticLS.HIE.File
 import StaticLS.HIE.Position
@@ -35,6 +38,7 @@ import StaticLS.HIE.Queries
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
+import StaticLS.HieView.Utils qualified as HieView.Utils
 import StaticLS.HieView.View qualified as HieView
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.HiePos
@@ -156,9 +160,23 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
           xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
       xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
 
+hieDbFindDef :: HieDb -> Text -> Maybe Text -> Maybe Text -> IO [HieDb.DefRow]
+hieDbFindDef conn occ mn uid =
+  SQL.queryNamed
+    (HieDb.getConn conn)
+    "SELECT defs.* \
+    \FROM defs JOIN mods USING (hieFile) \
+    \WHERE occ = :occ AND (:mod IS NULL OR mod = :mod) AND (:unit IS NULL OR unit = :unit)"
+    [":occ" SQL.:= occ, ":mod" SQL.:= mn, ":unit" SQL.:= uid]
+
 nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieView.Name.Name -> m [FileLcRange]
 nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
-  undefined
+  case HieView.Name.getFileRange name of
+    Just range -> undefined
+    Nothing -> undefined
+ where
+  fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieView.Utils.FileRange -> MaybeT m [FileLcRange]
+  fallbackToDb range = undefined
 
 srcSpanToLocation :: (HasCallStack, HasStaticEnv m) => GHC.SrcSpan -> MaybeT m FileLcRange
 srcSpanToLocation src = do

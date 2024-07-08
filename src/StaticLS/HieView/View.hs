@@ -1,4 +1,16 @@
-module StaticLS.HieView.View where
+module StaticLS.HieView.View (
+  File (..),
+  viewHieFile,
+  NodeOrigin (..),
+  Ast (..),
+  SourcedNodeInfo,
+  NodeAnnotation (..),
+  NodeInfo (..),
+  Identifier (..),
+  IdentifierDetails (..),
+  ContextInfo (..),
+)
+where
 
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
@@ -93,8 +105,6 @@ viewNodeAnnotation GHC.NodeAnnotation {nodeAnnotConstr, nodeAnnotType} =
     { constr = InternStr.fromGHCFastString nodeAnnotConstr
     , ty = InternStr.fromGHCFastString nodeAnnotType
     }
-
-data TypeInfo = TypeInfo
 
 data NodeInfo a = NodeInfo
   { annotations :: HashSet NodeAnnotation

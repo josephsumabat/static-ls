@@ -10,12 +10,10 @@ import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text (Text)
-import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
 import GHC.Generics (Generic)
 import GHC.Iface.Ext.Types qualified as GHC
-import GHC.Iface.Ext.Utils qualified as GHC
-import GHC.Plugins qualified as GHC (LexicalFastString (..), ModuleName (..), moduleNameFS)
+import GHC.Plugins qualified as GHC (LexicalFastString (..), moduleNameFS)
 import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
 import StaticLS.HieView.Name (Name)

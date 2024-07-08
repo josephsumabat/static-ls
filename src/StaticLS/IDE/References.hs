@@ -14,7 +14,6 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
-import Data.Pos (Pos (..))
 import Data.Text qualified as T
 import Data.Traversable (for)
 import GHC.Plugins qualified as GHC
@@ -68,11 +67,9 @@ findRefs path lineCol = do
         locations <- traverse (Definition.realSrcSpanToFileLcRange . fst) localRefs
         pure locations
   let res = fromMaybe [] mLocList
-  logInfo $ T.pack $ "res: " <> show res
   newRes <- for res \fileLcRange -> do
     new <- runMaybeT $ hieFileLcToFileLc fileLcRange
     pure $ fromMaybe fileLcRange new
-  logInfo $ T.pack $ "newRes: " <> show newRes
   pure newRes
 
 -- TODO: we converted positions to hie positions to run the references,

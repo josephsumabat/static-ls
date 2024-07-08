@@ -1,16 +1,15 @@
 module StaticLS.Hir where
 
+import AST (DynNode)
 import AST qualified
 import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
 import AST.Sum (Nil, (:+))
 import Control.Applicative (asum, (<|>))
 import Data.Either qualified as Either
-import Data.LineCol (LineCol (..))
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Data.Maybe qualified as Maybe
-import Data.Pos (Pos (..))
 import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -18,11 +17,14 @@ import Data.Text qualified as T
 data Name = Name
   { text :: Text
   }
+  deriving (Show)
 
 data Qualified = Qualified
   { mod :: Module
   , name :: Name
+  , node :: H.Qualified
   }
+  deriving (Show)
 
 data Module = Module
   { parts :: NonEmpty Text
@@ -117,7 +119,7 @@ parseQualified q = do
   mod <- parseModule mod
   name <- q.id
   name <- pure $ Name {text = AST.nodeToText name}
-  pure $ Qualified {mod, name}
+  pure $ Qualified {mod, name, node = q}
 
 getQualifiedAtPoint :: Range -> H.Haskell -> AST.Err (Maybe Qualified)
 getQualifiedAtPoint range h = do
@@ -161,3 +163,20 @@ type NameTypes =
     :+ Haskell.Operator
     :+ Haskell.ConstructorOperator
     :+ Nil
+
+getNameTypes :: Range -> H.Haskell -> Maybe NameTypes
+getNameTypes range hs = AST.getDeepestContaining @NameTypes range hs.dynNode
+
+data ThQuotedName = ThQuotedName
+  { isTy :: Bool
+  , node :: AST.DynNode
+  }
+
+parseThQuotedName :: H.ThQuotedName -> AST.Err ThQuotedName
+parseThQuotedName thQuotedName = do
+  name <- AST.collapseErr thQuotedName.name
+  type' <- AST.collapseErr thQuotedName.type'
+  case (ThQuotedName False . AST.getDynNode <$> name)
+    <|> (ThQuotedName True . AST.getDynNode <$> type') of
+    Just text -> pure text
+    Nothing -> Left "ThQuotedName must have either a name or a type"

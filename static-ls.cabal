@@ -251,6 +251,7 @@ test-suite static-ls-test
       StaticLS.IDE.DefinitionSpec
       StaticLS.IDE.Diagnostics.ParseGHCSpec
       StaticLS.IDE.HoverSpec
+      StaticLS.IDE.RenameSpec
       StaticLS.PositionDiffSpec
       StaticLS.PositionSpec
       TestData.Mod1

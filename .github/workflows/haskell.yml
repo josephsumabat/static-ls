@@ -24,7 +24,7 @@ jobs:
           - macos-latest
           # - windows-latest
         ghc-version:
-          - '9.6'
+          - '9.6.3'
           - '9.4'
 
         # include:

@@ -82,6 +82,7 @@ getTypeDefinition ::
   m [FileLcRange]
 getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
+    hieView <- getHieView path
     hieFile <- getHieFile path
     lineCol' <- lineColToHieLineCol path lineCol
     let types' = nubOrd $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol')

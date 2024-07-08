@@ -28,6 +28,7 @@ module StaticLS.IDE.Monad (
   getHieTokenMap,
   getTokenMap,
   getHir,
+  getHieView,
 )
 where
 
@@ -191,6 +192,11 @@ getHieFile :: (MonadHieFile m) => AbsPath -> MaybeT m HIE.File.HieFile
 getHieFile path = do
   hieCache <- getHieCache path
   pure $ hieCache.file
+
+getHieView :: (MonadHieFile m) => AbsPath -> MaybeT m HieView.File
+getHieView path = do
+  hieCache <- getHieCache path
+  pure $ hieCache.fileView
 
 getHieSource :: (MonadHieFile m) => AbsPath -> MaybeT m Text
 getHieSource path = do

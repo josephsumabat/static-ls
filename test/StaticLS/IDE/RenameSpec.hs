@@ -59,5 +59,5 @@ spec = do
       , deriveJSON (jsonDeriveWithAffix "zendeskTicketParams" jsonDeriveOptionsSnakeCase) ''ZendeskTicketParams
       ]
     |]
-    
+
   pure ()

@@ -1,8 +1,8 @@
-module StaticLS.IDE.Rename
-  ( rename,
-    canRenameAtPos,
-    renameSplice,
-  )
+module StaticLS.IDE.Rename (
+  rename,
+  canRenameAtPos,
+  renameSplice,
+)
 where
 
 import AST (Cast)
@@ -51,7 +51,7 @@ getRenameContext hs range = do
           <|> (RenameSplice <$> splice)
   case res of
     Nothing -> do
-      Left $ "Could not find a name to rename"
+      Left "Could not find a name to rename"
     Just res -> do
       pure res
 

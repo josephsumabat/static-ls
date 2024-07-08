@@ -16,10 +16,10 @@ import Language.LSP.Protocol.Lens qualified as LSP hiding (publishDiagnostics)
 import Language.LSP.Protocol.Message qualified as LSP
 import Language.LSP.Protocol.Types
 import Language.LSP.Protocol.Types qualified as LSP
-import Language.LSP.Server
-  ( Handlers,
-    LspT,
-  )
+import Language.LSP.Server (
+  Handlers,
+  LspT,
+ )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
 import StaticLS.HIE.File qualified as HIE.File
@@ -237,9 +237,9 @@ handleCompletion = LSP.requestHandler LSP.SMethod_TextDocumentCompletion $ \req 
   let lspCompletions = fmap (ProtoLSP.completionToProto sourceRope) completions
   let lspList =
         LSP.CompletionList
-          { _isIncomplete = isIncomplete,
-            _itemDefaults = Nothing,
-            _items = lspCompletions
+          { _isIncomplete = isIncomplete
+          , _itemDefaults = Nothing
+          , _items = lspCompletions
           }
   res $ Right $ InR $ InL lspList
   pure ()
@@ -277,7 +277,7 @@ handleGhcidFileChange :: LspT c StaticLsM ()
 handleGhcidFileChange = do
   lift $ logInfo "handleGhcidFileChange"
   contents <- liftIO $ T.IO.readFile "ghcid.txt"
-  staticEnv <- lift $ StaticEnv.getStaticEnv
+  staticEnv <- lift StaticEnv.getStaticEnv
   let diags = IDE.Diagnostics.ParseGHC.parse (staticEnv.wsRoot Path.</>) contents
   lift $ logInfo $ "diags: " <> T.pack (show diags)
   clearDiagnostics

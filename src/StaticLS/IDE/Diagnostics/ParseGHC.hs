@@ -120,7 +120,7 @@ parseHeader line =
     , Just (sev, rest) <- parseRest rest
     , Just (dec -> line) <- readInt line
     , Just (dec -> col) <- readInt col ->
-        Just $
+        Just
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)
               , loc = LineColRange.empty (LineCol (Pos line) (Pos col))
@@ -133,7 +133,7 @@ parseHeader line =
     , Just (dec -> line) <- readInt line
     , Just (dec -> col1) <- readInt col1
     , Just col2 <- readInt col2 ->
-        Just $
+        Just
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)
               , loc = LineColRange (LineCol (Pos line) (Pos col1)) (LineCol (Pos line) (Pos col2))
@@ -147,7 +147,7 @@ parseHeader line =
     , Just (dec -> col1) <- readInt col1
     , Just (dec -> line2) <- readInt line2
     , Just col2 <- readInt col2 ->
-        Just $
+        Just
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)
               , loc = LineColRange (LineCol (Pos line1) (Pos col1)) (LineCol (Pos line2) (Pos col2))

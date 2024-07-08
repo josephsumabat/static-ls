@@ -93,7 +93,11 @@ handleRenameRequest = LSP.requestHandler LSP.SMethod_TextDocumentRename $ \req r
   lift $ logInfo "Received rename request."
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
-  sourceEdit <- lift $ IDE.Rename.rename path (ProtoLSP.lineColFromProto params._position) params._newName
+  sourceRope <- lift $ IDE.getSourceRope path
+  let lineCol = (ProtoLSP.lineColFromProto params._position)
+  let pos = Rope.lineColToPos sourceRope lineCol
+  sourceEdit <- lift $ IDE.Rename.rename path pos lineCol params._newName
+  lift $ logInfo $ "sourceEdit: " <> T.pack (show sourceEdit)
   workspaceEdit <- lift $ ProtoLSP.sourceEditToProto sourceEdit
   res $ Right $ InL workspaceEdit
   pure ()
@@ -273,7 +277,7 @@ handleGhcidFileChange :: LspT c StaticLsM ()
 handleGhcidFileChange = do
   lift $ logInfo "handleGhcidFileChange"
   contents <- liftIO $ T.IO.readFile "ghcid.txt"
-  staticEnv <- lift $ StaticEnv.getStaticEnv
+  staticEnv <- lift StaticEnv.getStaticEnv
   let diags = IDE.Diagnostics.ParseGHC.parse (staticEnv.wsRoot Path.</>) contents
   lift $ logInfo $ "diags: " <> T.pack (show diags)
   clearDiagnostics

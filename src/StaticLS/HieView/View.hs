@@ -15,7 +15,7 @@ import Data.Text.Encoding qualified as T.Encoding
 import GHC.Generics (Generic)
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
-import GHC.Plugins qualified as GHC (LexicalFastString (..), ModuleName (..))
+import GHC.Plugins qualified as GHC (LexicalFastString (..), ModuleName (..), moduleNameFS)
 import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
 import StaticLS.HieView.Name (Name)
@@ -126,7 +126,7 @@ instance Hashable Identifier
 
 viewIdentifier :: GHC.Identifier -> Identifier
 viewIdentifier identifier = case identifier of
-  Left (GHC.ModuleName modName) -> IdentModule $ InternStr.fromGHCFastString modName
+  Left modName -> IdentModule $ InternStr.fromGHCFastString $ GHC.moduleNameFS modName
   Right name -> IdentName (Name.fromGHCName name)
 
 data IdentifierDetails a = IdentifierDetails

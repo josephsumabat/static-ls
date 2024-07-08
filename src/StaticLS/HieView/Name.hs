@@ -15,7 +15,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import GHC.Plugins qualified as GHC
 import GHC.Types.Unique qualified
-import StaticLS.HieView.InternStr (InternStr (..))
+import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
 import StaticLS.HieView.Utils (srcSpanToLineColRange)
 

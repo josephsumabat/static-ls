@@ -11,6 +11,7 @@ import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
 import Data.List.Extra (nubOrd)
 import Data.Maybe (catMaybes, fromMaybe, maybeToList)
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (Pos (..))
@@ -31,6 +32,10 @@ import HieDb qualified
 import StaticLS.HIE.File
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
+import StaticLS.HieView.Name qualified as HieView.Name
+import StaticLS.HieView.Query qualified as HieView.Query
+import StaticLS.HieView.Type qualified as HieView.Type
+import StaticLS.HieView.View qualified as HieView
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
@@ -83,6 +88,10 @@ getTypeDefinition ::
 getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieView <- getHieView path
+    let tyIxs = HieView.Query.tysAtRange hieView (LineColRange.empty lineCol)
+    let tys = map (HieView.Type.recoverFullType hieView.typeArray) tyIxs
+    let names = concatMap HieView.Type.getTypeNames tys
+    let ranges = Maybe.mapMaybe HieView.Name.getFileRange names
     hieFile <- getHieFile path
     lineCol' <- lineColToHieLineCol path lineCol
     let types' = nubOrd $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol')
@@ -146,6 +155,10 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
           [] -> MaybeT $ pure Nothing
           xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
       xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
+
+nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieView.Name.Name -> m [FileLcRange]
+nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
+  undefined
 
 srcSpanToLocation :: (HasCallStack, HasStaticEnv m) => GHC.SrcSpan -> MaybeT m FileLcRange
 srcSpanToLocation src = do

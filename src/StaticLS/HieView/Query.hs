@@ -2,10 +2,9 @@ module StaticLS.HieView.Query (
   namesAtRange,
   smallestContainingSatisfying,
   identifiersAtRange,
-  largestContainedBySatisfying,
-  largestContainedBy,
   flattenAst,
   tysAtRange,
+  astsAtRange,
 )
 where
 
@@ -25,7 +24,13 @@ namesAtRange :: File -> LineColRange -> [Name]
 namesAtRange file lineCol = Maybe.mapMaybe (identiferName . fst) $ identifiersAtRange file lineCol
 
 tysAtRange :: File -> LineColRange -> [TypeIndex]
-tysAtRange file range = nubOrd $ concatMap getAstTys $ Maybe.mapMaybe (largestContainedBy range) (Map.elems file.asts)
+tysAtRange file range = nubOrd $ concatMap getAstTys $ Maybe.mapMaybe (smallestContaining range) (Map.elems file.asts)
+
+astsAtRange :: File -> LineColRange -> [Ast TypeIndex]
+astsAtRange file range = Maybe.mapMaybe (smallestContaining range) (Map.elems file.asts)
+
+smallestContaining :: LineColRange -> Ast a -> Maybe (Ast a)
+smallestContaining range = smallestContainingSatisfying range Just
 
 smallestContainingSatisfying ::
   LineColRange ->
@@ -41,25 +46,6 @@ smallestContainingSatisfying range cond node
           , First $ cond node
           ]
   | range `LineColRange.containsRange` node.range = Nothing
-  | otherwise = Nothing
-
-largestContainedBy :: LineColRange -> Ast a -> Maybe (Ast a)
-largestContainedBy range = largestContainedBySatisfying range Just
-
-largestContainedBySatisfying ::
-  LineColRange ->
-  (Ast a -> Maybe b) ->
-  Ast a ->
-  Maybe b
-largestContainedBySatisfying range cond node
-  | range `LineColRange.containsRange` node.range =
-      getFirst $
-        mconcat
-          [ First $ cond node
-          , foldMap (First . largestContainedBySatisfying range cond) $
-              node.children
-          ]
-  | node.range `LineColRange.containsRange` range = Nothing
   | otherwise = Nothing
 
 identifiersAtRange :: File -> LineColRange -> [(Identifier, IdentifierDetails TypeIndex)]
@@ -80,15 +66,24 @@ identifiersAtRange hieFile span = concatMap NE.toList results
       asts
   asts = Map.elems $ hieFile.asts
 
+getAstIdentifiers :: Ast a -> [(Identifier, IdentifierDetails a)]
+getAstIdentifiers ast = concatMap (HashMap.toList . (.identifiers)) $ getAstNodeInfos ast
+
 -- get the source info, not the generated one
 getAstSourceInfo :: Ast a -> Maybe (NodeInfo a)
 getAstSourceInfo ast = Map.lookup SourceInfo ast.sourcedNodeInfo
+
+getAstNodeInfos :: Ast a -> [NodeInfo a]
+getAstNodeInfos ast = Map.elems ast.sourcedNodeInfo
 
 flattenAst :: Ast a -> [Ast a]
 flattenAst ast = ast : concatMap flattenAst ast.children
 
 getAstTys :: Ast a -> [a]
-getAstTys = concatMap getAstTys . flattenAst
+getAstTys = concatMap getAstImmediateTys . flattenAst
 
 getAstImmediateTys :: Ast a -> [a]
-getAstImmediateTys ast = concatMap (.tys) (Map.elems ast.sourcedNodeInfo)
+getAstImmediateTys ast = tys ++ identTys
+ where
+  identTys = Maybe.mapMaybe ((.ty) . snd) $ getAstIdentifiers ast
+  tys = concatMap (.tys) (Map.elems ast.sourcedNodeInfo)

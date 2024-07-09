@@ -21,6 +21,9 @@ import StaticLS.HieView.Name qualified as Name
 
 newtype TypeArray = TypeArray {tys :: Array GHC.TypeIndex GHC.HieTypeFlat}
 
+instance Show TypeArray where
+  show _ = "TypeArray"
+
 fromGHCHieTypes :: Array GHC.TypeIndex GHC.HieTypeFlat -> TypeArray
 fromGHCHieTypes = TypeArray
 

@@ -41,6 +41,7 @@ data File = File
   , typeArray :: Type.TypeArray
   , source :: Text
   }
+  deriving (Show)
 
 viewHieFile :: GHC.HieFile -> File
 viewHieFile hieFile =
@@ -73,6 +74,7 @@ data Ast a = Ast
   , range :: LineColRange
   , children :: [Ast a]
   }
+  deriving (Show, Eq)
 
 viewAst :: GHC.HieAST GHC.TypeIndex -> Ast TypeIndex
 viewAst hieAst =
@@ -113,6 +115,7 @@ data NodeInfo a = NodeInfo
   , tys :: [a]
   , identifiers :: HashMap Identifier (IdentifierDetails a)
   }
+  deriving (Show, Eq)
 
 viewNodeInfo :: GHC.NodeInfo GHC.TypeIndex -> NodeInfo TypeIndex
 viewNodeInfo GHC.NodeInfo {nodeAnnotations, nodeType, nodeIdentifiers} =
@@ -153,6 +156,7 @@ data IdentifierDetails a = IdentifierDetails
   { info :: HashSet ContextInfo
   , ty :: Maybe a
   }
+  deriving (Show, Eq)
 
 viewIdentifierDetails :: GHC.IdentifierDetails GHC.TypeIndex -> IdentifierDetails TypeIndex
 viewIdentifierDetails GHC.IdentifierDetails {identInfo, identType} =

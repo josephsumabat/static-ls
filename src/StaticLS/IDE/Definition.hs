@@ -1,4 +1,9 @@
-module StaticLS.IDE.Definition (getDefinition, getTypeDefinition, nameToLocation, realSrcSpanToFileLcRange) where
+module StaticLS.IDE.Definition (
+  getDefinition,
+  getTypeDefinition,
+  nameToLocation,
+  realSrcSpanToFileLcRange,
+) where
 
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -93,11 +98,17 @@ getTypeDefinition ::
 getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieView <- getHieView path
+    logInfo $ T.pack $ "after hieView"
     let tyIxs = HieView.Query.tysAtRange hieView (LineColRange.empty lineCol)
+    let astsAtRange = HieView.Query.astsAtRange hieView (LineColRange.empty lineCol)
+    logInfo $ T.pack $ "astsAtRange: " <> show astsAtRange
+    logInfo $ T.pack $ "after tysatRange"
+    logInfo $ T.pack $ "tyIxs: " <> show tyIxs
     let tys = map (HieView.Type.recoverFullType hieView.typeArray) tyIxs
     let names = concatMap HieView.Type.getTypeNames tys
     locations <- traverse nameViewToLocation names
     locations <- pure $ concat locations
+    locations <- lift $ mapMaybeM (runMaybeT . hieFileLcToFileLc) locations
     pure locations
   pure $ fromMaybe [] mLocationLinks
 
@@ -148,7 +159,7 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
           xs -> lift $ mapMaybeM (runMaybeT . defResRowToLocation) xs
       xs -> lift $ mapMaybeM (runMaybeT . defResRowToLocation) xs
 
-nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieView.Name.Name -> m [FileLcRange]
+nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => HieView.Name.Name -> m [FileLcRange]
 nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
   case HieView.Name.getFileRange name of
     Just range
@@ -166,8 +177,9 @@ nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
       | otherwise -> fallbackToDb
     Nothing -> fallbackToDb
  where
-  fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m) => MaybeT m [FileLcRange]
+  fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => MaybeT m [FileLcRange]
   fallbackToDb = do
+    logInfo "fallbackToDb" 
     erow <- runHieDbMaybeT (\hieDb -> hieDbFindDef hieDb name (Just (HieView.Name.getUnit name)))
     case erow of
       [] -> do

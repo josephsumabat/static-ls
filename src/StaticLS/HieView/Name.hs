@@ -55,6 +55,8 @@ getRange = srcSpanToLcRange . GHC.nameSrcSpan . (.name)
 getFileRange :: Name -> Maybe FileRange
 getFileRange = srcSpanToFileLcRange . GHC.nameSrcSpan . (.name)
 
+-- this is temporary
+-- the only reason we have this is because hiedb defines an orphan instance on OccName
 toGHCOccName :: Name -> GHC.OccName
 toGHCOccName = GHC.nameOccName . (.name)
 

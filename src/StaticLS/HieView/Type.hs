@@ -25,6 +25,7 @@ fromGHCHieTypes :: Array GHC.TypeIndex GHC.HieTypeFlat -> TypeArray
 fromGHCHieTypes = TypeArray
 
 newtype TypeIndex = TypeIndex {idx :: GHC.TypeIndex}
+  deriving (Show, Eq, Ord)
 
 fromGHCTypeIndex :: GHC.TypeIndex -> TypeIndex
 fromGHCTypeIndex = TypeIndex

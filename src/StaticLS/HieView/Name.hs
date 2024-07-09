@@ -7,6 +7,8 @@ module StaticLS.HieView.Name (
   getUnit,
   getRange,
   getFileRange,
+  toGHCOccName,
+  getModule,
 )
 where
 
@@ -52,3 +54,9 @@ getRange = srcSpanToLcRange . GHC.nameSrcSpan . (.name)
 
 getFileRange :: Name -> Maybe FileRange
 getFileRange = srcSpanToFileLcRange . GHC.nameSrcSpan . (.name)
+
+toGHCOccName :: Name -> GHC.OccName
+toGHCOccName = GHC.nameOccName . (.name)
+
+getModule :: Name -> Maybe Text
+getModule = fmap (T.pack . GHC.moduleNameString . GHC.moduleName) . GHC.nameModule_maybe . (.name)

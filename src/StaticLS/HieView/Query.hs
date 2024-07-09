@@ -9,6 +9,7 @@ module StaticLS.HieView.Query (
 )
 where
 
+import Data.Containers.ListUtils (nubOrd)
 import Data.HashMap.Lazy qualified as HashMap
 import Data.LineColRange (LineColRange)
 import Data.LineColRange qualified as LineColRange
@@ -24,7 +25,7 @@ namesAtRange :: File -> LineColRange -> [Name]
 namesAtRange file lineCol = Maybe.mapMaybe (identiferName . fst) $ identifiersAtRange file lineCol
 
 tysAtRange :: File -> LineColRange -> [TypeIndex]
-tysAtRange file range = concatMap getAstTys $ Maybe.mapMaybe (largestContainedBy range) (Map.elems file.asts)
+tysAtRange file range = nubOrd $ concatMap getAstTys $ Maybe.mapMaybe (largestContainedBy range) (Map.elems file.asts)
 
 smallestContainingSatisfying ::
   LineColRange ->

@@ -15,6 +15,7 @@ module Data.Path (
   (-<.>),
   filePathToAbsThrow,
   uncheckedCoercePath,
+  relToAbsThrow,
 )
 where
 
@@ -76,6 +77,9 @@ unsafeFilePathToAbs :: (HasCallStack) => FilePath -> AbsPath
 unsafeFilePathToAbs p
   | FilePath.isAbsolute p = UncheckedPath p
   | otherwise = error "unsafeOsPathToAbs: path is not absolute"
+
+relToAbsThrow :: (MonadThrow m, HasCallStack) => RelPath -> m AbsPath
+relToAbsThrow (UncheckedPath p) = filePathToAbsThrow p
 
 filePathToAbsThrow :: (MonadThrow m, HasCallStack) => FilePath -> m AbsPath
 filePathToAbsThrow p

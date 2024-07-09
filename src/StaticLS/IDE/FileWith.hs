@@ -5,6 +5,7 @@ module StaticLS.IDE.FileWith (
   FileRange,
   FileEdit,
   mapPath,
+  traversePath,
 )
 where
 
@@ -30,3 +31,6 @@ type FileEdit = FileWith Edit
 
 mapPath :: (Path p -> Path q) -> FileWith' p a -> FileWith' q a
 mapPath f (FileWith p a) = FileWith (f p) a
+
+traversePath :: (Applicative f) => (Path p -> f (Path q)) -> FileWith' p a -> f (FileWith' q a)
+traversePath f (FileWith p a) = FileWith <$> f p <*> pure a

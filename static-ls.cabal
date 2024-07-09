@@ -53,6 +53,12 @@ library
       StaticLS.HIE.Queries
       StaticLS.HieDb
       StaticLS.HieView
+      StaticLS.HieView.InternStr
+      StaticLS.HieView.Name
+      StaticLS.HieView.Query
+      StaticLS.HieView.Type
+      StaticLS.HieView.Utils
+      StaticLS.HieView.View
       StaticLS.Hir
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AddTypeSig

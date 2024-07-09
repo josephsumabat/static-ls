@@ -1,4 +1,9 @@
-module StaticLS.IDE.Definition (getDefinition, getTypeDefinition, nameToLocation, realSrcSpanToFileLcRange) where
+module StaticLS.IDE.Definition (
+  getDefinition,
+  getTypeDefinition,
+  nameToLocation,
+  realSrcSpanToFileLcRange,
+) where
 
 import Control.Monad (guard, join)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -11,10 +16,13 @@ import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
 import Data.List.Extra (nubOrd)
 import Data.Maybe (catMaybes, fromMaybe, maybeToList)
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (Pos (..))
+import Data.Text (Text)
 import Data.Text qualified as T
+import Database.SQLite.Simple qualified as SQL
 import Development.IDE.GHC.Compat.Util qualified as IDE.GHC.Compat.Util
 import Development.IDE.GHC.Error (
   realSrcSpanToRange,
@@ -27,11 +35,18 @@ import GHC.Iface.Ext.Utils qualified as GHC
 import GHC.Iface.Type qualified as GHC
 import GHC.Plugins qualified as GHC
 import GHC.Utils.Monad (mapMaybeM)
+import HieDb (HieDb)
 import HieDb qualified
 import StaticLS.HIE.File
 import StaticLS.HIE.Position
 import StaticLS.HIE.Queries
+import StaticLS.HieView.Name qualified as HieView.Name
+import StaticLS.HieView.Query qualified as HieView.Query
+import StaticLS.HieView.Type qualified as HieView.Type
+import StaticLS.HieView.Utils qualified as HieView.Utils
+import StaticLS.HieView.View qualified as HieView
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
+import StaticLS.IDE.FileWith qualified as FileWith
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
 import StaticLS.Logger
@@ -82,22 +97,20 @@ getTypeDefinition ::
   m [FileLcRange]
 getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
-    hieFile <- getHieFile path
-    lineCol' <- lineColToHieLineCol path lineCol
-    let types' = nubOrd $ getTypesAtPoint hieFile (lineColToHieDbCoords lineCol')
-    let types = map (flip GHC.recoverFullType $ GHC.hie_types hieFile) types'
-    join <$> mapM (lift . nameToLocation) (typeToName =<< types)
+    hieView <- getHieView path
+    logInfo $ T.pack $ "after hieView"
+    let tyIxs = HieView.Query.tysAtRange hieView (LineColRange.empty lineCol)
+    let astsAtRange = HieView.Query.astsAtRange hieView (LineColRange.empty lineCol)
+    logInfo $ T.pack $ "astsAtRange: " <> show astsAtRange
+    logInfo $ T.pack $ "after tysatRange"
+    logInfo $ T.pack $ "tyIxs: " <> show tyIxs
+    let tys = map (HieView.Type.recoverFullType hieView.typeArray) tyIxs
+    let names = concatMap HieView.Type.getTypeNames tys
+    locations <- traverse nameViewToLocation names
+    locations <- pure $ concat locations
+    locations <- lift $ mapMaybeM (runMaybeT . hieFileLcToFileLc) locations
+    pure locations
   pure $ fromMaybe [] mLocationLinks
- where
-  typeToName = goTypeToName []
-
-  goTypeToName :: [GHC.Name] -> GHC.HieTypeFix -> [GHC.Name]
-  goTypeToName acc (GHC.Roll tyFix) =
-    Foldable.foldl' goTypeToName (name ++ acc) tyFix
-   where
-    name = case tyFix of
-      (GHC.HTyConApp (GHC.IfaceTyCon name _info) _args) -> [name]
-      _ -> []
 
 ---------------------------------------------------------------------
 -- The following code is largely taken from ghcide with slight modifications
@@ -143,8 +156,50 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $
         erow' <- runHieDbMaybeT (\hieDb -> HieDb.findDef hieDb (GHC.nameOccName name) (Just $ GHC.moduleName mod') Nothing)
         case erow' of
           [] -> MaybeT $ pure Nothing
+          xs -> lift $ mapMaybeM (runMaybeT . defResRowToLocation) xs
+      xs -> lift $ mapMaybeM (runMaybeT . defResRowToLocation) xs
+
+nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => HieView.Name.Name -> m [FileLcRange]
+nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
+  case HieView.Name.getFileRange name of
+    Just range
+      | Just absRange <- FileWith.traversePath Path.relToAbsThrow range
+      , let path = (Path.toFilePath range.path)
+      , not $ "boot" `isSuffixOf` path -> do
+          itExists <- liftIO $ doesFileExist path
+          if itExists
+            then pure [absRange]
+            else do
+              -- When reusing .hie files from a cloud cache,
+              -- the paths may not match the local file system.
+              -- Let's fall back to the hiedb in case it contains local paths
+              fallbackToDb
+      | otherwise -> fallbackToDb
+    Nothing -> fallbackToDb
+ where
+  fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => MaybeT m [FileLcRange]
+  fallbackToDb = do
+    logInfo "fallbackToDb"
+    erow <- runHieDbMaybeT (\hieDb -> hieDbFindDef hieDb name (Just (HieView.Name.getUnit name)))
+    case erow of
+      [] -> do
+        erow' <- runHieDbMaybeT (\hieDb -> hieDbFindDef hieDb name Nothing)
+        case erow' of
+          [] -> MaybeT $ pure Nothing
           xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
       xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
+
+hieDbFindDef :: HieDb -> HieView.Name.Name -> Maybe Text -> IO [HieDb.DefRow]
+hieDbFindDef conn name unit =
+  SQL.queryNamed
+    (HieDb.getConn conn)
+    "SELECT defs.* \
+    \FROM defs JOIN mods USING (hieFile) \
+    \WHERE occ = :occ AND (:mod IS NULL OR mod = :mod) AND (:unit IS NULL OR unit = :unit)"
+    [ ":occ" SQL.:= HieView.Name.toGHCOccName name
+    , ":mod" SQL.:= HieView.Name.getModule name
+    , ":unit" SQL.:= unit
+    ]
 
 srcSpanToLocation :: (HasCallStack, HasStaticEnv m) => GHC.SrcSpan -> MaybeT m FileLcRange
 srcSpanToLocation src = do
@@ -162,8 +217,11 @@ realSrcSpanToFileLcRange src = do
   let rng = realSrcSpanToRange src
   pure $ FileWith fs (ProtoLSP.lineColRangeFromProto rng)
 
-defRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m FileLcRange
-defRowToLocation (defRow HieDb.:. _) = do
+defResRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> MaybeT m FileLcRange
+defResRowToLocation (defRow HieDb.:. _) = defRowToLocation defRow
+
+defRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.DefRow -> MaybeT m FileLcRange
+defRowToLocation defRow = do
   let start = hiedbCoordsToLineCol (defRow.defSLine, defRow.defSCol)
       end = hiedbCoordsToLineCol (defRow.defELine, defRow.defECol)
       range = LineColRange start end

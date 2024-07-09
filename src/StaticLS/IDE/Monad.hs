@@ -28,6 +28,7 @@ module StaticLS.IDE.Monad (
   getHieTokenMap,
   getTokenMap,
   getHir,
+  getHieView,
 )
 where
 
@@ -45,6 +46,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import StaticLS.HIE.File qualified as HIE.File
+import StaticLS.HieView qualified as HieView
 import StaticLS.Hir qualified as Hir
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
@@ -132,6 +134,7 @@ data CachedHieFile = CachedHieFile
   { hieSource :: Text
   , hieSourceRope :: Rope
   , file :: HIE.File.HieFile
+  , fileView :: HieView.File
   , hieTokenMap :: RangeMap PositionDiff.Token
   }
 
@@ -158,13 +161,15 @@ getHieCacheImpl path = do
       MaybeT $ pure $ Just hieFile
     Nothing -> do
       file <- HIE.File.getHieFileFromPath path
-      let hieSource = HIE.File.getHieSource file
+      let fileView = HieView.viewHieFile file
+      let hieSource = fileView.source
       let tokens = PositionDiff.lex $ T.unpack hieSource
       let hieFile =
             CachedHieFile
               { hieSource
               , hieSourceRope = Rope.fromText hieSource
               , file = file
+              , fileView
               , hieTokenMap = PositionDiff.tokensToRangeMap tokens
               }
       setHieCacheMap $ HashMap.insert path hieFile hieCacheMap
@@ -187,6 +192,11 @@ getHieFile :: (MonadHieFile m) => AbsPath -> MaybeT m HIE.File.HieFile
 getHieFile path = do
   hieCache <- getHieCache path
   pure $ hieCache.file
+
+getHieView :: (MonadHieFile m) => AbsPath -> MaybeT m HieView.File
+getHieView path = do
+  hieCache <- getHieCache path
+  pure $ hieCache.fileView
 
 getHieSource :: (MonadHieFile m) => AbsPath -> MaybeT m Text
 getHieSource path = do

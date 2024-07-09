@@ -179,7 +179,7 @@ nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
  where
   fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => MaybeT m [FileLcRange]
   fallbackToDb = do
-    logInfo "fallbackToDb" 
+    logInfo "fallbackToDb"
     erow <- runHieDbMaybeT (\hieDb -> hieDbFindDef hieDb name (Just (HieView.Name.getUnit name)))
     case erow of
       [] -> do

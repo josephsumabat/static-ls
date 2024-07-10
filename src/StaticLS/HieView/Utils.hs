@@ -22,7 +22,7 @@ realSrcSpanToFileLcRange realSrcSpan =
     { loc =
         LineColRange
           (realSrcLocToLineCol startLoc)
-          (endLineCol {col = Pos (endLineCol.col.pos - 1)})
+          (endLineCol {col = Pos (endLineCol.col.pos + 1)})
     , path =
         Path.filePathToRel $
           InternStr.toString $

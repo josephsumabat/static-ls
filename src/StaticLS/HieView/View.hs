@@ -1,5 +1,4 @@
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 -- We use lens here because traversals
 module StaticLS.HieView.View (
@@ -163,8 +162,7 @@ viewAst hieAst =
 viewSourcedNodeInfo :: GHC.SourcedNodeInfo GHC.TypeIndex -> SourcedNodeInfo TypeIndex
 viewSourcedNodeInfo (GHC.SourcedNodeInfo sourcedNodeInfo) =
   Map.fromList
-    ( ( \(k, v) ->
-          (viewNodeOrigin k, viewNodeInfo v)
+    ( ( Data.Bifunctor.bimap viewNodeOrigin viewNodeInfo
       )
         <$> (Map.toList sourcedNodeInfo)
     )
@@ -184,7 +182,7 @@ viewNodeInfo GHC.NodeInfo {nodeAnnotations, nodeType, nodeIdentifiers} =
     , identifiers =
         HashMap.fromList
           ( map
-              (\(k, v) -> (viewIdentifier k, viewIdentifierDetails v))
+              (Data.Bifunctor.bimap viewIdentifier viewIdentifierDetails)
               (Map.toList nodeIdentifiers)
           )
     }
@@ -201,7 +199,7 @@ identifierModule = \case
 
 viewIdentifier :: GHC.Identifier -> Identifier
 viewIdentifier identifier = case identifier of
-  Left modName -> IdentModule $ Name.fromGHCModuleName $ modName
+  Left modName -> IdentModule $ Name.fromGHCModuleName modName
   Right name -> IdentName (Name.fromGHCName name)
 
 viewIdentifierDetails :: GHC.IdentifierDetails GHC.TypeIndex -> IdentifierDetails TypeIndex

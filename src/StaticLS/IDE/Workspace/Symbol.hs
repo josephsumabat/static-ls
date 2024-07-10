@@ -14,7 +14,8 @@ import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
 import Development.IDE.GHC.Util (printOutputable)
-import GHC.Plugins hiding ((<>))
+import GHC.Plugins qualified as GHC
+import GHC.Stack (HasCallStack)
 import HieDb qualified
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
 import StaticLS.HIE.Position
@@ -58,9 +59,9 @@ defRowToSymbolInfo (HieDb.DefRow {..} HieDb.:. _) = runMaybeT $ do
         }
  where
   mKind
-    | isVarOcc defNameOcc = Just SymbolKind.Variable
-    | isDataOcc defNameOcc = Just SymbolKind.Constructor
-    | isTcOcc defNameOcc = Just SymbolKind.Type
+    | GHC.isVarOcc defNameOcc = Just SymbolKind.Variable
+    | GHC.isDataOcc defNameOcc = Just SymbolKind.Constructor
+    | GHC.isTcOcc defNameOcc = Just SymbolKind.Type
     | otherwise = Nothing
   range = LineColRange start end
   start = hiedbCoordsToLineCol (defSLine, defSCol)

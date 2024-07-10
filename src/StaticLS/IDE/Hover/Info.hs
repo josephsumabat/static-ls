@@ -5,13 +5,12 @@ import Data.LineColRange (LineColRange)
 import Data.List.Extra (dropEnd1, nubOrd)
 import Data.Map qualified as M
 import Data.Text qualified as T
-import Development.IDE.GHC.Error (realSrcSpanToRange)
 import GHC hiding (getDocs)
 import GHC.Iface.Ext.Types
 import GHC.Iface.Ext.Utils
 import GHC.Plugins hiding ((<>))
 import StaticLS.HI
-import StaticLS.ProtoLSP qualified as ProtoLSP
+import StaticLS.HieView.Utils qualified as HieView.Utils
 import StaticLS.SDoc
 
 -------------------------------------------------------------------
@@ -20,13 +19,13 @@ import StaticLS.SDoc
 -- for the original source
 -------------------------------------------------------------------
 hoverInfo :: Array TypeIndex HieTypeFlat -> [NameDocs] -> HieAST TypeIndex -> (Maybe LineColRange, [T.Text])
-hoverInfo typeLookup docs ast = (Just (ProtoLSP.lineColRangeFromProto spanRange), map prettyIdent idents ++ pTypes ++ prettyDocumentation docs)
+hoverInfo typeLookup docs ast = (Just spanRange, map prettyIdent idents ++ pTypes ++ prettyDocumentation docs)
  where
   pTypes
     | [_] <- idents = dropEnd1 $ map wrapHaskell prettyTypes
     | otherwise = map wrapHaskell prettyTypes
 
-  spanRange = realSrcSpanToRange $ nodeSpan ast
+  spanRange = HieView.Utils.realSrcSpanToLcRange $ nodeSpan ast
 
   wrapHaskell x = "\n```haskell\n" <> x <> "\n```\n"
   info = sourcedNodeInfo ast

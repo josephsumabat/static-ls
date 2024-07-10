@@ -26,7 +26,6 @@ module StaticLS.HieView.View (
 where
 
 import Control.Lens
-import Data.Foldable (fold)
 import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
 import Data.HashSet (HashSet)
@@ -162,7 +161,7 @@ viewAst hieAst =
 viewSourcedNodeInfo :: GHC.SourcedNodeInfo GHC.TypeIndex -> SourcedNodeInfo TypeIndex
 viewSourcedNodeInfo (GHC.SourcedNodeInfo sourcedNodeInfo) =
   Map.fromList
-    ( ( Data.Bifunctor.bimap viewNodeOrigin viewNodeInfo
+    ( ( bimap viewNodeOrigin viewNodeInfo
       )
         <$> (Map.toList sourcedNodeInfo)
     )
@@ -182,7 +181,7 @@ viewNodeInfo GHC.NodeInfo {nodeAnnotations, nodeType, nodeIdentifiers} =
     , identifiers =
         HashMap.fromList
           ( map
-              (Data.Bifunctor.bimap viewIdentifier viewIdentifierDetails)
+              (bimap viewIdentifier viewIdentifierDetails)
               (Map.toList nodeIdentifiers)
           )
     }

@@ -131,7 +131,6 @@ library
     , fsnotify
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=2.5.0 && <2.8.0
     , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
@@ -203,7 +202,6 @@ executable static-ls
     , fsnotify
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=2.5.0 && <2.8.0
     , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0
@@ -305,7 +303,6 @@ test-suite static-ls-test
     , fsnotify
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
-    , ghcide >=2.5.0 && <2.8.0
     , hashable
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.2.0

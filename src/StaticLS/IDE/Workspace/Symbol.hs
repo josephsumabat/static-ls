@@ -13,7 +13,6 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Path qualified as Path
 import Data.Text (Text)
 import Data.Text qualified as T
-import Development.IDE.GHC.Util (printOutputable)
 import GHC.Plugins qualified as GHC
 import GHC.Stack (HasCallStack)
 import HieDb qualified
@@ -53,7 +52,7 @@ defRowToSymbolInfo (HieDb.DefRow {..} HieDb.:. _) = runMaybeT $ do
     kind <- toAlt mKind
     pure $
       Symbol
-        { name = printOutputable defNameOcc
+        { name = T.pack $ GHC.occNameString defNameOcc
         , kind = kind
         , loc = loc
         }

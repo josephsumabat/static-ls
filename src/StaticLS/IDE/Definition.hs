@@ -44,6 +44,7 @@ getDefinition path lineCol = do
     hieLineCol <- lineColToHieLineCol path lineCol
     hieView <- getHieView path
     let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
+    logInfo $ "Identifiers: " <> T.pack (show identifiers)
     identifiers <- traverse identifierToLocation identifiers
     identifiers <- pure $ concat identifiers
     pure identifiers

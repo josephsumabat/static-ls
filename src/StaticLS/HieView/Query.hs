@@ -1,5 +1,3 @@
-{-# LANGUAGE NoMonoLocalBinds #-}
-
 module StaticLS.HieView.Query (
   namesAtRange,
   smallestContainingSatisfying,

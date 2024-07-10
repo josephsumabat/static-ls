@@ -1,3 +1,5 @@
+-- GHC positions are 1-based and exclusive at the end
+-- Our positions are 0-based and excsluvie at the end
 module StaticLS.HieView.Utils where
 
 import Data.LineCol (LineCol (..))
@@ -22,17 +24,16 @@ realSrcSpanToFileLcRange realSrcSpan =
     { loc =
         LineColRange
           (realSrcLocToLineCol startLoc)
-          (endLineCol {col = Pos endLineCol.col.pos})
-    , path =
+          (realSrcLocToLineCol endLoc),
+      path =
         Path.filePathToRel $
           InternStr.toString $
             InternStr.fromGHCFastString $
               GHC.srcSpanFile realSrcSpan
     }
- where
-  startLoc = GHC.realSrcSpanStart realSrcSpan
-  endLoc = GHC.realSrcSpanEnd realSrcSpan
-  endLineCol = realSrcLocToLineCol endLoc
+  where
+    startLoc = GHC.realSrcSpanStart realSrcSpan
+    endLoc = GHC.realSrcSpanEnd realSrcSpan
 
 realSrcSpanToLcRange :: GHC.RealSrcSpan -> LineColRange
 realSrcSpanToLcRange = (.loc) . realSrcSpanToFileLcRange

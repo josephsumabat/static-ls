@@ -14,6 +14,7 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
+import Data.Text qualified as T
 import Data.Traversable (for)
 import HieDb qualified
 import StaticLS.HIE.File hiding (getHieSource)
@@ -24,6 +25,7 @@ import StaticLS.HieView.View qualified as HieView
 import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith' (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
+import StaticLS.Logger
 import StaticLS.StaticEnv
 
 findRefsPos :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileRange]
@@ -37,8 +39,11 @@ findRefs path lineCol = do
     hieView <- getHieView path
     lineCol' <- lineColToHieLineCol path lineCol
     let names = HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty lineCol')) hieView
+    logInfo $ T.pack $ "findRefs: names: " <> show names
     let nameDefRanges = Maybe.mapMaybe HieView.Name.getRange names
+    logInfo $ T.pack $ "findRefs: nameDefRanges: " <> show nameDefRanges
     let localDefNames = concatMap (\range -> HieView.Query.fileLocalBindsAtRangeList (Just range) hieView) nameDefRanges
+    logInfo $ T.pack $ "findRefs: localDefNames: " <> show localDefNames
     case localDefNames of
       [] -> do
         refRows <- traverse hieDbFindReferences names

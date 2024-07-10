@@ -81,7 +81,7 @@ getTypeDefinition path lineCol = do
     locations <- pure $ concat locations
     locations <- lift $ mapMaybeM (runMaybeT . hieFileLcToFileLc) locations
     pure locations
-  
+
   pure $ fromMaybe [] mLocationLinks
 
 ---------------------------------------------------------------------

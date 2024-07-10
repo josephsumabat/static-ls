@@ -24,16 +24,16 @@ realSrcSpanToFileLcRange realSrcSpan =
     { loc =
         LineColRange
           (realSrcLocToLineCol startLoc)
-          (realSrcLocToLineCol endLoc),
-      path =
+          (realSrcLocToLineCol endLoc)
+    , path =
         Path.filePathToRel $
           InternStr.toString $
             InternStr.fromGHCFastString $
               GHC.srcSpanFile realSrcSpan
     }
-  where
-    startLoc = GHC.realSrcSpanStart realSrcSpan
-    endLoc = GHC.realSrcSpanEnd realSrcSpan
+ where
+  startLoc = GHC.realSrcSpanStart realSrcSpan
+  endLoc = GHC.realSrcSpanEnd realSrcSpan
 
 realSrcSpanToLcRange :: GHC.RealSrcSpan -> LineColRange
 realSrcSpanToLcRange = (.loc) . realSrcSpanToFileLcRange

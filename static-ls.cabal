@@ -141,6 +141,7 @@ library
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
+    , optics
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , raw-strings-qq
@@ -212,6 +213,7 @@ executable static-ls
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
+    , optics
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
     , pretty-simple
@@ -314,6 +316,7 @@ test-suite static-ls-test
     , lsp-types >=2.1 && <2.3
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
+    , optics
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , quickcheck-instances

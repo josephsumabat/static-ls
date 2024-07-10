@@ -13,6 +13,7 @@ module StaticLS.HieView.Name (
   toGHCModuleName,
   fromGHCModuleName,
   moduleNameToInternStr,
+  getModuleName,
 )
 where
 
@@ -81,3 +82,6 @@ toGHCOccName = GHC.nameOccName . (.name)
 
 getModule :: Name -> Maybe Text
 getModule = fmap (T.pack . GHC.moduleNameString . GHC.moduleName) . GHC.nameModule_maybe . (.name)
+
+getModuleName :: Name -> Maybe ModuleName
+getModuleName = fmap (fromGHCModuleName . GHC.moduleName) . GHC.nameModule_maybe . (.name)

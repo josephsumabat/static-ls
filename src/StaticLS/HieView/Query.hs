@@ -1,10 +1,13 @@
+{-# LANGUAGE NoMonoLocalBinds #-}
+
 module StaticLS.HieView.Query (
   namesAtRange,
   smallestContainingSatisfying,
-  identifiersAtRange,
-  flattenAst,
-  tysAtRange,
-  astsAtRange,
+  fileTysAtRangeList,
+  fileNamesAtRangeList,
+  fileIdentifiersAtRangeList,
+  fileLocalBindsAtRangeList,
+  fileNamesWithDefRange,
 )
 where
 
@@ -12,36 +15,57 @@ import Data.Containers.ListUtils (nubOrd)
 import Data.HashMap.Lazy qualified as HashMap
 import Data.LineColRange (LineColRange)
 import Data.LineColRange qualified as LineColRange
-import Data.List.NonEmpty qualified as NE
-import Data.Map.Strict qualified as Map
-import Data.Maybe qualified as Maybe
 import Data.Monoid (First (..))
-import StaticLS.HieView.Name (Name)
+import Optics
+import StaticLS.HieView.Name qualified as Name
 import StaticLS.HieView.Type (TypeIndex)
 import StaticLS.HieView.View
 
-localBindsAtRange :: File -> LineColRange -> [Name]
-localBindsAtRange file range =
-  []
-  where
+fileAsts :: Fold File (Ast TypeIndex)
+fileAsts = to (.asts) % folded
+
+fileLocalBindsAtRangeList :: Maybe LineColRange -> File -> [Name]
+fileLocalBindsAtRangeList range file = do
+  file ^.. (fileAsts % smallestContainingFold range % astAllIdentifers % filtered filterIdent % _1 % _IdentName)
+ where
+  filterIdent (_, details) = anyOf (to (.info) % folded) getLocalBind details
+
   getLocalBind = \case
-    ValBind _ (LocalScope scopeSpan) _ -> True
+    ValBind _ (LocalScope _) _ -> True
     PatternBind _ (LocalScope _) _ -> True
     PatternBind (LocalScope _) _ _ -> True
     _ -> False
 
+-- detailsMatchesContext ::
+fileNamesAtRangeList :: Maybe LineColRange -> File -> [Name]
+fileNamesAtRangeList range file = file ^.. namesAtRange range
 
-namesAtRange :: File -> LineColRange -> [Name]
-namesAtRange file lineCol = Maybe.mapMaybe (identiferName . fst) $ identifiersAtRange file lineCol
+fileIdentifiersAtRangeList :: Maybe LineColRange -> File -> [Identifier]
+fileIdentifiersAtRangeList range file = file ^.. fileAsts % astIdentifiersAtRange range % _1
 
-tysAtRange :: File -> LineColRange -> [TypeIndex]
-tysAtRange file range = nubOrd $ concatMap getAstTys $ Maybe.mapMaybe (smallestContaining range) (Map.elems file.asts)
+fileNamesWithDefRange :: [LineColRange] -> File -> [Name]
+fileNamesWithDefRange defRange file =
+  file ^.. fileAsts % astIdentifiersAtRange Nothing % _1 % _IdentName % filtered keepName
+ where
+  keepName name = case Name.getRange name of
+    Just range -> range `elem` defRange
+    Nothing -> False
 
-astsAtRange :: File -> LineColRange -> [Ast TypeIndex]
-astsAtRange file range = Maybe.mapMaybe (smallestContaining range) (Map.elems file.asts)
+namesAtRange :: Maybe LineColRange -> Fold File Name
+namesAtRange range = fileAsts % astIdentifiersAtRange range % _1 % _IdentName
+
+astIdentifiersAtRange :: Maybe LineColRange -> Fold (Ast a) (Identifier, IdentifierDetails a)
+astIdentifiersAtRange range = smallestContainingFold range % everyAst % astSourceIdentifiers
+
+fileTysAtRangeList :: File -> LineColRange -> [TypeIndex]
+fileTysAtRangeList file range = nubOrd (file ^.. (fileAsts % to (smallestContaining range) % folded % astEveryTy))
 
 smallestContaining :: LineColRange -> Ast a -> Maybe (Ast a)
 smallestContaining range = smallestContainingSatisfying range Just
+
+smallestContainingFold :: Maybe LineColRange -> AffineFold (Ast a) (Ast a)
+smallestContainingFold (Just range) = to (smallestContaining range) % _Just
+smallestContainingFold Nothing = afolding Just
 
 smallestContainingSatisfying ::
   LineColRange ->
@@ -59,42 +83,23 @@ smallestContainingSatisfying range cond node
   | range `LineColRange.containsRange` node.range = Nothing
   | otherwise = Nothing
 
-identifiersAtRange :: File -> LineColRange -> [(Identifier, IdentifierDetails TypeIndex)]
-identifiersAtRange hieFile span = concatMap NE.toList results
- where
-  results =
-    Maybe.mapMaybe
-      ( \ast -> do
-          smallestContainingSatisfying
-            span
-            ( \ast -> do
-                nodeInfo <- getAstSourceInfo ast
-                identifiers <- NE.nonEmpty $ HashMap.toList nodeInfo.identifiers
-                pure identifiers
-            )
-            ast
-      )
-      asts
-  asts = Map.elems $ hieFile.asts
+astAllIdentifers :: Fold (Ast a) (Identifier, IdentifierDetails a)
+astAllIdentifers = nodeInfos % to (.identifiers) % to HashMap.toList % folded
 
-getAstIdentifiers :: Ast a -> [(Identifier, IdentifierDetails a)]
-getAstIdentifiers ast = concatMap (HashMap.toList . (.identifiers)) $ getAstNodeInfos ast
+astSourceIdentifiers :: Fold (Ast a) (Identifier, IdentifierDetails a)
+astSourceIdentifiers = sourceInfo % to (.identifiers) % to HashMap.toList % folded
 
--- get the source info, not the generated one
-getAstSourceInfo :: Ast a -> Maybe (NodeInfo a)
-getAstSourceInfo ast = Map.lookup SourceInfo ast.sourcedNodeInfo
+nodeInfos :: Fold (Ast a) (NodeInfo a)
+nodeInfos = to (.sourcedNodeInfo) % traversed
 
-getAstNodeInfos :: Ast a -> [NodeInfo a]
-getAstNodeInfos ast = Map.elems ast.sourcedNodeInfo
+sourceInfo :: AffineFold (Ast a) (NodeInfo a)
+sourceInfo = to (.sourcedNodeInfo) % ix SourceInfo
 
-flattenAst :: Ast a -> [Ast a]
-flattenAst ast = ast : concatMap flattenAst ast.children
+everyAst :: Fold (Ast a) (Ast a)
+everyAst = foldVL $ \k ast -> k ast *> traverseOf_ folded k ast.children
 
-getAstTys :: Ast a -> [a]
-getAstTys = concatMap getAstImmediateTys . flattenAst
+astEveryTy :: Fold (Ast a) a
+astEveryTy = everyAst % astImmediateTys
 
-getAstImmediateTys :: Ast a -> [a]
-getAstImmediateTys ast = tys ++ identTys
- where
-  identTys = Maybe.mapMaybe ((.ty) . snd) $ getAstIdentifiers ast
-  tys = concatMap (.tys) (Map.elems ast.sourcedNodeInfo)
+astImmediateTys :: Fold (Ast a) a
+astImmediateTys = (astAllIdentifers % _2 % to (.ty) % _Just) `summing` (nodeInfos % to (.tys) % folded)

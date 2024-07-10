@@ -1,3 +1,7 @@
+{-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE TemplateHaskell #-}
+
+-- We use lens here because traversals
 module StaticLS.HieView.View (
   File (..),
   viewHieFile,
@@ -16,9 +20,14 @@ module StaticLS.HieView.View (
   Name,
   ModuleName,
   InternStr,
+  -- optics
+  _IdentName,
+  _IdentModule,
 )
 where
 
+import Control.Lens
+import Data.Foldable (fold)
 import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
 import Data.HashSet (HashSet)
@@ -33,6 +42,7 @@ import Data.Text.Encoding qualified as T.Encoding
 import GHC.Generics (Generic)
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins qualified as GHC (LexicalFastString (..))
+import Optics
 import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
 import StaticLS.HieView.Name (ModuleName, Name)
@@ -48,57 +58,12 @@ data File = File
   }
   deriving (Show)
 
-viewHieFile :: GHC.HieFile -> File
-viewHieFile hieFile =
-  File
-    { asts = viewHieAsts $ GHC.hie_asts hieFile
-    , typeArray = Type.fromGHCHieTypes $ GHC.hie_types hieFile
-    , source = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
-    }
-
-viewHieAsts :: GHC.HieASTs GHC.TypeIndex -> Map FilePath (Ast TypeIndex)
-viewHieAsts hieAsts =
-  Map.fromList
-    ( ( \((GHC.LexicalFastString k), v) ->
-          (InternStr.toString $ InternStr.fromGHCFastString k, viewAst v)
-      )
-        <$> (Map.toList (GHC.getAsts hieAsts))
-    )
-data NodeOrigin
-  = SourceInfo
-  | GeneratedInfo
-  deriving (Show, Eq, Ord)
-
-viewNodeOrigin :: GHC.NodeOrigin -> NodeOrigin
-viewNodeOrigin = \case
-  GHC.SourceInfo -> SourceInfo
-  GHC.GeneratedInfo -> GeneratedInfo
-
 data Ast a = Ast
   { sourcedNodeInfo :: SourcedNodeInfo a
   , range :: LineColRange
   , children :: [Ast a]
   }
   deriving (Show, Eq)
-
-viewAst :: GHC.HieAST GHC.TypeIndex -> Ast TypeIndex
-viewAst hieAst =
-  Ast
-    { sourcedNodeInfo = viewSourcedNodeInfo (GHC.sourcedNodeInfo hieAst)
-    , range = Utils.realSrcSpanToLcRange $ GHC.nodeSpan hieAst
-    , children = viewAst <$> GHC.nodeChildren hieAst
-    }
-
-type SourcedNodeInfo a = Map NodeOrigin (NodeInfo a)
-
-viewSourcedNodeInfo :: GHC.SourcedNodeInfo GHC.TypeIndex -> SourcedNodeInfo TypeIndex
-viewSourcedNodeInfo (GHC.SourcedNodeInfo sourcedNodeInfo) =
-  Map.fromList
-    ( ( \(k, v) ->
-          (viewNodeOrigin k, viewNodeInfo v)
-      )
-        <$> (Map.toList sourcedNodeInfo)
-    )
 
 data NodeAnnotation = NodeAnnotation
   { constr :: InternStr
@@ -108,32 +73,12 @@ data NodeAnnotation = NodeAnnotation
 
 instance Hashable NodeAnnotation
 
-viewNodeAnnotation :: GHC.NodeAnnotation -> NodeAnnotation
-viewNodeAnnotation GHC.NodeAnnotation {nodeAnnotConstr, nodeAnnotType} =
-  NodeAnnotation
-    { constr = InternStr.fromGHCFastString nodeAnnotConstr
-    , ty = InternStr.fromGHCFastString nodeAnnotType
-    }
-
 data NodeInfo a = NodeInfo
   { annotations :: HashSet NodeAnnotation
   , tys :: [a]
   , identifiers :: HashMap Identifier (IdentifierDetails a)
   }
   deriving (Show, Eq)
-
-viewNodeInfo :: GHC.NodeInfo GHC.TypeIndex -> NodeInfo TypeIndex
-viewNodeInfo GHC.NodeInfo {nodeAnnotations, nodeType, nodeIdentifiers} =
-  NodeInfo
-    { annotations = HashSet.fromList (viewNodeAnnotation <$> (Set.toList nodeAnnotations))
-    , tys = Type.fromGHCTypeIndex <$> nodeType
-    , identifiers =
-        HashMap.fromList
-          ( map
-              (\(k, v) -> (viewIdentifier k, viewIdentifierDetails v))
-              (Map.toList nodeIdentifiers)
-          )
-    }
 
 data Identifier
   = IdentModule !ModuleName
@@ -142,33 +87,11 @@ data Identifier
 
 instance Hashable Identifier
 
-identiferName :: Identifier -> Maybe Name
-identiferName = \case
-  IdentModule _ -> Nothing
-  IdentName name -> Just name
-
-identifierModule :: Identifier -> Maybe ModuleName
-identifierModule = \case
-  IdentModule modName -> Just modName
-  IdentName _ -> Nothing
-
-viewIdentifier :: GHC.Identifier -> Identifier
-viewIdentifier identifier = case identifier of
-  Left modName -> IdentModule $ Name.fromGHCModuleName $ modName
-  Right name -> IdentName (Name.fromGHCName name)
-
 data IdentifierDetails a = IdentifierDetails
   { info :: HashSet ContextInfo
   , ty :: Maybe a
   }
   deriving (Show, Eq)
-
-viewIdentifierDetails :: GHC.IdentifierDetails GHC.TypeIndex -> IdentifierDetails TypeIndex
-viewIdentifierDetails GHC.IdentifierDetails {identInfo, identType} =
-  IdentifierDetails
-    { info = HashSet.fromList (viewContextInfo <$> (Set.toList identInfo))
-    , ty = Type.fromGHCTypeIndex <$> identType
-    }
 
 data Scope
   = NoScope
@@ -190,6 +113,103 @@ data ContextInfo
   deriving (Show, Eq, Generic)
 
 instance Hashable ContextInfo
+
+data NodeOrigin
+  = SourceInfo
+  | GeneratedInfo
+  deriving (Show, Eq, Ord)
+
+type SourcedNodeInfo a = Map NodeOrigin (NodeInfo a)
+
+-- $( fold
+--     [ makePrisms ''Identifier
+--     ]
+--  )
+_IdentName :: AffineFold Identifier Name
+_IdentName = undefined
+
+_IdentModule :: AffineFold Identifier ModuleName
+_IdentModule = undefined
+
+viewHieFile :: GHC.HieFile -> File
+viewHieFile hieFile =
+  File
+    { asts = viewHieAsts $ GHC.hie_asts hieFile
+    , typeArray = Type.fromGHCHieTypes $ GHC.hie_types hieFile
+    , source = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
+    }
+
+viewHieAsts :: GHC.HieASTs GHC.TypeIndex -> Map FilePath (Ast TypeIndex)
+viewHieAsts hieAsts =
+  Map.fromList
+    ( ( \((GHC.LexicalFastString k), v) ->
+          (InternStr.toString $ InternStr.fromGHCFastString k, viewAst v)
+      )
+        <$> (Map.toList (GHC.getAsts hieAsts))
+    )
+viewNodeOrigin :: GHC.NodeOrigin -> NodeOrigin
+viewNodeOrigin = \case
+  GHC.SourceInfo -> SourceInfo
+  GHC.GeneratedInfo -> GeneratedInfo
+
+viewAst :: GHC.HieAST GHC.TypeIndex -> Ast TypeIndex
+viewAst hieAst =
+  Ast
+    { sourcedNodeInfo = viewSourcedNodeInfo (GHC.sourcedNodeInfo hieAst)
+    , range = Utils.realSrcSpanToLcRange $ GHC.nodeSpan hieAst
+    , children = viewAst <$> GHC.nodeChildren hieAst
+    }
+
+viewSourcedNodeInfo :: GHC.SourcedNodeInfo GHC.TypeIndex -> SourcedNodeInfo TypeIndex
+viewSourcedNodeInfo (GHC.SourcedNodeInfo sourcedNodeInfo) =
+  Map.fromList
+    ( ( \(k, v) ->
+          (viewNodeOrigin k, viewNodeInfo v)
+      )
+        <$> (Map.toList sourcedNodeInfo)
+    )
+
+viewNodeAnnotation :: GHC.NodeAnnotation -> NodeAnnotation
+viewNodeAnnotation GHC.NodeAnnotation {nodeAnnotConstr, nodeAnnotType} =
+  NodeAnnotation
+    { constr = InternStr.fromGHCFastString nodeAnnotConstr
+    , ty = InternStr.fromGHCFastString nodeAnnotType
+    }
+
+viewNodeInfo :: GHC.NodeInfo GHC.TypeIndex -> NodeInfo TypeIndex
+viewNodeInfo GHC.NodeInfo {nodeAnnotations, nodeType, nodeIdentifiers} =
+  NodeInfo
+    { annotations = HashSet.fromList (viewNodeAnnotation <$> (Set.toList nodeAnnotations))
+    , tys = Type.fromGHCTypeIndex <$> nodeType
+    , identifiers =
+        HashMap.fromList
+          ( map
+              (\(k, v) -> (viewIdentifier k, viewIdentifierDetails v))
+              (Map.toList nodeIdentifiers)
+          )
+    }
+
+identiferName :: Identifier -> Maybe Name
+identiferName = \case
+  IdentModule _ -> Nothing
+  IdentName name -> Just name
+
+identifierModule :: Identifier -> Maybe ModuleName
+identifierModule = \case
+  IdentModule modName -> Just modName
+  IdentName _ -> Nothing
+
+viewIdentifier :: GHC.Identifier -> Identifier
+viewIdentifier identifier = case identifier of
+  Left modName -> IdentModule $ Name.fromGHCModuleName $ modName
+  Right name -> IdentName (Name.fromGHCName name)
+
+viewIdentifierDetails :: GHC.IdentifierDetails GHC.TypeIndex -> IdentifierDetails TypeIndex
+viewIdentifierDetails GHC.IdentifierDetails {identInfo, identType} =
+  IdentifierDetails
+    { info = HashSet.fromList (viewContextInfo <$> (Set.toList identInfo))
+    , ty = Type.fromGHCTypeIndex <$> identType
+    }
 
 viewContextInfo :: GHC.ContextInfo -> ContextInfo
 viewContextInfo = \case

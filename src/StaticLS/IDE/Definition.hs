@@ -42,7 +42,7 @@ getDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
     hieView <- getHieView path
-    let identifiers = fmap fst $ HieView.Query.identifiersAtRange hieView (LineColRange.empty hieLineCol)
+    let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
     identifiers <- traverse identifierToLocation identifiers
     identifiers <- pure $ concat identifiers
     pure identifiers
@@ -73,7 +73,7 @@ getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
     hieView <- getHieView path
-    let tyIxs = HieView.Query.tysAtRange hieView (LineColRange.empty hieLineCol)
+    let tyIxs = HieView.Query.fileTysAtRangeList hieView (LineColRange.empty hieLineCol)
     let tys = map (HieView.Type.recoverFullType hieView.typeArray) tyIxs
     let names = concatMap HieView.Type.getTypeNames tys
     locations <- traverse nameViewToLocation names

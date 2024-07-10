@@ -44,9 +44,9 @@ getDefinition path lineCol = do
     hieLineCol <- lineColToHieLineCol path lineCol
     hieView <- getHieView path
     let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
-    identifiers <- traverse identifierToLocation identifiers
-    identifiers <- pure $ concat identifiers
-    pure identifiers
+    locations <- traverse identifierToLocation identifiers
+    locations <- pure $ concat locations
+    pure locations
   pure $ fromMaybe [] mLocationLinks
  where
   identifierToLocation :: (MonadIde m, MonadIO m) => HieView.Identifier -> m [FileLcRange]
@@ -81,6 +81,7 @@ getTypeDefinition path lineCol = do
     locations <- pure $ concat locations
     locations <- lift $ mapMaybeM (runMaybeT . hieFileLcToFileLc) locations
     pure locations
+
   pure $ fromMaybe [] mLocationLinks
 
 ---------------------------------------------------------------------
@@ -95,8 +96,6 @@ getTypeDefinition path lineCol = do
 -- for original code
 nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => HieView.Name.Name -> m [FileLcRange]
 nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
-  let range = HieView.Name.getFileRange name
-  logInfo $ T.pack $ "range: " <> show range
   case HieView.Name.getFileRange name of
     Just range
       | let path = (Path.toFilePath range.path)
@@ -105,7 +104,8 @@ nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
           let absRange = FileWith.mapPath (staticEnv.wsRoot Path.</>) range
           itExists <- liftIO $ doesFileExist path
           if itExists
-            then pure [absRange]
+            then do
+              pure [absRange]
             else do
               -- When reusing .hie files from a cloud cache,
               -- the paths may not match the local file system.

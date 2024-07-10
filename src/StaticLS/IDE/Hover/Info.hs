@@ -10,8 +10,8 @@ import GHC.Iface.Ext.Types
 import GHC.Iface.Ext.Utils
 import GHC.Plugins hiding ((<>))
 import StaticLS.HI
+import StaticLS.HieView.Utils qualified as HieView.Utils
 import StaticLS.SDoc
-import qualified StaticLS.HieView.Utils as HieView.Utils
 
 -------------------------------------------------------------------
 -- The following code is taken partially from halfsp

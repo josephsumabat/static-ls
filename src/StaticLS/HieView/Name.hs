@@ -1,5 +1,6 @@
 module StaticLS.HieView.Name (
   Name,
+  ModuleName,
   fromGHCName,
   toInternStr,
   toText,
@@ -9,6 +10,10 @@ module StaticLS.HieView.Name (
   getFileRange,
   toGHCOccName,
   getModule,
+  toGHCModuleName,
+  fromGHCModuleName,
+  moduleNameToInternStr,
+  getModuleName,
 )
 where
 
@@ -21,6 +26,21 @@ import GHC.Types.Unique qualified
 import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
 import StaticLS.HieView.Utils
+
+newtype ModuleName = ModuleName {name :: GHC.ModuleName}
+  deriving (Show, Eq)
+
+instance Hashable ModuleName where
+  hashWithSalt salt = hashWithSalt @Int salt . GHC.Types.Unique.getKey . GHC.getUnique . (.name)
+
+moduleNameToInternStr :: ModuleName -> InternStr
+moduleNameToInternStr = InternStr.fromGHCFastString . GHC.moduleNameFS . (.name)
+
+fromGHCModuleName :: GHC.ModuleName -> ModuleName
+fromGHCModuleName = ModuleName
+
+toGHCModuleName :: ModuleName -> GHC.ModuleName
+toGHCModuleName = (.name)
 
 newtype Name = Name {name :: GHC.Name}
   deriving (Eq)
@@ -46,8 +66,8 @@ data NameShow = NameShow {name :: String}
 instance Show Name where
   show name = show NameShow {name = toString name}
 
-getUnit :: Name -> Text
-getUnit = T.pack . GHC.unitString . GHC.moduleUnit . GHC.nameModule . (.name)
+getUnit :: Name -> Maybe Text
+getUnit = fmap (T.pack . GHC.unitString . GHC.moduleUnit) . GHC.nameModule_maybe . (.name)
 
 getRange :: Name -> Maybe LineColRange
 getRange = srcSpanToLcRange . GHC.nameSrcSpan . (.name)
@@ -62,3 +82,6 @@ toGHCOccName = GHC.nameOccName . (.name)
 
 getModule :: Name -> Maybe Text
 getModule = fmap (T.pack . GHC.moduleNameString . GHC.moduleName) . GHC.nameModule_maybe . (.name)
+
+getModuleName :: Name -> Maybe ModuleName
+getModuleName = fmap (fromGHCModuleName . GHC.moduleName) . GHC.nameModule_maybe . (.name)

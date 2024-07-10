@@ -74,7 +74,7 @@ handleDefinitionRequest = LSP.requestHandler LSP.SMethod_TextDocumentDefinition 
 
 handleTypeDefinitionRequest :: Handlers (LspT c StaticLsM)
 handleTypeDefinitionRequest = LSP.requestHandler LSP.SMethod_TextDocumentTypeDefinition $ \req resp -> do
-  lift $ logInfo $ "Received type definition request."
+  lift $ logInfo "Received type definition request."
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   defs <- lift $ getTypeDefinition path (ProtoLSP.lineColFromProto params._position)

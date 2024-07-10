@@ -29,7 +29,7 @@ myFunDefLocation = do
       absPath
       ( LineColRange
           (LineCol (Pos 10) (Pos 0))
-          (LineCol (Pos 10) (Pos 5))
+          (LineCol (Pos 10) (Pos 6))
       )
 
 myFunRef1TdiAndPosition :: IO (AbsPath, LineCol)

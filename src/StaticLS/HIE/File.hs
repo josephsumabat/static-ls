@@ -36,6 +36,7 @@ import HieDb qualified
 import StaticLS.FilePath
 import StaticLS.HIE.File.Except
 import StaticLS.HieDb qualified as HieDb
+import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.Maybe (flatMaybeT, toAlt)
 import StaticLS.SrcFiles
 import StaticLS.StaticEnv
@@ -55,11 +56,11 @@ getHieFileFromPath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m HieFile
 getHieFileFromPath = ((exceptToMaybeT . getHieFileFromHiePath) <=< srcFilePathToHieFilePath)
 
 -- | Retrieve an hie file from a module name
-modToHieFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m GHC.HieFile
+modToHieFile :: (HasStaticEnv m, MonadIO m) => HieView.Name.ModuleName -> MaybeT m GHC.HieFile
 modToHieFile = exceptToMaybeT . getHieFileFromHiePath <=< modToHieFilePath
 
 -- | Retrieve a src file from a module name
-modToSrcFile :: (HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m AbsPath
+modToSrcFile :: (HasStaticEnv m, MonadIO m) => HieView.Name.ModuleName -> MaybeT m AbsPath
 modToSrcFile = hieFilePathToSrcFilePath <=< modToHieFilePath
 
 -- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
@@ -112,12 +113,12 @@ hieFilePathToSrcFilePathHieDb hiePath = do
   res <- toAlt $ HieDb.modInfoSrcFile $ HieDb.hieModInfo hieModRow
   Path.filePathToAbs res
 
-modToHieFilePath :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.ModuleName -> MaybeT m AbsPath
+modToHieFilePath :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieView.Name.ModuleName -> MaybeT m AbsPath
 modToHieFilePath modName =
   flatMaybeT $ runHieDbMaybeT $ \hieDb ->
     runMaybeT $ do
-      Right unitId <- liftIO (HieDb.resolveUnitId hieDb modName)
-      Just hieModRow <- liftIO $ HieDb.lookupHieFile hieDb modName unitId
+      Right unitId <- liftIO (HieDb.resolveUnitId hieDb (HieView.Name.toGHCModuleName modName))
+      Just hieModRow <- liftIO $ HieDb.lookupHieFile hieDb (HieView.Name.toGHCModuleName modName) unitId
       Path.filePathToAbs hieModRow.hieModuleHieFile
 
 -----------------------------------------------------------------------------------

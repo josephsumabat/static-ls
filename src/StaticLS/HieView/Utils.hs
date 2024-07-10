@@ -13,8 +13,8 @@ type FileRange = FileWith' Path.Rel LineColRange
 realSrcLocToLineCol :: GHC.RealSrcLoc -> LineCol
 realSrcLocToLineCol realSrcLoc =
   LineCol
-    (Pos (GHC.srcLocLine realSrcLoc - 1))
-    (Pos (GHC.srcLocCol realSrcLoc - 1))
+    (Pos (GHC.srcLocLine realSrcLoc))
+    (Pos (GHC.srcLocCol realSrcLoc))
 
 realSrcSpanToFileLcRange :: GHC.RealSrcSpan -> FileRange
 realSrcSpanToFileLcRange realSrcSpan =
@@ -22,7 +22,7 @@ realSrcSpanToFileLcRange realSrcSpan =
     { loc =
         LineColRange
           (realSrcLocToLineCol startLoc)
-          (endLineCol {col = Pos (endLineCol.col.pos + 1)})
+          (endLineCol {col = Pos (endLineCol.col.pos)})
     , path =
         Path.filePathToRel $
           InternStr.toString $

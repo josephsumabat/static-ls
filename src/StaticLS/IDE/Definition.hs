@@ -42,6 +42,7 @@ getDefinition ::
 getDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
+    logInfo $ "hieLineCol: " <> T.pack (show hieLineCol)
     hieView <- getHieView path
     let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
     logInfo $ "Identifiers: " <> T.pack (show identifiers)

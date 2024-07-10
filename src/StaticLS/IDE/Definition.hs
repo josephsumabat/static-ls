@@ -46,9 +46,10 @@ getDefinition path lineCol = do
     hieView <- getHieView path
     let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
     logInfo $ "Identifiers: " <> T.pack (show identifiers)
-    identifiers <- traverse identifierToLocation identifiers
-    identifiers <- pure $ concat identifiers
-    pure identifiers
+    locations <- traverse identifierToLocation identifiers
+    locations <- pure $ concat locations
+    logInfo $ "Locations: " <> T.pack (show locations)
+    pure locations
   pure $ fromMaybe [] mLocationLinks
  where
   identifierToLocation :: (MonadIde m, MonadIO m) => HieView.Identifier -> m [FileLcRange]
@@ -103,12 +104,16 @@ nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
     Just range
       | let path = (Path.toFilePath range.path)
       , not $ "boot" `isSuffixOf` path -> do
+          logInfo $ T.pack $ "path: " <> path
           staticEnv <- getStaticEnv
           let absRange = FileWith.mapPath (staticEnv.wsRoot Path.</>) range
           itExists <- liftIO $ doesFileExist path
           if itExists
-            then pure [absRange]
+            then do
+              logInfo "exists"
+              pure [absRange]
             else do
+              logInfo "does not exist"
               -- When reusing .hie files from a cloud cache,
               -- the paths may not match the local file system.
               -- Let's fall back to the hiedb in case it contains local paths

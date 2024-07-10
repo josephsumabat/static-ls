@@ -9,8 +9,13 @@ module StaticLS.HieView.View (
   Identifier (..),
   IdentifierDetails (..),
   ContextInfo (..),
+  BindType (..),
+  Scope (..),
   identifierModule,
   identiferName,
+  Name,
+  ModuleName,
+  InternStr,
 )
 where
 
@@ -27,10 +32,10 @@ import Data.Text (Text)
 import Data.Text.Encoding qualified as T.Encoding
 import GHC.Generics (Generic)
 import GHC.Iface.Ext.Types qualified as GHC
-import GHC.Plugins qualified as GHC (LexicalFastString (..), moduleNameFS)
+import GHC.Plugins qualified as GHC (LexicalFastString (..))
 import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
-import StaticLS.HieView.Name (Name)
+import StaticLS.HieView.Name (ModuleName, Name)
 import StaticLS.HieView.Name qualified as Name
 import StaticLS.HieView.Type (TypeIndex)
 import StaticLS.HieView.Type qualified as Type
@@ -131,7 +136,7 @@ viewNodeInfo GHC.NodeInfo {nodeAnnotations, nodeType, nodeIdentifiers} =
     }
 
 data Identifier
-  = IdentModule !InternStr
+  = IdentModule !ModuleName
   | IdentName !Name
   deriving (Show, Eq, Generic)
 
@@ -142,14 +147,14 @@ identiferName = \case
   IdentModule _ -> Nothing
   IdentName name -> Just name
 
-identifierModule :: Identifier -> Maybe InternStr
+identifierModule :: Identifier -> Maybe ModuleName
 identifierModule = \case
   IdentModule modName -> Just modName
   IdentName _ -> Nothing
 
 viewIdentifier :: GHC.Identifier -> Identifier
 viewIdentifier identifier = case identifier of
-  Left modName -> IdentModule $ InternStr.fromGHCFastString $ GHC.moduleNameFS modName
+  Left modName -> IdentModule $ Name.fromGHCModuleName $ modName
   Right name -> IdentName (Name.fromGHCName name)
 
 data IdentifierDetails a = IdentifierDetails
@@ -165,7 +170,23 @@ viewIdentifierDetails GHC.IdentifierDetails {identInfo, identType} =
     , ty = Type.fromGHCTypeIndex <$> identType
     }
 
-data ContextInfo = ContextOther
+data Scope
+  = NoScope
+  | LocalScope LineColRange
+  | ModuleScope
+  deriving (Show, Eq, Generic)
+
+instance Hashable Scope
+
+data BindType = RegularBind | InstanceBind
+  deriving (Show, Eq, Generic)
+
+instance Hashable BindType
+
+data ContextInfo
+  = ContextOther
+  | ValBind BindType Scope (Maybe LineColRange)
+  | PatternBind Scope Scope (Maybe LineColRange)
   deriving (Show, Eq, Generic)
 
 instance Hashable ContextInfo

@@ -28,6 +28,8 @@ import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.SDoc (showNameWithoutUniques)
 import StaticLS.StaticEnv
+import qualified Data.LineColRange as LineColRange
+import qualified StaticLS.HieView.Query as HieView.Query
 
 findRefsPos :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileRange]
 findRefsPos path lineCol = do
@@ -38,34 +40,37 @@ findRefs :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
 findRefs path lineCol = do
   mLocList <- runMaybeT $ do
     hieFile <- getHieFile path
+    hieView <- getHieView path
     lineCol' <- lineColToHieLineCol path lineCol
     let hiedbPosition = lineColToHieDbCoords lineCol'
-    let names = namesAtPoint hieFile hiedbPosition
-    let occNamesAndModNamesAtPoint =
-          (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
-            <$> names
-    let nameSpans = Maybe.mapMaybe (GHC.srcSpanToRealSrcSpan . GHC.nameSrcSpan) names
-    let localNamesAtSpan = concatMap (findLocalBindsAtSpan hieFile) nameSpans
-    logInfo $ T.pack $ "localNamesAtSpan: " <> T.unpack (showNameWithoutUniques localNamesAtSpan)
-    case localNamesAtSpan of
-      [] -> do
-        refResRows <-
-          lift $ fmap (fromMaybe []) $ runMaybeT $ runHieDbMaybeT $ \hieDb -> do
-            join
-              <$> mapM
-                ( \(occ, mModName) -> do
-                    HieDb.findReferences hieDb False occ mModName Nothing []
-                )
-                occNamesAndModNamesAtPoint
-        lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refResRows
-      _ -> do
-        let defSpans = Maybe.mapMaybe (GHC.srcSpanToRealSrcSpan . GHC.nameSrcSpan) localNamesAtSpan
-        logInfo $ T.pack $ "defSpans: " <> (show defSpans)
-        logInfo $ T.pack $ "localNamesAtSpan: " <> T.unpack (showNameWithoutUniques localNamesAtSpan)
-        let localRefs = concatMap (namesWithDefSpan hieFile) defSpans
-        logInfo $ T.pack $ "localRefs: " <> T.unpack (showNameWithoutUniques (fmap snd localRefs))
-        locations <- traverse (Definition.realSrcSpanToFileLcRange . fst) localRefs
-        pure locations
+    -- let names = namesAtPoint hieFile hiedbPosition
+    let names = HieView.Query.namesAtRange hieView (LineColRange.empty lineCol')
+    undefined
+    -- let occNamesAndModNamesAtPoint =
+    --       (\name -> (GHC.occName name, fmap GHC.moduleName . GHC.nameModule_maybe $ name))
+    --         <$> names
+    -- let nameSpans = Maybe.mapMaybe (GHC.srcSpanToRealSrcSpan . GHC.nameSrcSpan) names
+    -- let localNamesAtSpan = concatMap (findLocalBindsAtSpan hieFile) nameSpans
+    -- logInfo $ T.pack $ "localNamesAtSpan: " <> T.unpack (showNameWithoutUniques localNamesAtSpan)
+    -- case localNamesAtSpan of
+    --   [] -> do
+    --     refResRows <-
+    --       lift $ fmap (fromMaybe []) $ runMaybeT $ runHieDbMaybeT $ \hieDb -> do
+    --         join
+    --           <$> mapM
+    --             ( \(occ, mModName) -> do
+    --                 HieDb.findReferences hieDb False occ mModName Nothing []
+    --             )
+    --             occNamesAndModNamesAtPoint
+    --     lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refResRows
+    --   _ -> do
+    --     let defSpans = Maybe.mapMaybe (GHC.srcSpanToRealSrcSpan . GHC.nameSrcSpan) localNamesAtSpan
+    --     logInfo $ T.pack $ "defSpans: " <> (show defSpans)
+    --     logInfo $ T.pack $ "localNamesAtSpan: " <> T.unpack (showNameWithoutUniques localNamesAtSpan)
+    --     let localRefs = concatMap (namesWithDefSpan hieFile) defSpans
+    --     logInfo $ T.pack $ "localRefs: " <> T.unpack (showNameWithoutUniques (fmap snd localRefs))
+    --     locations <- traverse (Definition.realSrcSpanToFileLcRange . fst) localRefs
+    --     pure locations
   let res = fromMaybe [] mLocList
   newRes <- for res \fileLcRange -> do
     new <- runMaybeT $ hieFileLcToFileLc fileLcRange

@@ -20,6 +20,17 @@ import StaticLS.HieView.Name (Name)
 import StaticLS.HieView.Type (TypeIndex)
 import StaticLS.HieView.View
 
+localBindsAtRange :: File -> LineColRange -> [Name]
+localBindsAtRange file range =
+  []
+  where
+  getLocalBind = \case
+    ValBind _ (LocalScope scopeSpan) _ -> True
+    PatternBind _ (LocalScope _) _ -> True
+    PatternBind (LocalScope _) _ _ -> True
+    _ -> False
+
+
 namesAtRange :: File -> LineColRange -> [Name]
 namesAtRange file lineCol = Maybe.mapMaybe (identiferName . fst) $ identifiersAtRange file lineCol
 

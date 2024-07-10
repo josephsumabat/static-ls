@@ -9,15 +9,18 @@ module StaticLS.HieView.Type (
   fromGHCTypeIndex,
   recoverFullType,
   getTypeNames,
+  printType,
 ) where
 
 import Data.Array (Array)
 import Data.Foldable qualified as Foldable
+import Data.Text (Text)
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Iface.Ext.Utils qualified as GHC
 import GHC.Iface.Type qualified
 import StaticLS.HieView.Name (Name)
 import StaticLS.HieView.Name qualified as Name
+import StaticLS.SDoc qualified as SDoc
 
 newtype TypeArray = TypeArray {tys :: Array GHC.TypeIndex GHC.HieTypeFlat}
 
@@ -39,6 +42,9 @@ fromGHCHieTypeFlat :: GHC.HieTypeFlat -> FlatType
 fromGHCHieTypeFlat = FlatType
 
 newtype Type = Type {ty :: GHC.HieTypeFix}
+
+printType :: Type -> Text
+printType = SDoc.showGhc . GHC.hieTypeToIface . (.ty)
 
 recoverFullType :: TypeArray -> TypeIndex -> Type
 recoverFullType (TypeArray tys) (TypeIndex ty) = Type (GHC.recoverFullType ty tys)

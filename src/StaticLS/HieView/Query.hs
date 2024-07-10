@@ -8,6 +8,7 @@ module StaticLS.HieView.Query (
   fileIdentifiersAtRangeList,
   fileLocalBindsAtRangeList,
   fileNamesWithDefRange,
+  fileSymbolsList,
 )
 where
 
@@ -18,8 +19,22 @@ import Data.LineColRange qualified as LineColRange
 import Data.Monoid (First (..))
 import Optics
 import StaticLS.HieView.Name qualified as Name
-import StaticLS.HieView.Type (TypeIndex)
+import StaticLS.HieView.Type (Type, TypeIndex)
+import StaticLS.HieView.Type qualified as Type
 import StaticLS.HieView.View
+
+fileSymbolsList :: File -> [Name]
+fileSymbolsList file =
+  file ^.. fileAsts % astSourceIdentifiers % filtered filterIdent % _1 % _IdentName
+ where
+  filterIdent (_, details) = anyOf (to (.info) % folded) isSymbol details
+
+  isSymbol = \case
+    ValBind _ ModuleScope _ -> True
+    TyDecl -> True
+    ClassTyDecl {} -> True
+    Decl {} -> True
+    _ -> False
 
 fileAsts :: Fold File (Ast TypeIndex)
 fileAsts = to (.asts) % folded
@@ -56,8 +71,13 @@ namesAtRange range = fileAsts % astIdentifiersAtRange range % _1 % _IdentName
 astIdentifiersAtRange :: Maybe LineColRange -> Fold (Ast a) (Identifier, IdentifierDetails a)
 astIdentifiersAtRange range = smallestContainingFold range % everyAst % astSourceIdentifiers
 
-fileTysAtRangeList :: File -> LineColRange -> [TypeIndex]
-fileTysAtRangeList file range = nubOrd (file ^.. (fileAsts % to (smallestContaining range) % folded % astEveryTy))
+fileTysAtRangeList :: File -> LineColRange -> [Type]
+fileTysAtRangeList file range =
+  tys
+ where
+  tyIxs = file ^.. (fileAsts % to (smallestContaining range) % folded % astEveryTy)
+  tyIxs' = nubOrd tyIxs
+  tys = fmap (Type.recoverFullType file.typeArray) tyIxs'
 
 smallestContaining :: LineColRange -> Ast a -> Maybe (Ast a)
 smallestContaining range = smallestContainingSatisfying range Just

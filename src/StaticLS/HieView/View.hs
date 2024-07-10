@@ -104,10 +104,18 @@ data BindType = RegularBind | InstanceBind
 
 instance Hashable BindType
 
+data DeclType = DeclOther
+  deriving (Show, Eq, Generic)
+
+instance Hashable DeclType
+
 data ContextInfo
   = ContextOther
   | ValBind BindType Scope (Maybe LineColRange)
   | PatternBind Scope Scope (Maybe LineColRange)
+  | ClassTyDecl (Maybe LineColRange)
+  | TyDecl
+  | Decl DeclType (Maybe LineColRange)
   deriving (Show, Eq, Generic)
 
 instance Hashable ContextInfo

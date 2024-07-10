@@ -14,6 +14,7 @@ module StaticLS.HieView.Name (
   fromGHCModuleName,
   moduleNameToInternStr,
   getModuleName,
+  toGHCName,
 )
 where
 
@@ -75,10 +76,14 @@ getRange = srcSpanToLcRange . GHC.nameSrcSpan . (.name)
 getFileRange :: Name -> Maybe FileRange
 getFileRange = srcSpanToFileLcRange . GHC.nameSrcSpan . (.name)
 
--- this is temporary
 -- the only reason we have this is because hiedb defines an orphan instance on OccName
+-- this is temporary
 toGHCOccName :: Name -> GHC.OccName
 toGHCOccName = GHC.nameOccName . (.name)
+
+-- this is temporary
+toGHCName :: Name -> GHC.Name
+toGHCName = (.name)
 
 getModule :: Name -> Maybe Text
 getModule = fmap (T.pack . GHC.moduleNameString . GHC.moduleName) . GHC.nameModule_maybe . (.name)

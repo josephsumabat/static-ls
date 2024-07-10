@@ -16,7 +16,6 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (Pos (..))
 import Data.Text (Text)
-import Data.Text qualified as T
 import Database.SQLite.Simple qualified as SQL
 import HieDb (HieDb)
 import HieDb qualified
@@ -74,8 +73,7 @@ getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
     hieView <- getHieView path
-    let tyIxs = HieView.Query.fileTysAtRangeList hieView (LineColRange.empty hieLineCol)
-    let tys = map (HieView.Type.recoverFullType hieView.typeArray) tyIxs
+    let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.empty hieLineCol)
     let names = concatMap HieView.Type.getTypeNames tys
     locations <- traverse nameViewToLocation names
     locations <- pure $ concat locations

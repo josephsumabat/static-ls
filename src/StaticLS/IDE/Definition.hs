@@ -16,6 +16,7 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (Pos (..))
 import Data.Text (Text)
+import Data.Text qualified as T
 import Database.SQLite.Simple qualified as SQL
 import HieDb (HieDb)
 import HieDb qualified
@@ -94,11 +95,14 @@ getTypeDefinition path lineCol = do
 -- for original code
 nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => HieView.Name.Name -> m [FileLcRange]
 nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
+  let range = HieView.Name.getFileRange name
+  logInfo $ T.pack $ "range: " <> show range
   case HieView.Name.getFileRange name of
     Just range
-      | Just absRange <- FileWith.traversePath Path.relToAbsThrow range
-      , let path = (Path.toFilePath range.path)
+      | let path = (Path.toFilePath range.path)
       , not $ "boot" `isSuffixOf` path -> do
+          staticEnv <- getStaticEnv
+          let absRange = FileWith.mapPath (staticEnv.wsRoot Path.</>) range
           itExists <- liftIO $ doesFileExist path
           if itExists
             then pure [absRange]

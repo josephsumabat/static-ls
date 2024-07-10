@@ -36,7 +36,6 @@ fileLocalBindsAtRangeList range file = do
     PatternBind (LocalScope _) _ _ -> True
     _ -> False
 
--- detailsMatchesContext ::
 fileNamesAtRangeList :: Maybe LineColRange -> File -> [Name]
 fileNamesAtRangeList range file = file ^.. namesAtRange range
 

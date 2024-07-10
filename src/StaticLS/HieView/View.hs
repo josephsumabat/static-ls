@@ -121,15 +121,15 @@ data NodeOrigin
 
 type SourcedNodeInfo a = Map NodeOrigin (NodeInfo a)
 
--- $( fold
---     [ makePrisms ''Identifier
---     ]
---  )
 _IdentName :: AffineFold Identifier Name
-_IdentName = undefined
+_IdentName = afolding \case
+  IdentName n -> Just n
+  _ -> Nothing
 
 _IdentModule :: AffineFold Identifier ModuleName
-_IdentModule = undefined
+_IdentModule = afolding \case
+  IdentModule m -> Just m
+  _ -> Nothing
 
 viewHieFile :: GHC.HieFile -> File
 viewHieFile hieFile =

@@ -42,15 +42,11 @@ getDefinition ::
 getDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
-    logInfo $ "hieLineCol: " <> T.pack (show hieLineCol)
     hieView <- getHieView path
     let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
-    logInfo $ "Identifiers: " <> T.pack (show identifiers)
     locations <- traverse identifierToLocation identifiers
     locations <- pure $ concat locations
-    logInfo $ "Locations: " <> T.pack (show locations)
     pure locations
-  logInfo $ "mLocationLinks: " <> T.pack (show mLocationLinks)
   pure $ fromMaybe [] mLocationLinks
  where
   identifierToLocation :: (MonadIde m, MonadIO m) => HieView.Identifier -> m [FileLcRange]
@@ -100,22 +96,17 @@ getTypeDefinition path lineCol = do
 -- for original code
 nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => HieView.Name.Name -> m [FileLcRange]
 nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
-  let range = HieView.Name.getFileRange name
-  logInfo $ T.pack $ "range: " <> show range
   case HieView.Name.getFileRange name of
     Just range
       | let path = (Path.toFilePath range.path)
       , not $ "boot" `isSuffixOf` path -> do
-          logInfo $ T.pack $ "path: " <> path
           staticEnv <- getStaticEnv
           let absRange = FileWith.mapPath (staticEnv.wsRoot Path.</>) range
           itExists <- liftIO $ doesFileExist path
           if itExists
             then do
-              logInfo "exists"
               pure [absRange]
             else do
-              logInfo "does not exist"
               -- When reusing .hie files from a cloud cache,
               -- the paths may not match the local file system.
               -- Let's fall back to the hiedb in case it contains local paths

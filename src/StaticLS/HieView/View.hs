@@ -1,4 +1,4 @@
-{-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- We use lens here because traversals
 module StaticLS.HieView.View (
@@ -19,13 +19,23 @@ module StaticLS.HieView.View (
   Name,
   ModuleName,
   InternStr,
+  EvVarSource (..),
+  EvBindDeps (..),
   -- optics
   _IdentName,
   _IdentModule,
+  _EvidenceVarBind,
+  -- printing
+  pPrint,
+  pPrintColor,
+  readFile,
 )
 where
 
-import Control.Lens
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Trans.Maybe (MaybeT, exceptToMaybeT)
+import Data.Bifunctor (bimap)
+import Data.Foldable (fold)
 import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
 import Data.HashSet (HashSet)
@@ -37,10 +47,12 @@ import Data.Map.Lazy qualified as Map
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text.Encoding qualified as T.Encoding
+import Data.Text.Lazy qualified as TL
 import GHC.Generics (Generic)
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins qualified as GHC (LexicalFastString (..))
 import Optics
+import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
 import StaticLS.HieView.Name (ModuleName, Name)
@@ -48,6 +60,8 @@ import StaticLS.HieView.Name qualified as Name
 import StaticLS.HieView.Type (TypeIndex)
 import StaticLS.HieView.Type qualified as Type
 import StaticLS.HieView.Utils qualified as Utils
+import Text.Pretty.Simple qualified as PS
+import Prelude hiding (readFile)
 
 data File = File
   { asts :: (Map FilePath (Ast TypeIndex))
@@ -57,8 +71,8 @@ data File = File
   deriving (Show)
 
 data Ast a = Ast
-  { sourcedNodeInfo :: SourcedNodeInfo a
-  , range :: LineColRange
+  { range :: LineColRange
+  , sourcedNodeInfo :: SourcedNodeInfo a
   , children :: [Ast a]
   }
   deriving (Show, Eq)
@@ -109,6 +123,19 @@ data DeclType = DeclOther
 
 instance Hashable DeclType
 
+data EvBindDeps = EvBindDeps {deps :: [Name]}
+  deriving (Show, Eq, Generic)
+
+instance Hashable EvBindDeps
+
+data EvVarSource
+  = EvOther
+  | EvInstBind {isSuperInst :: Bool, cls :: Name}
+  | EvLetBind EvBindDeps
+  deriving (Show, Eq, Generic)
+
+instance Hashable EvVarSource
+
 data ContextInfo
   = ContextOther
   | ValBind BindType Scope (Maybe LineColRange)
@@ -116,6 +143,8 @@ data ContextInfo
   | ClassTyDecl (Maybe LineColRange)
   | TyDecl
   | Decl DeclType (Maybe LineColRange)
+  | EvidenceVarBind EvVarSource Scope (Maybe LineColRange)
+  | EvidenceVarUse
   deriving (Show, Eq, Generic)
 
 instance Hashable ContextInfo
@@ -127,15 +156,20 @@ data NodeOrigin
 
 type SourcedNodeInfo a = Map NodeOrigin (NodeInfo a)
 
-_IdentName :: AffineFold Identifier Name
-_IdentName = afolding \case
-  IdentName n -> Just n
-  _ -> Nothing
+$( fold
+    [ makePrisms ''ContextInfo
+    , makePrisms ''Identifier
+    ]
+ )
 
-_IdentModule :: AffineFold Identifier ModuleName
-_IdentModule = afolding \case
-  IdentModule m -> Just m
-  _ -> Nothing
+readFile :: (MonadIO m) => FilePath -> MaybeT m File
+readFile = exceptToMaybeT . fmap viewHieFile . HIE.File.readHieFile
+
+pPrint :: File -> Text
+pPrint file = TL.toStrict $ PS.pShowOpt (PS.defaultOutputOptionsNoColor {PS.outputOptionsIndentAmount = 2}) file.asts
+
+pPrintColor :: File -> Text
+pPrintColor file = TL.toStrict $ PS.pShowOpt (PS.defaultOutputOptionsDarkBg {PS.outputOptionsIndentAmount = 2}) file.asts
 
 viewHieFile :: GHC.HieFile -> File
 viewHieFile hieFile =
@@ -153,6 +187,7 @@ viewHieAsts hieAsts =
       )
         <$> (Map.toList (GHC.getAsts hieAsts))
     )
+
 viewNodeOrigin :: GHC.NodeOrigin -> NodeOrigin
 viewNodeOrigin = \case
   GHC.SourceInfo -> SourceInfo
@@ -243,4 +278,16 @@ viewContextInfo = \case
     ClassTyDecl (Utils.realSrcSpanToLcRange <$> range)
   GHC.TyDecl -> TyDecl
   GHC.Decl _ty range -> Decl DeclOther (fmap Utils.realSrcSpanToLcRange range)
+  GHC.EvidenceVarBind evSource scope range ->
+    EvidenceVarBind (viewEvVarSource evSource) (viewScope scope) (Utils.realSrcSpanToLcRange <$> range)
+  GHC.EvidenceVarUse -> EvidenceVarUse
   _ -> ContextOther
+
+viewEvBindDeps :: GHC.EvBindDeps -> EvBindDeps
+viewEvBindDeps deps = EvBindDeps (Name.fromGHCName <$> (GHC.getEvBindDeps deps))
+
+viewEvVarSource :: GHC.EvVarSource -> EvVarSource
+viewEvVarSource = \case
+  GHC.EvInstBind isSuperInst cls -> EvInstBind isSuperInst (Name.fromGHCName cls)
+  GHC.EvLetBind deps -> EvLetBind (viewEvBindDeps deps)
+  _ -> EvOther

@@ -73,6 +73,7 @@ library
       StaticLS.IDE.HiePos
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
+      StaticLS.IDE.Implementation
       StaticLS.IDE.Monad
       StaticLS.IDE.References
       StaticLS.IDE.Rename
@@ -146,6 +147,78 @@ library
     , regex-tdfa
     , row-types
     , sqlite-simple >=0.4.18 && <0.5
+    , template-haskell >=2.19.0 && <2.21
+    , text >=2.0.1 && <2.1
+    , text-range
+    , text-rope ==0.2.*
+    , transformers >=0.5.6.2 && <0.7
+    , tree-sitter-ast
+    , tree-sitter-haskell
+    , tree-sitter-simple
+    , typed-process
+    , unliftio >=0.2.1 && <0.3
+    , unliftio-core >=0.2.1 && <0.3
+    , unordered-containers ==0.2.*
+  default-language: GHC2021
+  if flag(dev)
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+
+executable print-hie
+  main-is: Main.hs
+  other-modules:
+      Paths_static_ls
+  autogen-modules:
+      Paths_static_ls
+  hs-source-dirs:
+      print
+  default-extensions:
+      LambdaCase
+      ExplicitNamespaces
+      OverloadedRecordDot
+      OverloadedStrings
+      NoFieldSelectors
+      DuplicateRecordFields
+      DataKinds
+      PatternSynonyms
+      BlockArguments
+      ViewPatterns
+  ghc-options: -Wall -Wno-name-shadowing -Wincomplete-record-updates -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Diff
+    , aeson >=2 && <2.3
+    , array >=0.5.4 && <0.6
+    , async
+    , base >=4.17.0 && <4.19
+    , bytestring >=0.10 && <0.13
+    , co-log-core ==0.3.*
+    , containers >=0.6.0 && <0.7
+    , cryptohash-md5
+    , directory >=1.3.7 && <1.4
+    , errors >=2.3.0 && <2.4
+    , exceptions
+    , extra >=1.7.12 && <1.8
+    , filepath
+    , fsnotify
+    , ghc >=9.4.3 && <9.7
+    , ghc-paths >=0.1.0 && <0.2
+    , hashable
+    , haskell-ast
+    , haskell-lexer >=1.1.1 && <1.2.0
+    , hiedb ==0.6.*
+    , lens
+    , lsp >=2.3 && <2.6
+    , lsp-types >=2.1 && <2.3
+    , mtl >=2.2.2 && <2.4
+    , neat-interpolation
+    , optics
+    , optparse-applicative >=0.17.0.0 && <0.19
+    , parsec >=3.1.0 && <3.2
+    , pretty-simple
+    , raw-strings-qq
+    , regex-tdfa
+    , row-types
+    , sqlite-simple >=0.4.18 && <0.5
+    , static-ls
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range

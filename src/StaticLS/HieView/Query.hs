@@ -1,3 +1,5 @@
+-- We use optics in this module because it makes the code a lot cleaner
+-- All exported functions return lists, so that optics are only an implementation detail
 module StaticLS.HieView.Query (
   namesAtRange,
   smallestContainingSatisfying,
@@ -7,6 +9,7 @@ module StaticLS.HieView.Query (
   fileLocalBindsAtRangeList,
   fileNamesWithDefRange,
   fileSymbolsList,
+  fileRefsWithDefRanges,
 )
 where
 
@@ -34,12 +37,34 @@ fileSymbolsList file =
     Decl {} -> True
     _ -> False
 
+-- | Get all references in a file that have a definition in the given ranges
+-- Crucially we get the ranges from the ast rather than the name.
+-- This is because the ast gives as the *usage* ranges, while the name gives as us the definition ranges.
+-- We use an indexed fold to put the range aside while we filter the name. Afterwards, we collect the set aside ranges.
+fileRefsWithDefRanges :: [LineColRange] -> File -> [LineColRange]
+fileRefsWithDefRanges defRange file =
+  fmap fst $
+    itoListOf
+      ( fileAsts
+          % everyAst
+          % ifolding (\ast -> (ast.range, ast))
+          % astSourceIdentifiers
+          % _1
+          % _IdentName
+          % filtered nameInRange
+      )
+      file
+ where
+  nameInRange name = case Name.getRange name of
+    Just range -> range `elem` defRange
+    Nothing -> False
+
 fileAsts :: Fold File (Ast TypeIndex)
 fileAsts = to (.asts) % folded
 
 fileLocalBindsAtRangeList :: Maybe LineColRange -> File -> [Name]
 fileLocalBindsAtRangeList range file = do
-  file ^.. (fileAsts % smallestContainingFold range % astAllIdentifers % filtered filterIdent % _1 % _IdentName)
+  file ^.. (fileAsts % smallestContainingFold range % astSourceIdentifiers % filtered filterIdent % _1 % _IdentName)
  where
   filterIdent (_, details) = anyOf (to (.info) % folded) getLocalBind details
 
@@ -56,12 +81,13 @@ fileIdentifiersAtRangeList :: Maybe LineColRange -> File -> [Identifier]
 fileIdentifiersAtRangeList range file = file ^.. fileAsts % astIdentifiersAtRange range % _1
 
 fileNamesWithDefRange :: [LineColRange] -> File -> [Name]
-fileNamesWithDefRange defRange file =
+fileNamesWithDefRange defRanges file =
   file ^.. fileAsts % astIdentifiersAtRange Nothing % _1 % _IdentName % filtered keepName
  where
-  keepName name = case Name.getRange name of
-    Just range -> range `elem` defRange
-    Nothing -> False
+  keepName name =
+    case Name.getRange name of
+      Just range -> range `elem` defRanges
+      Nothing -> False
 
 namesAtRange :: Maybe LineColRange -> Fold File Name
 namesAtRange range = fileAsts % astIdentifiersAtRange range % _1 % _IdentName
@@ -112,8 +138,11 @@ nodeInfos = to (.sourcedNodeInfo) % traversed
 sourceInfo :: AffineFold (Ast a) (NodeInfo a)
 sourceInfo = to (.sourcedNodeInfo) % ix SourceInfo
 
+children :: Fold (Ast a) (Ast a)
+children = to (.children) % folded
+
 everyAst :: Fold (Ast a) (Ast a)
-everyAst = foldVL $ \k ast -> k ast *> traverseOf_ folded k ast.children
+everyAst = foldVL $ \k ast -> k ast *> traverseOf_ (children % everyAst) k ast
 
 astEveryTy :: Fold (Ast a) a
 astEveryTy = everyAst % astImmediateTys

@@ -33,6 +33,7 @@ import StaticLS.IDE.Diagnostics.ParseGHC qualified as IDE.Diagnostics.ParseGHC
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Format qualified as IDE.Format
 import StaticLS.IDE.Hover
+import StaticLS.IDE.Implementation qualified as IDE.Implementation
 import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.IDE.References
 import StaticLS.IDE.Rename qualified as IDE.Rename
@@ -78,6 +79,15 @@ handleTypeDefinitionRequest = LSP.requestHandler LSP.SMethod_TextDocumentTypeDef
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   defs <- lift $ getTypeDefinition path (ProtoLSP.lineColFromProto params._position)
+  let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
+  resp $ Right . InR . InL $ locations
+
+handleImplementationRequest :: Handlers (LspT c StaticLsM)
+handleImplementationRequest = LSP.requestHandler LSP.SMethod_TextDocumentImplementation $ \req resp -> do
+  lift $ logInfo "Received implementation request."
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  defs <- lift $ IDE.Implementation.getImplementation path (ProtoLSP.lineColFromProto params._position)
   let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
   resp $ Right . InR . InL $ locations
 

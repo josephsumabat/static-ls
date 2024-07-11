@@ -1,4 +1,4 @@
-{-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- We use lens here because traversals
 module StaticLS.HieView.View (
@@ -19,13 +19,17 @@ module StaticLS.HieView.View (
   Name,
   ModuleName,
   InternStr,
+  EvVarSource (..),
+  EvBindDeps (..),
   -- optics
   _IdentName,
   _IdentModule,
+  _EvidenceVarBind,
 )
 where
 
-import Control.Lens
+import Data.Bifunctor (bimap)
+import Data.Foldable (fold)
 import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
 import Data.HashSet (HashSet)
@@ -109,6 +113,19 @@ data DeclType = DeclOther
 
 instance Hashable DeclType
 
+data EvBindDeps = EvBindDeps {deps :: [Name]}
+  deriving (Show, Eq, Generic)
+
+instance Hashable EvBindDeps
+
+data EvVarSource
+  = EvOther
+  | EvInstBind {isSuperInst :: Bool, cls :: Name}
+  | EvLetBind EvBindDeps
+  deriving (Show, Eq, Generic)
+
+instance Hashable EvVarSource
+
 data ContextInfo
   = ContextOther
   | ValBind BindType Scope (Maybe LineColRange)
@@ -116,6 +133,8 @@ data ContextInfo
   | ClassTyDecl (Maybe LineColRange)
   | TyDecl
   | Decl DeclType (Maybe LineColRange)
+  | EvidenceVarBind EvVarSource Scope (Maybe LineColRange)
+  | EvidenceVarUse
   deriving (Show, Eq, Generic)
 
 instance Hashable ContextInfo
@@ -127,15 +146,11 @@ data NodeOrigin
 
 type SourcedNodeInfo a = Map NodeOrigin (NodeInfo a)
 
-_IdentName :: AffineFold Identifier Name
-_IdentName = afolding \case
-  IdentName n -> Just n
-  _ -> Nothing
-
-_IdentModule :: AffineFold Identifier ModuleName
-_IdentModule = afolding \case
-  IdentModule m -> Just m
-  _ -> Nothing
+$( fold
+    [ makePrisms ''ContextInfo
+    , makePrisms ''Identifier
+    ]
+ )
 
 viewHieFile :: GHC.HieFile -> File
 viewHieFile hieFile =
@@ -153,6 +168,7 @@ viewHieAsts hieAsts =
       )
         <$> (Map.toList (GHC.getAsts hieAsts))
     )
+
 viewNodeOrigin :: GHC.NodeOrigin -> NodeOrigin
 viewNodeOrigin = \case
   GHC.SourceInfo -> SourceInfo
@@ -243,4 +259,16 @@ viewContextInfo = \case
     ClassTyDecl (Utils.realSrcSpanToLcRange <$> range)
   GHC.TyDecl -> TyDecl
   GHC.Decl _ty range -> Decl DeclOther (fmap Utils.realSrcSpanToLcRange range)
+  GHC.EvidenceVarBind evSource scope range ->
+    EvidenceVarBind (viewEvVarSource evSource) (viewScope scope) (Utils.realSrcSpanToLcRange <$> range)
+  GHC.EvidenceVarUse -> EvidenceVarUse
   _ -> ContextOther
+
+viewEvBindDeps :: GHC.EvBindDeps -> EvBindDeps
+viewEvBindDeps deps = EvBindDeps (Name.fromGHCName <$> (GHC.getEvBindDeps deps))
+
+viewEvVarSource :: GHC.EvVarSource -> EvVarSource
+viewEvVarSource = \case
+  GHC.EvInstBind isSuperInst cls -> EvInstBind isSuperInst (Name.fromGHCName cls)
+  GHC.EvLetBind deps -> EvLetBind (viewEvBindDeps deps)
+  _ -> EvOther

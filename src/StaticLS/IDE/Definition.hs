@@ -1,6 +1,7 @@
 module StaticLS.IDE.Definition (
   getDefinition,
   getTypeDefinition,
+  nameToLocation,
 ) where
 
 import Control.Monad.Extra (mapMaybeM)
@@ -55,7 +56,7 @@ getDefinition path lineCol = do
         res <- modToLocation modName
         pure $ maybeToList res
       HieView.IdentName name -> do
-        nameViewToLocation name
+        nameToLocation name
     fileRanges <- mapM (runMaybeT . hieFileLcToFileLc) hieLcRanges
     pure $ catMaybes fileRanges
 
@@ -75,7 +76,7 @@ getTypeDefinition path lineCol = do
     hieView <- getHieView path
     let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.empty hieLineCol)
     let names = concatMap HieView.Type.getTypeNames tys
-    locations <- traverse nameViewToLocation names
+    locations <- traverse nameToLocation names
     locations <- pure $ concat locations
     locations <- lift $ mapMaybeM (runMaybeT . hieFileLcToFileLc) locations
     pure locations
@@ -92,8 +93,8 @@ getTypeDefinition path lineCol = do
 -- | Given a 'Name' attempt to find the location where it is defined.
 -- See: https://hackage.haskell.org/package/ghcide-1.10.0.0/docs/src/Development.IDE.Spans.AtPoint.html#nameToLocation
 -- for original code
-nameViewToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => HieView.Name.Name -> m [FileLcRange]
-nameViewToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
+nameToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => HieView.Name.Name -> m [FileLcRange]
+nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
   case HieView.Name.getFileRange name of
     Just range
       | let path = (Path.toFilePath range.path)

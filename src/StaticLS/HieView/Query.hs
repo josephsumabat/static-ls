@@ -10,11 +10,14 @@ module StaticLS.HieView.Query (
   fileNamesWithDefRange,
   fileSymbolsList,
   fileRefsWithDefRanges,
+  fileEvidenceUsesAtRangeList,
+  fileEvidenceBinds,
 )
 where
 
 import Data.Containers.ListUtils (nubOrd)
 import Data.HashMap.Lazy qualified as HashMap
+import Data.HashMap.Strict (HashMap)
 import Data.LineColRange (LineColRange)
 import Data.LineColRange qualified as LineColRange
 import Data.Monoid (First (..))
@@ -64,7 +67,15 @@ fileAsts = to (.asts) % folded
 
 fileLocalBindsAtRangeList :: Maybe LineColRange -> File -> [Name]
 fileLocalBindsAtRangeList range file = do
-  file ^.. (fileAsts % smallestContainingFold range % astSourceIdentifiers % filtered filterIdent % _1 % _IdentName)
+  toListOf
+    ( fileAsts
+        % smallestContainingFold range
+        % astSourceIdentifiers
+        % filtered filterIdent
+        % _1
+        % _IdentName
+    )
+    file
  where
   filterIdent (_, details) = anyOf (to (.info) % folded) getLocalBind details
 
@@ -73,6 +84,44 @@ fileLocalBindsAtRangeList range file = do
     PatternBind _ (LocalScope _) _ -> True
     PatternBind (LocalScope _) _ _ -> True
     _ -> False
+
+fileEvidenceBinds :: File -> HashMap Name [Name]
+fileEvidenceBinds file =
+  HashMap.fromListWith (++) $
+    itoListOf
+      ( fileAsts
+          % smallestContainingFold Nothing
+          % everyAst
+          % astSourceIdentifiers
+          % to (\(ident, info) -> (,info) <$> (ident ^? _IdentName))
+          % _Just
+          % ifolding id
+          % to (.info)
+          % folded
+          % _EvidenceVarBind
+          % _1
+          % to evSourceNames
+      )
+      file
+ where
+  evSourceNames (EvInstBind {cls}) = []
+  evSourceNames (EvLetBind (EvBindDeps {deps})) = deps
+  evSourceNames EvOther = []
+
+fileEvidenceUsesAtRangeList :: Maybe LineColRange -> File -> [Name]
+fileEvidenceUsesAtRangeList range file = do
+  file
+    ^.. fileAsts
+    % astIdentifiersAtRange range
+    % filtered filterIdent
+    % _1
+    % _IdentName
+ where
+  filterIdent (_, details) =
+    anyOf
+      (to (.info) % folded)
+      (\case EvidenceVarUse -> True; _ -> False)
+      details
 
 fileNamesAtRangeList :: Maybe LineColRange -> File -> [Name]
 fileNamesAtRangeList range file = file ^.. namesAtRange range

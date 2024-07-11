@@ -73,6 +73,7 @@ library
       StaticLS.IDE.HiePos
       StaticLS.IDE.Hover
       StaticLS.IDE.Hover.Info
+      StaticLS.IDE.Implementation
       StaticLS.IDE.Monad
       StaticLS.IDE.References
       StaticLS.IDE.Rename

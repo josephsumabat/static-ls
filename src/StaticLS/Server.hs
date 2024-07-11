@@ -172,6 +172,7 @@ serverDef argOptions logger = do
               , handleTextDocumentHoverRequest
               , handleDefinitionRequest
               , handleTypeDefinitionRequest
+              , handleImplementationRequest
               , handleReferencesRequest
               , handleRenameRequest
               , handlePrepareRenameRequest

@@ -26,7 +26,7 @@ import StaticLS.HieView.View
 
 fileSymbolsList :: File -> [Name]
 fileSymbolsList file =
-  file ^.. fileAsts % astSourceIdentifiers % filtered filterIdent % _1 % _IdentName
+  file ^.. fileAsts % astIdentifiersAtRange Nothing % filtered filterIdent % _1 % _IdentName
  where
   filterIdent (_, details) = anyOf (to (.info) % folded) isSymbol details
 

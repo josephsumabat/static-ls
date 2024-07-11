@@ -281,5 +281,5 @@ removeHieFromSourcePath path = do
   setHieCacheMap $ HashMap.delete path cache
   removeDiffCache path
 
-testing :: Show a => [a] -> String
+testing :: (Show a) => [a] -> String
 testing = show

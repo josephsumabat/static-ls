@@ -1,9 +1,9 @@
 module Main where
 
-import System.Environment (getArgs)
+import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
 import Data.Text.IO qualified as T.IO
 import StaticLS.HieView.View qualified as HieView
-import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
+import System.Environment (getArgs)
 
 main :: IO ()
 main = do

@@ -104,10 +104,18 @@ data BindType = RegularBind | InstanceBind
 
 instance Hashable BindType
 
+data DeclType = DeclOther
+  deriving (Show, Eq, Generic)
+
+instance Hashable DeclType
+
 data ContextInfo
   = ContextOther
   | ValBind BindType Scope (Maybe LineColRange)
   | PatternBind Scope Scope (Maybe LineColRange)
+  | ClassTyDecl (Maybe LineColRange)
+  | TyDecl
+  | Decl DeclType (Maybe LineColRange)
   deriving (Show, Eq, Generic)
 
 instance Hashable ContextInfo
@@ -208,6 +216,31 @@ viewIdentifierDetails GHC.IdentifierDetails {identInfo, identType} =
     , ty = Type.fromGHCTypeIndex <$> identType
     }
 
+viewBindType :: GHC.BindType -> BindType
+viewBindType = \case
+  GHC.RegularBind -> RegularBind
+  GHC.InstanceBind -> InstanceBind
+
+viewScope :: GHC.Scope -> Scope
+viewScope = \case
+  GHC.NoScope -> NoScope
+  GHC.LocalScope loc -> LocalScope (Utils.realSrcSpanToLcRange loc)
+  GHC.ModuleScope -> ModuleScope
+
 viewContextInfo :: GHC.ContextInfo -> ContextInfo
 viewContextInfo = \case
+  GHC.ValBind bindType scope range ->
+    ValBind
+      (viewBindType bindType)
+      (viewScope scope)
+      (Utils.realSrcSpanToLcRange <$> range)
+  GHC.PatternBind scope1 scope2 range ->
+    PatternBind
+      (viewScope scope1)
+      (viewScope scope2)
+      (Utils.realSrcSpanToLcRange <$> range)
+  GHC.ClassTyDecl range ->
+    ClassTyDecl (Utils.realSrcSpanToLcRange <$> range)
+  GHC.TyDecl -> TyDecl
+  GHC.Decl _ty range -> Decl DeclOther (fmap Utils.realSrcSpanToLcRange range)
   _ -> ContextOther

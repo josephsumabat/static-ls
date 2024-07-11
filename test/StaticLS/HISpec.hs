@@ -3,12 +3,15 @@ module StaticLS.HISpec (spec) where
 import Control.Monad.Trans.Except
 import Control.Monad.Trans.Maybe
 import Data.LineColRange (LineColRange (..))
+import Data.LineColRange qualified as LineColRange
 import Data.Path qualified as Path
 import StaticLS.HI
 import StaticLS.HI.File
 import StaticLS.HIE.File
 import StaticLS.HIE.Position
-import StaticLS.HIE.Queries
+import StaticLS.HieView qualified as HieView
+import StaticLS.HieView.Name qualified as HieView.Name
+import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.IDE.FileWith (FileWith' (..))
 import Test.Hspec
 import TestImport.Assert qualified as Test
@@ -24,8 +27,8 @@ spec = do
       hieFile <- Test.assertRight "expected hie file" eHieFile
       modiface <- Test.assertJust "expected succesful read" hiFile
       fnLocation <- myFunDefLocation
-      let position = lineColToHieDbCoords fnLocation.loc.start
-          names = namesAtPoint hieFile position
+      let position = fnLocation.loc.start
+          names = fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty position)) (HieView.viewHieFile hieFile)
           expectedDocs = ["Lsp Position line: 10,  character: 0\n another line of comments"]
           readDocs = renderNameDocs <$> getDocsBatch names modiface
 

@@ -42,7 +42,8 @@ import Database.SQLite.Simple qualified as SQL
 import GHC.Generics (Generic)
 import HieDb (HieDb)
 import HieDb qualified
-import StaticLS.HIE.Queries (allGlobalSymbols)
+import StaticLS.HieView.Name qualified as HieView.Name
+import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.CodeActions.AutoImport qualified as IDE.CodeActions.AutoImport
 import StaticLS.IDE.Monad
@@ -116,10 +117,10 @@ getFileCompletions cx = do
   let path = cx.path
   fileCompletions <-
     runMaybeT $ do
-      hieFile <- getHieFile path
-      let symbols = allGlobalSymbols hieFile
+      hieView <- getHieView path
+      let symbols = fmap HieView.Name.toText $ HieView.Query.fileSymbolsList hieView
+      logInfo $ T.pack $ "file symbols: " <> show symbols
       let symbolsNubbed = nubOrd symbols
-      -- logInfo $ "symbols: " <> T.pack (show symbols)
       let completions = fmap textCompletion symbolsNubbed
       pure completions
   fileCompletions <- pure $ Maybe.fromMaybe [] fileCompletions

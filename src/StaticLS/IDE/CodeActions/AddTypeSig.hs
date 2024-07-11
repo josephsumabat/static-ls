@@ -9,13 +9,15 @@ import Control.Monad.Trans.Maybe
 import Data.Edit qualified as Edit
 import Data.Either.Extra qualified as Either.Extra
 import Data.LineCol (LineCol (..))
+import Data.LineColRange qualified as LineColRange
 import Data.Maybe qualified as Maybe
 import Data.Pos (Pos (..))
 import Data.Range qualified as Range
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.HIE.Queries
+import StaticLS.HieView.Query qualified as HieView.Query
+import StaticLS.HieView.Type qualified as HieView.Type
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.HiePos qualified as HiePos
 import StaticLS.IDE.Monad
@@ -76,8 +78,10 @@ codeActionWith CodeActionContext {path, pos, lineCol} getTypes = do
 codeAction :: CodeActionContext -> StaticLsM [Assist]
 codeAction cx = do
   res <- runMaybeT do
-    hieFile <- getHieFile cx.path
-    let getTypes lineCol = getPrintedTypesAtPoint hieFile lineCol
+    hieView <- getHieView cx.path
+    let getTypes lineCol = do
+          let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.empty lineCol)
+          fmap HieView.Type.printType tys
     lift $ codeActionWith cx getTypes
   case res of
     Nothing -> pure []

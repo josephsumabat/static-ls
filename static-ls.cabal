@@ -50,7 +50,6 @@ library
       StaticLS.HIE.File
       StaticLS.HIE.File.Except
       StaticLS.HIE.Position
-      StaticLS.HIE.Queries
       StaticLS.HieDb
       StaticLS.HieView
       StaticLS.HieView.InternStr

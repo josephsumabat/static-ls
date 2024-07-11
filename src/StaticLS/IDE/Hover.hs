@@ -27,8 +27,11 @@ import Language.LSP.Protocol.Types (
 import StaticLS.HI
 import StaticLS.HI.File
 
+import Data.LineColRange qualified as LineColRange
 import StaticLS.HIE.Position
-import StaticLS.HIE.Queries
+import StaticLS.HieView.Name qualified as HieView.Name
+import StaticLS.HieView.Query qualified as HieView.Query
+import StaticLS.HieView.View qualified as HieView
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
 import StaticLS.IDE.Monad
@@ -47,10 +50,11 @@ retrieveHover ::
 retrieveHover path lineCol = do
   runMaybeT $ do
     hieFile <- getHieFile path
+    hieView <- getHieView path
     lineCol' <- lineColToHieLineCol path lineCol
     lift $ logInfo $ T.pack $ "lineCol: " <> show lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
-    docs <- docsAtPoint hieFile lineCol'
+    docs <- docsAtPoint hieView lineCol'
     let mHieInfo =
           listToMaybe $
             pointCommand
@@ -84,9 +88,10 @@ retrieveHover path lineCol = do
     srcEnd <- hieLineColToLineCol path lineColRange.end
     pure $ ProtoLSP.lineColRangeToProto (LineColRange srcStart srcEnd)
 
-docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => GHC.HieFile -> LineCol -> m [NameDocs]
-docsAtPoint hieFile position = do
-  let names = namesAtPoint hieFile (lineColToHieDbCoords position)
+docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieView.File -> LineCol -> m [NameDocs]
+docsAtPoint hieView position = do
+  let names = fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty position)) hieView
+      -- namesAtPoint hieFile (lineColToHieDbCoords position)
       modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
   modIfaceFiles <- fromMaybe [] <$> runMaybeT (mapM modToHiFile modNames)
   modIfaces <- catMaybes <$> mapM (runMaybeT . readHiFile . Path.toFilePath) modIfaceFiles

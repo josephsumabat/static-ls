@@ -18,6 +18,7 @@ import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 
+-- make sure we don't loop here
 getEvidenceClosure :: HashMap HieView.Name.Name [HieView.Name.Name] -> HieView.Name.Name -> [HieView.Name.Name]
 getEvidenceClosure evidenceDeps evidence
   | Just deps <- HashMap.lookup evidence evidenceDeps =
@@ -35,6 +36,7 @@ getImplementation path pos = do
     let evidenceClosure = getEvidenceClosure evidenceBinds =<< evidenceUses
     logInfo $ T.pack $ "EvidenceClosure: " <> show evidenceClosure
     hieLocations <- traverse IDE.Definition.nameToLocation evidenceClosure
+    logInfo $ T.pack $ "locations: " <> show hieLocations
     hieLocations <- pure $ concat hieLocations
     locations <- mapMaybeM (runMaybeT . hieFileLcToFileLc) hieLocations
     pure locations

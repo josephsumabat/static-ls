@@ -1,7 +1,7 @@
 spec-version: 0.30.0
 name: static-ls
 author: Joseph Sumabat
-synopsis: See README on Github for more information 
+synopsis: See README on Github for more information
 description: static-ls ("static language server") reads static project
   information to provide IDE functionality through the language server
   protocol. static-ls will not generate this information on its own and instead
@@ -15,7 +15,7 @@ build-type: Simple
 extra-doc-files:
   - README.md
   - CHANGELOG.md
-tested-with: 
+tested-with:
   - GHC == 9.4.4
   - GHC == 9.6.3
 
@@ -81,7 +81,7 @@ default-extensions:
 
 ghc-options:
   - -Wall
-  - -Wno-name-shadowing 
+  - -Wno-name-shadowing
   - -Wincomplete-record-updates
 
 library:
@@ -91,19 +91,31 @@ library:
   - -hiedir test/TestData/.hiefiles
   - -haddock
 
-executable:
-  source-dirs: app
-  main: Main.hs
-  dependencies:
-  - static-ls
-  - optparse-applicative >= 0.17.0.0 && < 0.19
-  generated-other-modules:
-    - Paths_static_ls
-  ghc-options:
-    # rtsopts
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+executables:
+  static-ls:
+    source-dirs: app
+    main: Main.hs
+    dependencies:
+    - static-ls
+    - optparse-applicative >= 0.17.0.0 && < 0.19
+    generated-other-modules:
+      - Paths_static_ls
+    ghc-options:
+      # rtsopts
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+  print-hie:
+    source-dirs: print
+    main: Main.hs
+    dependencies:
+    - static-ls
+    - optparse-applicative >= 0.17.0.0 && < 0.19
+    ghc-options:
+      # rtsopts
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
 
 tests:
   static-ls-test:

@@ -25,9 +25,14 @@ module StaticLS.HieView.View (
   _IdentName,
   _IdentModule,
   _EvidenceVarBind,
+  -- printing
+  pPrint,
+  pPrintColor,
 )
 where
 
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Trans.Maybe (MaybeT)
 import Data.Bifunctor (bimap)
 import Data.Foldable (fold)
 import Data.HashMap.Lazy (HashMap)
@@ -41,10 +46,12 @@ import Data.Map.Lazy qualified as Map
 import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text.Encoding qualified as T.Encoding
+import Data.Text.Lazy qualified as TL
 import GHC.Generics (Generic)
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins qualified as GHC (LexicalFastString (..))
 import Optics
+import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView.InternStr (InternStr)
 import StaticLS.HieView.InternStr qualified as InternStr
 import StaticLS.HieView.Name (ModuleName, Name)
@@ -52,6 +59,7 @@ import StaticLS.HieView.Name qualified as Name
 import StaticLS.HieView.Type (TypeIndex)
 import StaticLS.HieView.Type qualified as Type
 import StaticLS.HieView.Utils qualified as Utils
+import Text.Pretty.Simple qualified as PS
 
 data File = File
   { asts :: (Map FilePath (Ast TypeIndex))
@@ -151,6 +159,15 @@ $( fold
     , makePrisms ''Identifier
     ]
  )
+
+-- readFile :: (MonadIO m) => FilePath -> MaybeT m File
+-- readFile path = exceptToMaybeT . HIE.File.getHieFileFromHiePath path
+
+pPrint :: File -> Text
+pPrint file = TL.toStrict $ PS.pShowOpt (PS.defaultOutputOptionsNoColor {PS.outputOptionsIndentAmount = 2}) file
+
+pPrintColor :: File -> Text
+pPrintColor file = TL.toStrict $ PS.pShowOpt (PS.defaultOutputOptionsDarkBg {PS.outputOptionsIndentAmount = 2}) file
 
 viewHieFile :: GHC.HieFile -> File
 viewHieFile hieFile =

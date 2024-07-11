@@ -82,16 +82,16 @@ hieFilePathToSrcFilePath hiePath = do
 
 -- | Retrieve an hie file from a hie filepath
 getHieFileFromHiePath :: (HasCallStack, MonadIO m) => AbsPath -> ExceptT HieFileReadException m GHC.HieFile
-getHieFileFromHiePath hieFilePath = do
-  -- Attempt to read valid hie file version
-  -- NOTE: attempting to override an incorrect header and read an hie file
-  -- seems to cause infinite hangs. TODO: explore why?
+getHieFileFromHiePath hieFilePath = readHieFile (Path.toFilePath hieFilePath)
+
+readHieFile :: (HasCallStack, MonadIO m) => FilePath -> ExceptT HieFileReadException m GHC.HieFile
+readHieFile hieFilePath = do
   nameCache <- liftIO $ GHC.initNameCache 'a' []
   result <-
     liftIO
       ( fmap
           (first HieFileVersionException)
-          (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) nameCache (Path.toFilePath hieFilePath))
+          (GHC.readHieFileWithVersion ((== GHC.hieVersion) . fst) nameCache hieFilePath)
           `catch` (\(_ :: SomeException) -> pure . Left $ HieFileReadException)
       )
   ExceptT $ pure (second GHC.hie_file_result result)

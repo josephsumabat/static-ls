@@ -280,3 +280,6 @@ removeHieFromSourcePath path = do
   cache <- getHieCacheMap
   setHieCacheMap $ HashMap.delete path cache
   removeDiffCache path
+
+testing :: Show a => [a] -> String
+testing = show

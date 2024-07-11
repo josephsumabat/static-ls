@@ -305,3 +305,6 @@ sendDiagnostics version diags = do
 
 clearDiagnostics :: (LSP.MonadLsp c m) => m ()
 clearDiagnostics = LSP.flushDiagnosticsBySource 100 (Just "haskell")
+
+testing :: Show a => [a] -> String
+testing = show

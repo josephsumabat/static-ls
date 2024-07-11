@@ -101,12 +101,13 @@ fileEvidenceBinds file =
           % _EvidenceVarBind
           % _1
           % to evSourceNames
+          % _Just
       )
       file
  where
-  evSourceNames (EvInstBind {cls}) = []
-  evSourceNames (EvLetBind (EvBindDeps {deps})) = deps
-  evSourceNames EvOther = []
+  evSourceNames (EvInstBind {cls}) = Nothing
+  evSourceNames (EvLetBind (EvBindDeps {deps})) = Just deps
+  evSourceNames EvOther = Nothing
 
 fileEvidenceUsesAtRangeList :: Maybe LineColRange -> File -> [Name]
 fileEvidenceUsesAtRangeList range file = do

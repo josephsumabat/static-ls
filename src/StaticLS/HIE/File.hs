@@ -12,6 +12,7 @@ module StaticLS.HIE.File (
   getHieFileFromHiePath,
   getHieFileFromPath,
   getHieSource,
+  readHieFile,
   HieFile,
 )
 where
@@ -28,7 +29,6 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
-import GHC qualified
 import GHC.Iface.Ext.Binary qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Types.Name.Cache qualified as GHC

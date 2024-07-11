@@ -28,11 +28,12 @@ module StaticLS.HieView.View (
   -- printing
   pPrint,
   pPrintColor,
+  readFile,
 )
 where
 
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Trans.Maybe (MaybeT)
+import Control.Monad.Trans.Maybe (MaybeT, exceptToMaybeT)
 import Data.Bifunctor (bimap)
 import Data.Foldable (fold)
 import Data.HashMap.Lazy (HashMap)
@@ -60,6 +61,7 @@ import StaticLS.HieView.Type (TypeIndex)
 import StaticLS.HieView.Type qualified as Type
 import StaticLS.HieView.Utils qualified as Utils
 import Text.Pretty.Simple qualified as PS
+import Prelude hiding (readFile)
 
 data File = File
   { asts :: (Map FilePath (Ast TypeIndex))
@@ -69,8 +71,8 @@ data File = File
   deriving (Show)
 
 data Ast a = Ast
-  { sourcedNodeInfo :: SourcedNodeInfo a
-  , range :: LineColRange
+  { range :: LineColRange
+  , sourcedNodeInfo :: SourcedNodeInfo a
   , children :: [Ast a]
   }
   deriving (Show, Eq)
@@ -160,14 +162,14 @@ $( fold
     ]
  )
 
--- readFile :: (MonadIO m) => FilePath -> MaybeT m File
--- readFile path = exceptToMaybeT . HIE.File.getHieFileFromHiePath path
+readFile :: (MonadIO m) => FilePath -> MaybeT m File
+readFile = exceptToMaybeT . fmap viewHieFile . HIE.File.readHieFile
 
 pPrint :: File -> Text
-pPrint file = TL.toStrict $ PS.pShowOpt (PS.defaultOutputOptionsNoColor {PS.outputOptionsIndentAmount = 2}) file
+pPrint file = TL.toStrict $ PS.pShowOpt (PS.defaultOutputOptionsNoColor {PS.outputOptionsIndentAmount = 2}) file.asts
 
 pPrintColor :: File -> Text
-pPrintColor file = TL.toStrict $ PS.pShowOpt (PS.defaultOutputOptionsDarkBg {PS.outputOptionsIndentAmount = 2}) file
+pPrintColor file = TL.toStrict $ PS.pShowOpt (PS.defaultOutputOptionsDarkBg {PS.outputOptionsIndentAmount = 2}) file.asts
 
 viewHieFile :: GHC.HieFile -> File
 viewHieFile hieFile =

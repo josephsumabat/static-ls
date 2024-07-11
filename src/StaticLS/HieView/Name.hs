@@ -61,11 +61,16 @@ toText = InternStr.toText . toInternStr
 toString :: Name -> String
 toString = InternStr.toString . toInternStr
 
-data NameShow = NameShow {name :: String}
+data NameShow = NameShow {name :: String, range :: Maybe LineColRange}
   deriving (Show)
 
 instance Show Name where
-  show name = show NameShow {name = toString name}
+  show name =
+    show
+      NameShow
+        { name = toString name
+        , range = getRange name
+        }
 
 getUnit :: Name -> Maybe Text
 getUnit = fmap (T.pack . GHC.unitString . GHC.moduleUnit) . GHC.nameModule_maybe . (.name)

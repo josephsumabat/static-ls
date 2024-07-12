@@ -25,10 +25,10 @@ getEvidenceClosure :: HashMap HieView.Name.Name [HieView.Name.Name] -> [HieView.
 getEvidenceClosure evidenceDeps evidences =
   go HashSet.empty evidences []
  where
-  go !visited (e : es) !res
+  go !visited (e : es) res
     | HashSet.member e visited = go visited es res
     | Just deps <- HashMap.lookup e evidenceDeps =
-        go (HashSet.insert e visited) (deps ++ es) (e : res)
+        go (HashSet.insert e visited) (deps ++ es) res
     | otherwise =
         go (HashSet.insert e visited) es (e : res)
   go _visited [] res = res

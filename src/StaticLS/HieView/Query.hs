@@ -16,8 +16,8 @@ module StaticLS.HieView.Query (
 where
 
 import Data.Containers.ListUtils (nubOrd)
+import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
-import Data.HashMap.Strict (HashMap)
 import Data.LineColRange (LineColRange)
 import Data.LineColRange qualified as LineColRange
 import Data.Monoid (First (..))

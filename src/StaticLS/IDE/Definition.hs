@@ -122,6 +122,7 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
     erow <- runHieDbMaybeT (\hieDb -> hieDbFindDef hieDb name (HieView.Name.getUnit name))
     case erow of
       [] -> do
+        logInfo "trying again without unit id"
         -- If the lookup failed, try again without specifying a unit-id.
         -- This is a hack to make find definition work better with ghcide's nascent multi-component support,
         -- where names from a component that has been indexed in a previous session but not loaded in this

@@ -61,7 +61,11 @@ toText = InternStr.toText . toInternStr
 toString :: Name -> String
 toString = InternStr.toString . toInternStr
 
-data NameShow = NameShow {name :: String, range :: Maybe LineColRange}
+data NameShow = NameShow
+  { name :: String
+  , range :: Maybe LineColRange
+  , moduleName :: Maybe ModuleName
+  }
   deriving (Show)
 
 instance Show Name where
@@ -70,6 +74,7 @@ instance Show Name where
       NameShow
         { name = toString name
         , range = getRange name
+        , moduleName = getModuleName name
         }
 
 getUnit :: Name -> Maybe Text

@@ -55,7 +55,7 @@ mkFileState :: Text -> Rope -> FileState
 mkFileState contentsText contentsRope = do
   let tokens = PositionDiff.lex $ T.unpack contentsText
   -- TODO: convert utf8 positions to normal positions
-  let tree = Haskell.parse (id, id) contentsText
+  let tree = Haskell.parse contentsText
   let (es, hir) = Hir.parseHaskell tree
   FileState
     { contentsRope

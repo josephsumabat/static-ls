@@ -119,7 +119,7 @@ rename path pos lineCol newName = do
 canRenameAtPos :: AbsPath -> Pos -> StaticLsM (Maybe Range)
 canRenameAtPos path pos = do
   haskell <- getHaskell path
-  let name = AST.getDeepestContaining @Hir.NameTypes (Range.empty pos) (AST.getDynNode haskell)
+  let name = AST.getDeepestContaining @Hir.GetNameTypes (Range.empty pos) (AST.getDynNode haskell)
   case name of
     Just n -> do
       let range = AST.nodeToRange n

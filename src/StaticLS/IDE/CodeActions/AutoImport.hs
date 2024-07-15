@@ -72,7 +72,7 @@ getModulesToImport path pos = do
   haskell <- getHaskell path
   -- TODO: Remove double traversal of AST
   let qualified = Hir.getQualifiedAtPoint (Range.empty pos) haskell
-  let importable = AST.getDeepestContaining @Hir.NameTypes (Range.empty pos) (AST.getDynNode haskell)
+  let importable = AST.getDeepestContaining @Hir.GetNameTypes (Range.empty pos) (AST.getDynNode haskell)
   case qualified of
     Left e -> do
       logError $ T.pack $ "Error getting qualified: " <> show e
@@ -98,7 +98,7 @@ getModulesToImport path pos = do
             , moduleQualifier = Nothing
             }
     Right (Just qualified) -> do
-      res <- findModulesForDef qualified.name.text
+      res <- findModulesForDef qualified.name.node.nodeText
       pure $
         ModulesToImport
           { moduleNames = res

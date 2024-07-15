@@ -14,8 +14,13 @@ import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
 
+data NameSpace = NameSpaceValue | NameSpaceType
+  deriving (Show)
+
 data Name = Name
-  { text :: Text
+  { node :: !DynNode
+  , isOperator :: !Bool
+  , isConstructor :: !Bool
   }
   deriving (Show)
 
@@ -32,6 +37,18 @@ data Module = Module
   }
   deriving (Show, Eq)
 
+data ImportChildren
+  = ImportAllChildren
+  | ImportChild NameSpace Name
+  deriving (Show)
+
+data ImportItem = ImportItem
+  { namespace :: NameSpace
+  , name :: Name
+  , children :: [ImportChildren]
+  }
+  deriving (Show)
+
 data ImportName = ImportName
   { name :: Text
   }
@@ -42,12 +59,63 @@ data Import = Import
   , alias :: Maybe Module
   , qualified :: !Bool
   , hiding :: !Bool
-  , importList :: [ImportName]
+  , importList :: [ImportItem]
   }
-  deriving (Show, Eq)
+  deriving (Show)
 
 pattern OpenImport :: Module -> Import
 pattern OpenImport mod = Import {mod, alias = Nothing, qualified = False, hiding = False, importList = []}
+
+type ParseNameTypes =
+  Haskell.Name
+    :+ Haskell.Constructor
+    :+ Haskell.Variable
+    :+ Haskell.Operator
+    :+ Haskell.FieldName
+    :+ Haskell.ConstructorOperator
+    :+ Nil
+
+parseName :: ParseNameTypes -> Name
+parseName ast = case ast of
+  AST.Inj @H.Name _ ->
+    Name
+      { node
+      , isOperator = False
+      , isConstructor = False
+      }
+  AST.Inj @H.Constructor _ ->
+    Name
+      { node
+      , isOperator = False
+      , isConstructor = True
+      }
+  AST.Inj @H.Variable _ ->
+    Name
+      { node
+      , isOperator = False
+      , isConstructor = False
+      }
+  AST.Inj @H.Operator _ ->
+    Name
+      { node
+      , isOperator = True
+      , isConstructor = False
+      }
+  AST.Inj @H.FieldName _ ->
+    Name
+      { node
+      , isOperator = False
+      , isConstructor = False
+      }
+  AST.Inj @H.ConstructorOperator _ ->
+    Name
+      { node
+      , isOperator = True
+      , isConstructor = True
+      }
+  _ -> error "could not parse name"
+ where
+  node = AST.getDynNode ast
 
 parseModuleFromText :: Text -> Module
 parseModuleFromText text =
@@ -76,11 +144,70 @@ parseImportName name = do
   let text = AST.nodeToText name
   pure $ ImportName {name = text}
 
-parseImportList :: H.ImportList -> AST.Err [ImportName]
+parseNameSpace :: H.Namespace -> AST.Err NameSpace
+parseNameSpace n = case n.dynNode.nodeText of
+  "data" -> pure NameSpaceValue
+  "type" -> pure NameSpaceType
+  _ -> Left $ "could not parse namespace: " <> T.pack (show n)
+
+parseImportOperator :: H.PrefixId -> AST.Err Name
+parseImportOperator operator = do
+  operator <- operator.children
+  parseName <$> removeQualified operator
+
+removeQualified :: (AST.Subset n (H.Qualified :+ ParseNameTypes)) => n -> AST.Err ParseNameTypes
+removeQualified n = case AST.subset @_ @(H.Qualified :+ ParseNameTypes) n of
+  AST.X qualified -> Left $ "qualified name in import: " <> qualified.dynNode.nodeText
+  AST.Rest name -> pure name
+
+type ParseImportChildren = H.Qualified :+ H.AllNames :+ H.AssociatedType :+ H.PrefixId :+ ParseNameTypes
+
+parseImportChild :: ParseImportChildren -> AST.Err ImportChildren
+parseImportChild child = case child of
+  AST.X qualified -> Left $ "qualified name in import children: " <> qualified.dynNode.nodeText
+  AST.Rest (AST.X _allNames) -> pure ImportAllChildren
+  AST.Rest (AST.Rest (AST.X assocType)) -> do
+    type' <- assocType.type'
+    name <- removeQualified type'
+    pure $ ImportChild NameSpaceType (parseName name)
+  AST.Rest (AST.Rest (AST.Rest (AST.X prefixId))) -> do
+    operator <- prefixId.children
+    name <- removeQualified operator
+    pure $ ImportChild NameSpaceValue (parseName name)
+  _ -> undefined
+
+parseImportChildren :: H.Children -> AST.Err [ImportChildren]
+parseImportChildren children = do
+  element <- AST.collapseErr children.element
+  let children = AST.subset @_ @ParseImportChildren <$> element
+  children <- traverse parseImportChild children
+  pure children
+
+parseImportItem :: H.ImportName -> AST.Err ImportItem
+parseImportItem i = do
+  namespace <- traverse parseNameSpace =<< AST.collapseErr i.namespace
+  namespace <- pure $ Maybe.fromMaybe NameSpaceValue namespace
+  name <- do
+    operator <- traverse parseImportOperator =<< AST.collapseErr i.operator
+    type' <- traverse (fmap parseName . removeQualified) =<< AST.collapseErr i.type'
+    variable <- traverse (fmap parseName . removeQualified) =<< AST.collapseErr i.variable
+    case operator <|> type' <|> variable of
+      Just n -> pure n
+      Nothing -> Left "could not parse import name"
+  children <- traverse parseImportChildren =<< AST.collapseErr i.children'
+  children <- pure $ Maybe.fromMaybe [] children
+  pure
+    ImportItem
+      { namespace
+      , name
+      , children
+      }
+
+parseImportList :: H.ImportList -> AST.Err [ImportItem]
 parseImportList i = do
-  names <- AST.collapseErr i.name
-  names <- traverse parseImportName names
-  pure names
+  name <- AST.collapseErr i.name
+  items <- traverse parseImportItem name
+  pure items
 
 parseModule :: H.Module -> AST.Err Module
 parseModule m = do
@@ -118,7 +245,8 @@ parseQualified q = do
   mod <- q.module'
   mod <- parseModule mod
   name <- q.id
-  name <- pure $ Name {text = AST.nodeToText name}
+  let name' = AST.subset @_ @ParseNameTypes name
+  name <- pure $ parseName $ name'
   pure $ Qualified {mod, name, node = q}
 
 getQualifiedAtPoint :: Range -> H.Haskell -> AST.Err (Maybe Qualified)
@@ -138,7 +266,7 @@ parseImports i = do
 data Program = Program
   { imports :: [Import]
   }
-  deriving (Show, Eq)
+  deriving (Show)
 
 emptyProgram :: Program
 emptyProgram = Program {imports = []}
@@ -155,17 +283,18 @@ parseHaskell h = do
     Right (es, program) -> (es, program)
     Left e -> ([e], emptyProgram)
 
-type NameTypes =
+type GetNameTypes =
   Haskell.Name
     :+ Haskell.Constructor
     :+ Haskell.Qualified
     :+ Haskell.Variable
     :+ Haskell.Operator
+    :+ Haskell.FieldName
     :+ Haskell.ConstructorOperator
     :+ Nil
 
-getNameTypes :: Range -> H.Haskell -> Maybe NameTypes
-getNameTypes range hs = AST.getDeepestContaining @NameTypes range hs.dynNode
+getNameTypes :: Range -> H.Haskell -> Maybe GetNameTypes
+getNameTypes range hs = AST.getDeepestContaining @GetNameTypes range hs.dynNode
 
 data ThQuotedName = ThQuotedName
   { isTy :: Bool

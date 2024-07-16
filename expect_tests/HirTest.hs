@@ -26,8 +26,8 @@ src1 =
   [trimming|
   module First where
 
-  import First (First, C(.., first, second, (+++)))
-  import Second (First, C(.., first, second, (+++)))
+  import First (First, C(type Ty, (:+:), .., first, (+++)))
+  import Second (First, C(.., first, type Another, (+++))) as Another
   |]
 
 tests =
@@ -39,6 +39,120 @@ tests =
     , ( checkHir
           "first"
           src1
-          [expect||]
+          [expect|Program
+    { imports =
+        [ Import
+            { mod = ModuleText
+                { parts = "First" :| []
+                , text = "First"
+                }
+            , alias = Nothing
+            , qualified = False
+            , hiding = False
+            , importList =
+                [ ImportItem
+                    { namespace = NameSpaceValue
+                    , name = Name
+                        { node = "name@(34 - 39)"
+                        , isOperator = False
+                        , isConstructor = False
+                        }
+                    , children = []
+                    }
+                , ImportItem
+                    { namespace = NameSpaceValue
+                    , name = Name
+                        { node = "name@(41 - 42)"
+                        , isOperator = False
+                        , isConstructor = False
+                        }
+                    , children =
+                        [ ImportChild NameSpaceType
+                            ( Name
+                                { node = "name@(48 - 50)"
+                                , isOperator = False
+                                , isConstructor = False
+                                }
+                            )
+                        , ImportChild NameSpaceValue
+                            ( Name
+                                { node = "constructor_operator@(53 - 56)"
+                                , isOperator = True
+                                , isConstructor = True
+                                }
+                            )
+                        , ImportAllChildren
+                        , ImportChild NameSpaceValue
+                            ( Name
+                                { node = "variable@(63 - 68)"
+                                , isOperator = False
+                                , isConstructor = False
+                                }
+                            )
+                        , ImportChild NameSpaceValue
+                            ( Name
+                                { node = "operator@(71 - 74)"
+                                , isOperator = True
+                                , isConstructor = False
+                                }
+                            )
+                        ]
+                    }
+                ]
+            }
+        , Import
+            { mod = ModuleText
+                { parts = "Second" :| []
+                , text = "Second"
+                }
+            , alias = Nothing
+            , qualified = False
+            , hiding = False
+            , importList =
+                [ ImportItem
+                    { namespace = NameSpaceValue
+                    , name = Name
+                        { node = "name@(93 - 98)"
+                        , isOperator = False
+                        , isConstructor = False
+                        }
+                    , children = []
+                    }
+                , ImportItem
+                    { namespace = NameSpaceValue
+                    , name = Name
+                        { node = "name@(100 - 101)"
+                        , isOperator = False
+                        , isConstructor = False
+                        }
+                    , children =
+                        [ ImportAllChildren
+                        , ImportChild NameSpaceValue
+                            ( Name
+                                { node = "variable@(106 - 111)"
+                                , isOperator = False
+                                , isConstructor = False
+                                }
+                            )
+                        , ImportChild NameSpaceType
+                            ( Name
+                                { node = "name@(118 - 125)"
+                                , isOperator = False
+                                , isConstructor = False
+                                }
+                            )
+                        , ImportChild NameSpaceValue
+                            ( Name
+                                { node = "operator@(128 - 131)"
+                                , isOperator = True
+                                , isConstructor = False
+                                }
+                            )
+                        ]
+                    }
+                ]
+            }
+        ]
+    }|]
       )
     ]

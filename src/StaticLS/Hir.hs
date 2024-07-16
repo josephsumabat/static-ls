@@ -13,7 +13,6 @@ import Data.Maybe qualified as Maybe
 import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Debug.Trace
 
 data NameSpace = NameSpaceValue | NameSpaceType
   deriving (Show)
@@ -181,13 +180,13 @@ parseImportChildren :: H.Children -> AST.Err [ImportChildren]
 parseImportChildren children = do
   element <- AST.collapseErr children.element
   let children = AST.subset @_ @ParseImportChildren <$> element
-  let res = parseImportChild <$> children
-  children <- trace ("hello") $ traverse parseImportChild children
+  children <- traverse parseImportChild children
   pure children
 
 parseImportItem :: H.ImportName -> AST.Err ImportItem
-parseImportItem i = trace "parseImportItem" do
+parseImportItem i = do
   namespace <- traverse parseNameSpace =<< AST.collapseErr i.namespace
+  namespace <- traverse parseNameSpace =<< AST.collapseErr i.name
   namespace <- pure $ Maybe.fromMaybe NameSpaceValue namespace
   name <- do
     operator <- traverse parseImportOperator =<< AST.collapseErr i.operator

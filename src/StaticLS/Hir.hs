@@ -390,7 +390,6 @@ parseHaskell h = do
 type GetNameTypes =
   Haskell.Name
     :+ Haskell.Constructor
-    :+ Haskell.Qualified
     :+ Haskell.Variable
     :+ Haskell.Operator
     :+ Haskell.FieldName

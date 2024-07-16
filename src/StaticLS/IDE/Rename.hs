@@ -99,12 +99,12 @@ rename path pos lineCol newName = do
               pure $ SourceEdit.single ref.path (Edit.changesToEdit changes)
     case context of
       Left e -> do
-        logError $ T.pack $ show e
+        logError $ "rename error: " <> T.pack (show e)
         pure defaultSourceEdit
       Right context -> do
         case context of
-          RenameQualified (Hir.Qualified {mod = Just name}) -> do
-            let start = name.node.dynNode.nodeRange.start
+          RenameQualified (Hir.Qualified {mod = Just _, name}) -> do
+            let start = name.node.nodeRange.start
             let edit = Edit.replace (Range start ref.loc.end) newName
             pure $ SourceEdit.single ref.path edit
           RenameQualified (Hir.Qualified {mod = Nothing}) -> pure defaultSourceEdit

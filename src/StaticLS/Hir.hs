@@ -14,7 +14,10 @@ import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
 
-data NameSpace = NameSpaceValue | NameSpaceType
+data NameSpace
+  = NameSpaceValue
+  | NameSpaceType
+  | NameSpacePattern
   deriving (Show)
 
 data Name = Name
@@ -167,6 +170,7 @@ parseNameSpace :: H.Namespace -> AST.Err NameSpace
 parseNameSpace n = case n.dynNode.nodeText of
   "data" -> pure NameSpaceValue
   "type" -> pure NameSpaceType
+  "pattern" -> pure NameSpacePattern
   _ -> Left $ "could not parse namespace: " <> T.pack (show n)
 
 parseImportOperator :: H.PrefixId -> AST.Err Name
@@ -376,7 +380,12 @@ data Program = Program
   deriving (Show)
 
 emptyProgram :: Program
-emptyProgram = Program {imports = [], exports = []}
+emptyProgram =
+  Program
+    { imports = []
+    , exports = []
+    , decls = []
+    }
 
 parseHaskell :: H.Haskell -> ([Text], Program)
 parseHaskell h = do

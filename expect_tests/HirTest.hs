@@ -36,6 +36,8 @@ src2 =
     (
       name1,
       name2,
+      pattern First,
+      type (++),
     )
   where
 
@@ -69,6 +71,30 @@ tests =
                 , name = Name
                     { node = "variable@(33 - 38)"
                     , isOperator = False
+                    , isConstructor = False
+                    }
+                }
+            , children = []
+            }
+        , ExportItem
+            { namespace = NameSpacePattern
+            , name = Qualified
+                { mod = Nothing
+                , name = Name
+                    { node = "name@(52 - 57)"
+                    , isOperator = False
+                    , isConstructor = False
+                    }
+                }
+            , children = []
+            }
+        , ExportItem
+            { namespace = NameSpaceType
+            , name = Qualified
+                { mod = Nothing
+                , name = Name
+                    { node = "operator@(69 - 71)"
+                    , isOperator = True
                     , isConstructor = False
                     }
                 }

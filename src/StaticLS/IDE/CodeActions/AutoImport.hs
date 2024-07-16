@@ -56,11 +56,11 @@ findModulesForDef name = do
     Left e -> do
       logError $ T.pack $ "Error finding modules for def: " <> show e
       pure []
-    Right res -> pure $ Hir.parseModuleFromText <$> res
+    Right res -> pure $ Hir.parseModuleTextFromText <$> res
 
 data ModulesToImport = ModulesToImport
   { moduleNames :: [Hir.ModuleText]
-  , moduleQualifier :: Maybe Hir.ModuleText
+  , moduleQualifier :: Maybe Hir.ModuleName
   }
 
 getModulesToImport ::
@@ -72,7 +72,6 @@ getModulesToImport path pos = do
   haskell <- getHaskell path
   -- TODO: Remove double traversal of AST
   let qualified = Hir.getQualifiedAtPoint (Range.empty pos) haskell
-  let importable = AST.getDeepestContaining @Hir.GetNameTypes (Range.empty pos) (AST.getDynNode haskell)
   case qualified of
     Left e -> do
       logError $ T.pack $ "Error getting qualified: " <> show e
@@ -81,36 +80,21 @@ getModulesToImport path pos = do
           { moduleNames = []
           , moduleQualifier = Nothing
           }
-    Right Nothing -> case importable of
-      Just importableNode -> do
-        let node = AST.getDynNode importableNode
-            nodeText = AST.nodeText node
-        res <- findModulesForDef nodeText
-        pure $
-          ModulesToImport
-            { moduleNames = res
-            , moduleQualifier = Nothing
-            }
-      Nothing -> do
-        pure
-          ModulesToImport
-            { moduleNames = []
-            , moduleQualifier = Nothing
-            }
+    Right Nothing -> pure ModulesToImport {moduleNames = [], moduleQualifier = Nothing}
     Right (Just qualified) -> do
       res <- findModulesForDef qualified.name.node.nodeText
       pure $
         ModulesToImport
           { moduleNames = res
-          , moduleQualifier = Just qualified.mod
+          , moduleQualifier = qualified.mod
           }
 
-createAutoImportCodeActions :: AbsPath -> Maybe Hir.ModuleText -> Hir.ModuleText -> StaticLsM [Assist]
+createAutoImportCodeActions :: AbsPath -> Maybe Hir.ModuleName -> Hir.ModuleText -> StaticLsM [Assist]
 createAutoImportCodeActions path mQualifier importMod =
   let importText =
         ( maybe
             ("import " <> importMod.text)
-            (\qualifier -> ("import qualified " <> importMod.text <> " as " <> qualifier.text))
+            (\qualifier -> ("import qualified " <> importMod.text <> " as " <> qualifier.mod.text))
             mQualifier
         )
    in pure
@@ -131,7 +115,7 @@ codeAction CodeActionContext {path, lineCol, pos} = do
         any
           ( \imp ->
               case (modulesToImport.moduleQualifier, imp) of
-                (Just qual, imp) -> Hir.importQualifier imp == qual && imp.mod == mod
+                (Just qual, imp) -> Hir.importQualifier imp == qual.mod && imp.mod == mod
                 (Nothing, Hir.OpenImport impMod) -> mod == impMod
                 _ -> False
           )

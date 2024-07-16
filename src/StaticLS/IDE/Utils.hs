@@ -26,4 +26,4 @@ pathToModule absPath = do
     let (modPathWithoutExt, ext) = splitExtension modPath
     guard $ ext == ".hs"
     let modText = T.replace (T.pack [pathSeparator]) "." (T.pack modPathWithoutExt)
-    pure $ Hir.parseModuleFromText modText
+    pure $ Hir.parseModuleTextFromText modText

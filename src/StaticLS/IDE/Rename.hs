@@ -103,10 +103,11 @@ rename path pos lineCol newName = do
         pure defaultSourceEdit
       Right context -> do
         case context of
-          RenameQualified q -> do
-            let start = q.node.dynNode.nodeRange.start
+          RenameQualified (Hir.Qualified {mod = Just name}) -> do
+            let start = name.node.dynNode.nodeRange.start
             let edit = Edit.replace (Range start ref.loc.end) newName
             pure $ SourceEdit.single ref.path edit
+          RenameQualified (Hir.Qualified {mod = Nothing}) -> pure defaultSourceEdit
           RenameTopSplice topSplice -> do
             onSplice topSplice.dynNode
           RenameSplice splice -> do

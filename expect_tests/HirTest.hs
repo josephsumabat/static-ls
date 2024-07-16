@@ -30,14 +30,56 @@ src1 =
   import Second (First, C(.., first, type Another, (+++))) as Another
   |]
 
+src2 =
+  [trimming|
+  module Second
+    (
+      name1,
+      name2,
+    )
+  where
+
+  |]
 tests =
   testGroup
     "HirTest"
-    [ ( test "first" [expect|hello world|] $ do
+    [ ( test "first" [expect|hello world|] do
           pure $ T.pack "hello world"
+      ),
+      (
+        checkHir "exports" src2 [expect|Program
+    { imports = []
+    , exports =
+        [ ExportItem
+            { namespace = NameSpaceValue
+            , name = Qualified
+                { mod = Nothing
+                , name = Name
+                    { node = "variable@(22 - 27)"
+                    , isOperator = False
+                    , isConstructor = False
+                    }
+                }
+            , children = []
+            }
+        , ExportItem
+            { namespace = NameSpaceValue
+            , name = Qualified
+                { mod = Nothing
+                , name = Name
+                    { node = "variable@(33 - 38)"
+                    , isOperator = False
+                    , isConstructor = False
+                    }
+                }
+            , children = []
+            }
+        ]
+    , decls = []
+    }|]
       )
     , ( checkHir
-          "first"
+          "imports"
           src1
           [expect|Program
     { imports =
@@ -154,6 +196,7 @@ tests =
             }
         ]
     , exports = []
+    , decls = []
     }|]
       )
     ]

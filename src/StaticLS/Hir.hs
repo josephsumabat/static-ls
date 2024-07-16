@@ -279,8 +279,9 @@ parseModuleExportItem e = do
 parseExportList :: H.Exports -> AST.Err [ExportItem]
 parseExportList exports = do
   export <- AST.collapseErr exports.export
+  moduleExports <- AST.collapseErr exports.children
   normalExports <- traverse parseExportItem export
-  moduleExports <- traverse parseExportItem export
+  moduleExports <- traverse parseModuleExportItem moduleExports
   pure $ normalExports ++ moduleExports
 
 parseImportList :: H.ImportList -> AST.Err [ImportItem]
@@ -359,9 +360,18 @@ parseImports i = do
   let (es', imports') = Either.partitionEithers imports
   pure (es ++ es', imports')
 
+data DataDecl = DataDecl
+  { name :: Name
+  }
+  deriving (Show)
+
+data Decl = DeclData DataDecl
+  deriving (Show)
+
 data Program = Program
   { imports :: [Import]
   , exports :: [ExportItem]
+  , decls :: [Decl]
   }
   deriving (Show)
 
@@ -382,7 +392,7 @@ parseHaskell h = do
             exports <- AST.collapseErr header.exports
             exports <- traverse parseExportList exports
             pure (es, Maybe.fromMaybe [] exports)
-        pure (es ++ es', Program {imports, exports})
+        pure (es ++ es', Program {imports, exports, decls = []})
   case res of
     Right (es, program) -> (es, program)
     Left e -> ([e], emptyProgram)

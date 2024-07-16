@@ -16,7 +16,7 @@ makeRelativeMaybe base path = do
   guard $ path /= rel
   pure rel
 
-pathToModule :: AbsPath -> StaticLsM (Maybe Hir.Module)
+pathToModule :: AbsPath -> StaticLsM (Maybe Hir.ModuleText)
 pathToModule absPath = do
   let fp = Path.toFilePath absPath
   staticEnv <- getStaticEnv

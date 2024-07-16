@@ -13,6 +13,7 @@ import Data.Maybe qualified as Maybe
 import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
+import Debug.Trace
 
 data NameSpace = NameSpaceValue | NameSpaceType
   deriving (Show)
@@ -25,13 +26,13 @@ data Name = Name
   deriving (Show)
 
 data Qualified = Qualified
-  { mod :: Module
+  { mod :: ModuleText
   , name :: Name
   , node :: H.Qualified
   }
   deriving (Show)
 
-data Module = Module
+data ModuleText = ModuleText
   { parts :: NonEmpty Text
   , text :: Text
   }
@@ -55,15 +56,15 @@ data ImportName = ImportName
   deriving (Show, Eq)
 
 data Import = Import
-  { mod :: Module
-  , alias :: Maybe Module
+  { mod :: ModuleText
+  , alias :: Maybe ModuleText
   , qualified :: !Bool
   , hiding :: !Bool
   , importList :: [ImportItem]
   }
   deriving (Show)
 
-pattern OpenImport :: Module -> Import
+pattern OpenImport :: ModuleText -> Import
 pattern OpenImport mod = Import {mod, alias = Nothing, qualified = False, hiding = False, importList = []}
 
 type ParseNameTypes =
@@ -117,14 +118,14 @@ parseName ast = case ast of
  where
   node = AST.getDynNode ast
 
-parseModuleFromText :: Text -> Module
+parseModuleFromText :: Text -> ModuleText
 parseModuleFromText text =
-  Module
+  ModuleText
     { parts = NE.fromList (T.splitOn "." text)
     , text
     }
 
-importQualifier :: Import -> Module
+importQualifier :: Import -> ModuleText
 importQualifier i =
   -- even if something is not imported qualified,
   -- it still produced a namespace that can be used as a qualifier
@@ -174,17 +175,18 @@ parseImportChild child = case child of
     operator <- prefixId.children
     name <- removeQualified operator
     pure $ ImportChild NameSpaceValue (parseName name)
-  _ -> undefined
+  AST.Rest (AST.Rest (AST.Rest (AST.Rest rest))) -> pure $ ImportChild NameSpaceValue (parseName rest)
 
 parseImportChildren :: H.Children -> AST.Err [ImportChildren]
 parseImportChildren children = do
   element <- AST.collapseErr children.element
   let children = AST.subset @_ @ParseImportChildren <$> element
-  children <- traverse parseImportChild children
+  let res = parseImportChild <$> children
+  children <- trace ("hello") $ traverse parseImportChild children
   pure children
 
 parseImportItem :: H.ImportName -> AST.Err ImportItem
-parseImportItem i = do
+parseImportItem i = trace "parseImportItem" do
   namespace <- traverse parseNameSpace =<< AST.collapseErr i.namespace
   namespace <- pure $ Maybe.fromMaybe NameSpaceValue namespace
   name <- do
@@ -209,11 +211,11 @@ parseImportList i = do
   items <- traverse parseImportItem name
   pure items
 
-parseModule :: H.Module -> AST.Err Module
+parseModule :: H.Module -> AST.Err ModuleText
 parseModule m = do
   ids <- AST.collapseErr m.children
   pure $
-    Module
+    ModuleText
       { text =
           -- the text sometimes includes trailing dots
           T.dropWhileEnd (== '.') (AST.nodeToText m)

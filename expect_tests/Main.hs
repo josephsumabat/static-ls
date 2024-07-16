@@ -5,6 +5,7 @@ module Main where
 import Test.Tasty
 import Test.Tasty.Expect
 import Data.Text qualified as T
+import qualified HirTest
 
 main :: IO ()
 main = do
@@ -15,6 +16,5 @@ tests :: TestTree
 tests =
   testGroup
     "Tests"
-    [ test "first" [expect|hello world|] $ do
-        pure $ T.pack "hello world"
+    [ HirTest.tests
     ]

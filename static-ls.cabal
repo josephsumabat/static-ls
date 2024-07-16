@@ -312,6 +312,7 @@ test-suite expect_tests
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      HirTest
       Paths_static_ls
   autogen-modules:
       Paths_static_ls

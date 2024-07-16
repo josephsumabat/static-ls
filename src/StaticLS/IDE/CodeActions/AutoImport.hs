@@ -49,7 +49,7 @@ findModulesForDefQuery (getConn -> conn) name = do
       (Only (T.pack "_:" <> name))
   pure (coerce res)
 
-findModulesForDef :: Text -> StaticLsM [Hir.Module]
+findModulesForDef :: Text -> StaticLsM [Hir.ModuleText]
 findModulesForDef name = do
   res <- runExceptT $ runHieDbExceptT (\db -> findModulesForDefQuery db name)
   case res of
@@ -59,8 +59,8 @@ findModulesForDef name = do
     Right res -> pure $ Hir.parseModuleFromText <$> res
 
 data ModulesToImport = ModulesToImport
-  { moduleNames :: [Hir.Module]
-  , moduleQualifier :: Maybe Hir.Module
+  { moduleNames :: [Hir.ModuleText]
+  , moduleQualifier :: Maybe Hir.ModuleText
   }
 
 getModulesToImport ::
@@ -105,7 +105,7 @@ getModulesToImport path pos = do
           , moduleQualifier = Just qualified.mod
           }
 
-createAutoImportCodeActions :: AbsPath -> Maybe Hir.Module -> Hir.Module -> StaticLsM [Assist]
+createAutoImportCodeActions :: AbsPath -> Maybe Hir.ModuleText -> Hir.ModuleText -> StaticLsM [Assist]
 createAutoImportCodeActions path mQualifier importMod =
   let importText =
         ( maybe

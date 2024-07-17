@@ -54,8 +54,6 @@ src3 =
   data [] a = Nil
   
   data (:+:) a b = a :+: b
-  
-  data Bruh = Bruh
   |]
 tests =
   testGroup

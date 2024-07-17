@@ -104,7 +104,7 @@ parseName ast = case ast of
     Name
       { node
       , isOperator = False
-      , isConstructor = True
+      , isConstructor = False
       }
   AST.Inj @H.Constructor _ ->
     Name

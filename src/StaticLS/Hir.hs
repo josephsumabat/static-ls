@@ -340,7 +340,7 @@ parseQualified q = do
       mod <- parseModuleName mod
       name <- q.id
       let name' = AST.subset @_ @ParseNameTypes name
-      name <- pure $ parseName $ name'
+      name <- pure $ parseName name'
       pure $ Qualified {mod = Just mod, name}
     AST.Rest q -> do
       let name = parseName q
@@ -372,6 +372,16 @@ data DataDecl = DataDecl
 data Decl = DeclData DataDecl
   deriving (Show)
 
+parseDataType :: H.DataType -> AST.Err DataDecl
+parseDataType dt = do 
+  undefined
+parseDeclaration :: H.Declaration -> AST.Err (Maybe Decl)
+parseDeclaration decl = case decl.getDeclaration of 
+  AST.Inj @H.DataType d -> do
+    undefined
+  
+  -- AST.Inj @H.
+  
 data Program = Program
   { imports :: [Import]
   , exports :: [ExportItem]

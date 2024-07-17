@@ -47,9 +47,11 @@ tests =
     "HirTest"
     [ ( test "first" [expect|hello world|] do
           pure $ T.pack "hello world"
-      ),
-      (
-        checkHir "exports" src2 [expect|Program
+      )
+    , ( checkHir
+          "exports"
+          src2
+          [expect|Program
     { imports = []
     , exports =
         [ ExportItem

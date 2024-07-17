@@ -373,15 +373,15 @@ data Decl = DeclData DataDecl
   deriving (Show)
 
 parseDataType :: H.DataType -> AST.Err DataDecl
-parseDataType dt = do 
+parseDataType dt = do
   undefined
 parseDeclaration :: H.Declaration -> AST.Err (Maybe Decl)
-parseDeclaration decl = case decl.getDeclaration of 
+parseDeclaration decl = case decl.getDeclaration of
   AST.Inj @H.DataType d -> do
     undefined
-  
-  -- AST.Inj @H.
-  
+
+-- AST.Inj @H.
+
 data Program = Program
   { imports :: [Import]
   , exports :: [ExportItem]

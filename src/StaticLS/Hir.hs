@@ -6,6 +6,7 @@ import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
 import AST.Sum (Nil, (:+))
 import Control.Applicative (asum, (<|>))
+import Control.Error qualified as Error
 import Data.Either qualified as Either
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
@@ -103,7 +104,7 @@ parseName ast = case ast of
     Name
       { node
       , isOperator = False
-      , isConstructor = False
+      , isConstructor = True
       }
   AST.Inj @H.Constructor _ ->
     Name
@@ -373,15 +374,39 @@ data Decl = DeclData DataDecl
   deriving (Show)
 
 parseDataType :: H.DataType -> AST.Err DataDecl
-parseDataType dt = do 
-  undefined
+parseDataType dt = do
+  dt <- AST.unwrap dt
+  name <- Error.note "no name for data type" dt.name
+  name <- case name of
+    AST.X name -> pure $ parseName (AST.Inj name)
+    AST.Rest (AST.X prefixId) -> do
+      prefixId <- AST.unwrap prefixId
+      name <- removeQualified prefixId.children
+      pure $ parseName name
+    AST.Rest (AST.Rest (AST.X prefixList)) ->
+      pure
+        Name
+          { node = prefixList.dynNode
+          , isOperator = True
+          , isConstructor = True
+          }
+    AST.Rest (AST.Rest (AST.Rest (AST.X _qual))) -> Left "invalid qualified in data name"
+    AST.Rest (AST.Rest (AST.Rest (AST.Rest (AST.X unit)))) ->
+      pure
+        Name
+          { node = unit.dynNode
+          , isOperator = True
+          , isConstructor = True
+          }
+    AST.Rest (AST.Rest (AST.Rest (AST.Rest (AST.Rest nil)))) -> case nil of {}
+  pure DataDecl {name}
+
 parseDeclaration :: H.Declaration -> AST.Err (Maybe Decl)
-parseDeclaration decl = case decl.getDeclaration of 
+parseDeclaration decl = case decl.getDeclaration of
   AST.Inj @H.DataType d -> do
-    undefined
-  
-  -- AST.Inj @H.
-  
+    (Just . DeclData) <$> parseDataType d
+  _ -> pure Nothing
+
 data Program = Program
   { imports :: [Import]
   , exports :: [ExportItem]
@@ -400,7 +425,7 @@ emptyProgram =
 parseHaskell :: H.Haskell -> ([Text], Program)
 parseHaskell h = do
   let res = do
-        imports <- AST.collapseErr h.imports
+        let imports = Maybe.fromMaybe Nothing $ Error.hush $ AST.collapseErr h.imports
         (es, imports) <- case imports of
           Nothing -> pure ([], [])
           Just imports -> parseImports imports
@@ -408,10 +433,29 @@ parseHaskell h = do
         (es', exports) <- case header of
           Nothing -> pure (es, [])
           Just header -> do
-            exports <- AST.collapseErr header.exports
-            exports <- traverse parseExportList exports
-            pure (es, Maybe.fromMaybe [] exports)
-        pure (es ++ es', Program {imports, exports, decls = []})
+            let exports = Maybe.fromMaybe Nothing $ Error.hush $ AST.collapseErr header.exports
+            let exports' = Maybe.fromMaybe [] $ Maybe.fromMaybe Nothing $ Error.hush $ traverse parseExportList exports
+            pure (es, exports')
+        (es'', decls) <- do
+          let decls = Maybe.fromMaybe Nothing $ Error.hush $ AST.collapseErr h.declarations
+          case decls of
+            Nothing -> pure ([], [])
+            Just decls -> do
+              -- let children =
+              let children = Maybe.fromMaybe [] $ fmap NE.toList $ Error.hush $ AST.collapseErr decls.children
+              let parseChild (child :: H.Declaration :+ H.Import :+ AST.Nil) = do
+                    case child of
+                      AST.X decl -> do
+                        decl <- parseDeclaration decl
+                        pure decl
+                      AST.Rest (AST.X _imp) -> do
+                        Left "cannot have import in declaration list"
+                      AST.Rest (AST.Rest nil) -> case nil of {}
+              let decls = fmap parseChild children
+              let (es, decls') = Either.partitionEithers decls
+              let decls'' = Maybe.mapMaybe id decls'
+              pure (es, decls'')
+        pure (es ++ es' ++ es'', Program {imports, exports, decls})
   case res of
     Right (es, program) -> (es, program)
     Left e -> ([e], emptyProgram)

@@ -42,11 +42,73 @@ src2 =
   where
 
   |]
+
+src3 =
+  [trimming|
+  module Third where
+  
+  data First = First
+  
+  data () = ()
+  
+  data [] a = Nil
+  
+  data (:+:) a b = a :+: b
+  
+  data Bruh = Bruh
+  |]
 tests =
   testGroup
     "HirTest"
     [ ( test "first" [expect|hello world|] do
           pure $ T.pack "hello world"
+      ),
+      (
+        checkHir
+          "decls"
+          src3
+          [expect|Program
+    { imports = []
+    , exports = []
+    , decls =
+        [ DeclData
+            ( DataDecl
+                { name = Name
+                    { node = "name@(25 - 30)"
+                    , isOperator = False
+                    , isConstructor = False
+                    }
+                }
+            )
+        , DeclData
+            ( DataDecl
+                { name = Name
+                    { node = "unit@(45 - 47)"
+                    , isOperator = True
+                    , isConstructor = True
+                    }
+                }
+            )
+        , DeclData
+            ( DataDecl
+                { name = Name
+                    { node = "prefix_list@(59 - 61)"
+                    , isOperator = True
+                    , isConstructor = True
+                    }
+                }
+            )
+        , DeclData
+            ( DataDecl
+                { name = Name
+                    { node = "constructor_operator@(77 - 80)"
+                    , isOperator = True
+                    , isConstructor = True
+                    }
+                }
+            )
+        ]
+    }|]
       )
     , ( checkHir
           "exports"

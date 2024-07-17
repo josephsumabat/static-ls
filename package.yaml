@@ -118,7 +118,7 @@ executables:
       - -with-rtsopts=-N
 
 tests:
-  static-ls-test:
+  expect_tests:
     dependencies:
     - static-ls
     - tasty-expect
@@ -126,6 +126,20 @@ tests:
     - QuickCheck
     - quickcheck-instances
     - tasty
+    main: Main.hs
+    source-dirs: expect_tests
+    ghc-options:
+      # rtsopts
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    
+  static-ls-test:
+    dependencies:
+    - static-ls
+    - hspec == 2.*
+    - QuickCheck
+    - quickcheck-instances
     main: Main.hs
     source-dirs: test
     verbatim:

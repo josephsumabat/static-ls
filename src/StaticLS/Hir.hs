@@ -14,23 +14,62 @@ import Data.Range (Range)
 import Data.Text (Text)
 import Data.Text qualified as T
 
+data NameSpace
+  = NameSpaceValue
+  | NameSpaceType
+  | NameSpacePattern
+  deriving (Show)
+
 data Name = Name
-  { text :: Text
+  { node :: !DynNode
+  , isOperator :: !Bool
+  , isConstructor :: !Bool
   }
   deriving (Show)
 
 data Qualified = Qualified
-  { mod :: Module
+  { mod :: Maybe ModuleName
   , name :: Name
-  , node :: H.Qualified
   }
   deriving (Show)
 
-data Module = Module
+data ModuleText = ModuleText
   { parts :: NonEmpty Text
   , text :: Text
   }
   deriving (Show, Eq)
+
+data ModuleName = ModuleName
+  { mod :: ModuleText
+  , node :: H.Module
+  }
+  deriving (Show, Eq)
+
+data ImportChildren
+  = ImportAllChildren
+  | ImportChild NameSpace Name
+  deriving (Show)
+
+data ImportItem = ImportItem
+  { namespace :: NameSpace
+  , name :: Name
+  , children :: [ImportChildren]
+  }
+  deriving (Show)
+
+data ExportChildren
+  = ExportAllChildren
+  | ExportChild NameSpace Qualified
+  deriving (Show)
+
+data ExportItem
+  = ExportItem
+      { namespace :: NameSpace
+      , name :: Qualified
+      , children :: [ExportChildren]
+      }
+  | ExportModuleItem ModuleName
+  deriving (Show)
 
 data ImportName = ImportName
   { name :: Text
@@ -38,25 +77,76 @@ data ImportName = ImportName
   deriving (Show, Eq)
 
 data Import = Import
-  { mod :: Module
-  , alias :: Maybe Module
+  { mod :: ModuleText
+  , alias :: Maybe ModuleText
   , qualified :: !Bool
   , hiding :: !Bool
-  , importList :: [ImportName]
+  , importList :: [ImportItem]
   }
-  deriving (Show, Eq)
+  deriving (Show)
 
-pattern OpenImport :: Module -> Import
+pattern OpenImport :: ModuleText -> Import
 pattern OpenImport mod = Import {mod, alias = Nothing, qualified = False, hiding = False, importList = []}
 
-parseModuleFromText :: Text -> Module
-parseModuleFromText text =
-  Module
+type ParseNameTypes =
+  Haskell.Name
+    :+ Haskell.Constructor
+    :+ Haskell.Variable
+    :+ Haskell.Operator
+    :+ Haskell.FieldName
+    :+ Haskell.ConstructorOperator
+    :+ Nil
+
+parseName :: ParseNameTypes -> Name
+parseName ast = case ast of
+  AST.Inj @H.Name _ ->
+    Name
+      { node
+      , isOperator = False
+      , isConstructor = False
+      }
+  AST.Inj @H.Constructor _ ->
+    Name
+      { node
+      , isOperator = False
+      , isConstructor = True
+      }
+  AST.Inj @H.Variable _ ->
+    Name
+      { node
+      , isOperator = False
+      , isConstructor = False
+      }
+  AST.Inj @H.Operator _ ->
+    Name
+      { node
+      , isOperator = True
+      , isConstructor = False
+      }
+  AST.Inj @H.FieldName _ ->
+    Name
+      { node
+      , isOperator = False
+      , isConstructor = False
+      }
+  AST.Inj @H.ConstructorOperator _ ->
+    Name
+      { node
+      , isOperator = True
+      , isConstructor = True
+      }
+  _ -> error "could not parse name"
+ where
+  node = AST.getDynNode ast
+
+parseModuleTextFromText :: Text -> ModuleText
+parseModuleTextFromText text =
+  ModuleText
     { parts = NE.fromList (T.splitOn "." text)
     , text
     }
 
-importQualifier :: Import -> Module
+importQualifier :: Import -> ModuleText
 importQualifier i =
   -- even if something is not imported qualified,
   -- it still produced a namespace that can be used as a qualifier
@@ -76,29 +166,156 @@ parseImportName name = do
   let text = AST.nodeToText name
   pure $ ImportName {name = text}
 
-parseImportList :: H.ImportList -> AST.Err [ImportName]
-parseImportList i = do
-  names <- AST.collapseErr i.name
-  names <- traverse parseImportName names
-  pure names
+parseNameSpace :: H.Namespace -> AST.Err NameSpace
+parseNameSpace n = case n.dynNode.nodeText of
+  "data" -> pure NameSpaceValue
+  "type" -> pure NameSpaceType
+  "pattern" -> pure NameSpacePattern
+  _ -> Left $ "could not parse namespace: " <> T.pack (show n)
 
-parseModule :: H.Module -> AST.Err Module
-parseModule m = do
+parseImportOperator :: H.PrefixId -> AST.Err Name
+parseImportOperator operator = do
+  operator <- operator.children
+  parseName <$> removeQualified operator
+
+parseExportOperator :: H.PrefixId -> AST.Err Qualified
+parseExportOperator operator = do
+  operator <- operator.children
+  parseQualified $ AST.subset operator
+
+removeQualified :: (AST.Subset n (H.Qualified :+ ParseNameTypes)) => n -> AST.Err ParseNameTypes
+removeQualified n = case AST.subset @_ @(H.Qualified :+ ParseNameTypes) n of
+  AST.X qualified -> Left $ "qualified name in import: " <> qualified.dynNode.nodeText
+  AST.Rest name -> pure name
+
+type ParseImportChildren = H.Qualified :+ H.AllNames :+ H.AssociatedType :+ H.PrefixId :+ ParseNameTypes
+
+parseImportChild :: ParseImportChildren -> AST.Err ImportChildren
+parseImportChild child = case child of
+  AST.X qualified -> Left $ "qualified name in import children: " <> qualified.dynNode.nodeText
+  AST.Rest (AST.X _allNames) -> pure ImportAllChildren
+  AST.Rest (AST.Rest (AST.X assocType)) -> do
+    type' <- assocType.type'
+    name <- removeQualified type'
+    pure $ ImportChild NameSpaceType (parseName name)
+  AST.Rest (AST.Rest (AST.Rest (AST.X prefixId))) -> do
+    operator <- prefixId.children
+    name <- removeQualified operator
+    pure $ ImportChild NameSpaceValue (parseName name)
+  AST.Rest (AST.Rest (AST.Rest (AST.Rest rest))) -> pure $ ImportChild NameSpaceValue (parseName rest)
+
+parseExportChild :: ParseImportChildren -> AST.Err ExportChildren
+parseExportChild child = case child of
+  AST.X qualified -> do
+    name <- parseQualified (AST.Inj qualified)
+    pure $ ExportChild NameSpaceValue name
+  AST.Rest (AST.X _allNames) -> pure ExportAllChildren
+  AST.Rest (AST.Rest (AST.X assocType)) -> do
+    type' <- assocType.type'
+    name <- parseQualified $ AST.subset type'
+    pure $ ExportChild NameSpaceType name
+  AST.Rest (AST.Rest (AST.Rest (AST.X prefixId))) -> do
+    operator <- prefixId.children
+    name <- parseQualified $ AST.subset operator
+    pure $ ExportChild NameSpaceValue name
+  AST.Rest (AST.Rest (AST.Rest (AST.Rest rest))) -> do
+    name <- parseQualified (AST.subset rest)
+    pure $ ExportChild NameSpaceValue name
+
+parseImportChildren :: H.Children -> AST.Err [ImportChildren]
+parseImportChildren children = do
+  element <- AST.collapseErr children.element
+  let children = AST.subset @_ @ParseImportChildren <$> element
+  children <- traverse parseImportChild children
+  pure children
+
+parseImportItem :: H.ImportName -> AST.Err ImportItem
+parseImportItem i = do
+  namespace <- traverse parseNameSpace =<< AST.collapseErr i.namespace
+  namespace <- pure $ Maybe.fromMaybe NameSpaceValue namespace
+  name <- do
+    operator <- traverse parseImportOperator =<< AST.collapseErr i.operator
+    type' <- traverse (fmap parseName . removeQualified) =<< AST.collapseErr i.type'
+    variable <- traverse (fmap parseName . removeQualified) =<< AST.collapseErr i.variable
+    case operator <|> type' <|> variable of
+      Just n -> pure n
+      Nothing -> Left "could not parse import name"
+  children <- traverse parseImportChildren =<< AST.collapseErr i.children'
+  children <- pure $ Maybe.fromMaybe [] children
+  pure
+    ImportItem
+      { namespace
+      , name
+      , children
+      }
+
+parseExportChildren :: H.Children -> AST.Err [ExportChildren]
+parseExportChildren children = do
+  element <- AST.collapseErr children.element
+  let children = AST.subset @_ @ParseImportChildren <$> element
+  children <- traverse parseExportChild children
+  pure children
+
+parseExportItem :: H.Export -> AST.Err ExportItem
+parseExportItem e = do
+  namespace <- traverse parseNameSpace =<< AST.collapseErr e.namespace
+  namespace <- pure $ Maybe.fromMaybe NameSpaceValue namespace
+  name <- do
+    operator <- traverse parseExportOperator =<< AST.collapseErr e.operator
+    type' <- traverse (parseQualified . AST.subset) =<< AST.collapseErr e.type'
+    variable <- traverse (parseQualified . AST.subset) =<< AST.collapseErr e.variable
+    case operator <|> type' <|> variable of
+      Just n -> pure n
+      Nothing -> Left "could not parse import name"
+  children <- traverse parseExportChildren =<< AST.collapseErr e.children'
+  children <- pure $ Maybe.fromMaybe [] children
+  pure
+    ExportItem
+      { namespace
+      , name
+      , children
+      }
+parseModuleExportItem :: H.ModuleExport -> AST.Err ExportItem
+parseModuleExportItem e = do
+  module' <- parseModuleName =<< e.module'
+  pure $ ExportModuleItem module'
+
+parseExportList :: H.Exports -> AST.Err [ExportItem]
+parseExportList exports = do
+  export <- AST.collapseErr exports.export
+  moduleExports <- AST.collapseErr exports.children
+  normalExports <- traverse parseExportItem export
+  moduleExports <- traverse parseModuleExportItem moduleExports
+  pure $ normalExports ++ moduleExports
+
+parseImportList :: H.ImportList -> AST.Err [ImportItem]
+parseImportList i = do
+  name <- AST.collapseErr i.name
+  items <- traverse parseImportItem name
+  pure items
+
+parseModuleText :: H.Module -> AST.Err ModuleText
+parseModuleText m = do
   ids <- AST.collapseErr m.children
   pure $
-    Module
+    ModuleText
       { text =
           -- the text sometimes includes trailing dots
           T.dropWhileEnd (== '.') (AST.nodeToText m)
       , parts = fmap AST.nodeToText ids
       }
 
+parseModuleName :: H.Module -> AST.Err ModuleName
+parseModuleName m = do
+  mod <- parseModuleText m
+  pure $ ModuleName {mod, node = m}
+
 parseImport :: H.Import -> AST.Err Import
 parseImport i = do
   mod <- i.module'
-  mod <- parseModule mod
+  mod <- parseModuleText mod
   alias <- AST.collapseErr i.alias
-  alias <- traverse parseModule alias
+  alias <- traverse parseModuleText alias
   importList <- AST.collapseErr i.names
   importList <- traverse parseImportList importList
   importList <- pure $ Maybe.fromMaybe [] importList
@@ -113,19 +330,31 @@ parseImport i = do
       , importList
       }
 
-parseQualified :: H.Qualified -> AST.Err Qualified
+type ParseQualifiedTypes = H.Qualified :+ ParseNameTypes
+
+parseQualified :: ParseQualifiedTypes -> AST.Err Qualified
 parseQualified q = do
-  mod <- q.module'
-  mod <- parseModule mod
-  name <- q.id
-  name <- pure $ Name {text = AST.nodeToText name}
-  pure $ Qualified {mod, name, node = q}
+  case q of
+    AST.X q -> do
+      mod <- q.module'
+      mod <- parseModuleName mod
+      name <- q.id
+      let name' = AST.subset @_ @ParseNameTypes name
+      name <- pure $ parseName name'
+      pure $ Qualified {mod = Just mod, name}
+    AST.Rest q -> do
+      let name = parseName q
+      pure $ Qualified {mod = Nothing, name}
 
 getQualifiedAtPoint :: Range -> H.Haskell -> AST.Err (Maybe Qualified)
 getQualifiedAtPoint range h = do
   let node = AST.getDeepestContaining @H.Qualified range (AST.getDynNode h)
-  qualified <- traverse parseQualified node
-  pure qualified
+  case node of
+    Nothing ->
+      traverse
+        parseQualified
+        (AST.getDeepestContaining @ParseQualifiedTypes range (AST.getDynNode h))
+    Just node -> Just <$> parseQualified (AST.Inj node)
 
 parseImports :: H.Imports -> AST.Err ([Text], [Import])
 parseImports i = do
@@ -135,13 +364,38 @@ parseImports i = do
   let (es', imports') = Either.partitionEithers imports
   pure (es ++ es', imports')
 
+data DataDecl = DataDecl
+  { name :: Name
+  }
+  deriving (Show)
+
+data Decl = DeclData DataDecl
+  deriving (Show)
+
+parseDataType :: H.DataType -> AST.Err DataDecl
+parseDataType dt = do
+  undefined
+parseDeclaration :: H.Declaration -> AST.Err (Maybe Decl)
+parseDeclaration decl = case decl.getDeclaration of
+  AST.Inj @H.DataType d -> do
+    undefined
+
+-- AST.Inj @H.
+
 data Program = Program
   { imports :: [Import]
+  , exports :: [ExportItem]
+  , decls :: [Decl]
   }
-  deriving (Show, Eq)
+  deriving (Show)
 
 emptyProgram :: Program
-emptyProgram = Program {imports = []}
+emptyProgram =
+  Program
+    { imports = []
+    , exports = []
+    , decls = []
+    }
 
 parseHaskell :: H.Haskell -> ([Text], Program)
 parseHaskell h = do
@@ -150,22 +404,29 @@ parseHaskell h = do
         (es, imports) <- case imports of
           Nothing -> pure ([], [])
           Just imports -> parseImports imports
-        pure (es, Program {imports})
+        header <- AST.collapseErr h.children
+        (es', exports) <- case header of
+          Nothing -> pure (es, [])
+          Just header -> do
+            exports <- AST.collapseErr header.exports
+            exports <- traverse parseExportList exports
+            pure (es, Maybe.fromMaybe [] exports)
+        pure (es ++ es', Program {imports, exports, decls = []})
   case res of
     Right (es, program) -> (es, program)
     Left e -> ([e], emptyProgram)
 
-type NameTypes =
+type GetNameTypes =
   Haskell.Name
     :+ Haskell.Constructor
-    :+ Haskell.Qualified
     :+ Haskell.Variable
     :+ Haskell.Operator
+    :+ Haskell.FieldName
     :+ Haskell.ConstructorOperator
     :+ Nil
 
-getNameTypes :: Range -> H.Haskell -> Maybe NameTypes
-getNameTypes range hs = AST.getDeepestContaining @NameTypes range hs.dynNode
+getNameTypes :: Range -> H.Haskell -> Maybe GetNameTypes
+getNameTypes range hs = AST.getDeepestContaining @GetNameTypes range hs.dynNode
 
 data ThQuotedName = ThQuotedName
   { isTy :: Bool

@@ -18,7 +18,7 @@ getEverything node = case AST.cast node of
 spec :: Spec
 spec = do
   let check name source oldName newName expected = it name do
-        let hs = Haskell.parse (id, id) source
+        let hs = Haskell.parse source
         let splice = head $ getEverything @Haskell.TopSplice hs.dynNode
         let changes = renameSplice splice.dynNode oldName newName
         let sourceRope = Rope.fromText source

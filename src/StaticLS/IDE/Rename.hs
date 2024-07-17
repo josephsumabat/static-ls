@@ -99,14 +99,15 @@ rename path pos lineCol newName = do
               pure $ SourceEdit.single ref.path (Edit.changesToEdit changes)
     case context of
       Left e -> do
-        logError $ T.pack $ show e
+        logError $ "rename error: " <> T.pack (show e)
         pure defaultSourceEdit
       Right context -> do
         case context of
-          RenameQualified q -> do
-            let start = q.node.dynNode.nodeRange.start
+          RenameQualified (Hir.Qualified {mod = Just _, name}) -> do
+            let start = name.node.nodeRange.start
             let edit = Edit.replace (Range start ref.loc.end) newName
             pure $ SourceEdit.single ref.path edit
+          RenameQualified (Hir.Qualified {mod = Nothing}) -> pure defaultSourceEdit
           RenameTopSplice topSplice -> do
             onSplice topSplice.dynNode
           RenameSplice splice -> do
@@ -119,7 +120,7 @@ rename path pos lineCol newName = do
 canRenameAtPos :: AbsPath -> Pos -> StaticLsM (Maybe Range)
 canRenameAtPos path pos = do
   haskell <- getHaskell path
-  let name = AST.getDeepestContaining @Hir.NameTypes (Range.empty pos) (AST.getDynNode haskell)
+  let name = AST.getDeepestContaining @Hir.GetNameTypes (Range.empty pos) (AST.getDynNode haskell)
   case name of
     Just n -> do
       let range = AST.nodeToRange n

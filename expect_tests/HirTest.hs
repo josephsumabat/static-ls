@@ -55,6 +55,7 @@ src3 =
   
   data (:+:) a b = a :+: b
   |]
+
 tests =
   testGroup
     "HirTest"

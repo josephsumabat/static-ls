@@ -140,6 +140,14 @@ parseName ast = case ast of
  where
   node = AST.getDynNode ast
 
+parseNamePrefix :: (H.PrefixId :+ ParseNameTypes) -> AST.Err Name
+parseNamePrefix node =
+  case node of
+    AST.X prefixId -> do
+      prefixId <- AST.unwrap prefixId
+      parseName <$> removeQualified prefixId.children
+    AST.Rest name -> pure $ parseName name
+
 parseModuleTextFromText :: Text -> ModuleText
 parseModuleTextFromText text =
   ModuleText
@@ -259,16 +267,17 @@ parseExportChildren children = do
 
 parseExportItem :: H.Export -> AST.Err ExportItem
 parseExportItem e = do
-  namespace <- traverse parseNameSpace =<< AST.collapseErr e.namespace
+  e <- AST.unwrap e
+  namespace <- traverse parseNameSpace e.namespace
   namespace <- pure $ Maybe.fromMaybe NameSpaceValue namespace
   name <- do
-    operator <- traverse parseExportOperator =<< AST.collapseErr e.operator
-    type' <- traverse (parseQualified . AST.subset) =<< AST.collapseErr e.type'
-    variable <- traverse (parseQualified . AST.subset) =<< AST.collapseErr e.variable
+    operator <- traverse parseExportOperator e.operator
+    type' <- traverse (parseQualified . AST.subset) e.type'
+    variable <- traverse (parseQualified . AST.subset) e.variable
     case operator <|> type' <|> variable of
       Just n -> pure n
       Nothing -> Left "could not parse import name"
-  children <- traverse parseExportChildren =<< AST.collapseErr e.children'
+  children <- traverse parseExportChildren e.children'
   children <- pure $ Maybe.fromMaybe [] children
   pure
     ExportItem
@@ -367,15 +376,31 @@ parseImports i = do
 
 data DataDecl = DataDecl
   { name :: Name
+  , node :: H.DataType
   }
   deriving (Show)
 
-data Decl = DeclData DataDecl
+data BindDecl = BindDecl
+  { name :: Name
+  , node :: H.Bind :+ H.Function :+ AST.Nil
+  }
+  deriving (Show)
+
+data SigDecl = SigDecl
+  { name :: Name
+  , node :: H.Signature
+  }
+  deriving (Show)
+
+data Decl
+  = DeclData DataDecl
+  | DeclSig SigDecl
+  | DeclBind BindDecl
   deriving (Show)
 
 parseDataType :: H.DataType -> AST.Err DataDecl
-parseDataType dt = do
-  dt <- AST.unwrap dt
+parseDataType node = do
+  dt <- AST.unwrap node
   name <- Error.note "no name for data type" dt.name
   name <- case name of
     AST.X name -> pure $ parseName (AST.Inj name)
@@ -399,12 +424,33 @@ parseDataType dt = do
           , isConstructor = True
           }
     AST.Rest (AST.Rest (AST.Rest (AST.Rest (AST.Rest nil)))) -> case nil of {}
-  pure DataDecl {name}
+  pure DataDecl {name, node}
+
+parseBind :: H.Decl -> AST.Err (Maybe Decl)
+parseBind decl = do
+  case decl.getDecl of
+    AST.X bindNode -> do
+      bind <- AST.unwrap bindNode
+      name <- Error.note "no bind name" bind.name
+      name <- parseNamePrefix $ AST.subset name
+      pure $ Just $ DeclBind BindDecl {name, node = AST.Inj bindNode}
+    AST.Rest (AST.X fnNode) -> do
+      fn <- AST.unwrap fnNode
+      name <- Error.note "no function name" fn.name
+      name <- parseNamePrefix $ AST.subset name
+      pure $ Just $ DeclBind BindDecl {name, node = AST.Inj fnNode}
+    AST.Rest (AST.Rest (AST.X sigNode)) -> do
+      sig <- AST.unwrap sigNode
+      name <- Error.note "no signature name" sig.name
+      name <- parseNamePrefix $ AST.subset name
+      pure $ Just $ DeclSig SigDecl {name, node = sigNode}
+    AST.Rest (AST.Rest (AST.Rest nil)) -> case nil of {}
 
 parseDeclaration :: H.Declaration -> AST.Err (Maybe Decl)
 parseDeclaration decl = case decl.getDeclaration of
   AST.Inj @H.DataType d -> do
     (Just . DeclData) <$> parseDataType d
+  AST.Inj @H.Decl b -> parseBind b
   _ -> pure Nothing
 
 data Program = Program

@@ -55,8 +55,10 @@ findRefs path lineCol = do
         let localFileRanges = fmap (\loc -> FileWith {path, loc}) localRefs
         pure localFileRanges
   let res = fromMaybe [] mLocList
+  logInfo $ "converting positions"
   newRes <- for res \fileLcRange -> do
     new <- runMaybeT $ hieFileLcToFileLc fileLcRange
+    logInfo $ T.pack $ "old: " <> show fileLcRange <> "new: " <> show new
     pure $ fromMaybe fileLcRange new
   pure newRes
 

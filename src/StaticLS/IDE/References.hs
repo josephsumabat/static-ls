@@ -55,6 +55,7 @@ findRefs path lineCol = do
         let localFileRanges = fmap (\loc -> FileWith {path, loc}) localRefs
         pure localFileRanges
   let res = fromMaybe [] mLocList
+  logInfo $ T.pack $ "number of references: " ++ show (length @[] res)
   logInfo $ "converting positions"
   logInfo $ "touching caches"
   touchCachesParallel $ (.path) <$> res

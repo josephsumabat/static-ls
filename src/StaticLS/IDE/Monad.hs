@@ -31,18 +31,22 @@ module StaticLS.IDE.Monad (
   getTokenMap,
   getHir,
   getHieView,
+  getThSplice,
 )
 where
 
 import AST.Haskell qualified as Haskell
+import AST.Traversal qualified as AST
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
+import Data.LineCol (LineCol)
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath, toFilePath)
 import Data.Path qualified as Path
+import Data.Range qualified as Range
 import Data.RangeMap (RangeMap)
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
@@ -362,3 +366,12 @@ touchCachesParallelImpl paths = do
   -- diffCacheRef <- getDiffCacheRef
   -- diffCache <- IORef.readIORef diffCacheRef
   pure ()
+
+getThSplice :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m (Maybe Hir.ThSplice)
+getThSplice path lineCol = do
+  srcRope <- getSourceRope path
+  haskell <- getHaskell path
+  let pos = Rope.lineColToPos srcRope lineCol
+      range = (Range.empty pos)
+      splice = AST.getDeepestContaining @Hir.ThSplice range haskell.dynNode
+  pure splice

@@ -35,25 +35,30 @@ findRefsPos path lineCol = do
 
 findRefs :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
 findRefs path lineCol = do
-  mLocList <- runMaybeT $ do
-    hieView <- getHieView path
-    lineCol' <- lineColToHieLineCol path lineCol
-    let names = HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty lineCol')) hieView
-    logInfo $ T.pack $ "findRefs: names: " <> show names
-    let nameDefRanges = Maybe.mapMaybe HieView.Name.getRange names
-    logInfo $ T.pack $ "findRefs: nameDefRanges: " <> show nameDefRanges
-    let localDefNames = concatMap (\range -> HieView.Query.fileLocalBindsAtRangeList (Just range) hieView) nameDefRanges
-    logInfo $ T.pack $ "findRefs: localDefNames: " <> show localDefNames
-    case localDefNames of
-      [] -> do
-        refRows <- traverse hieDbFindRefs names
-        refRows <- pure $ concat refRows
-        lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refRows
-      _ -> do
-        let localRefs = HieView.Query.fileRefsWithDefRanges nameDefRanges hieView
-        logInfo $ T.pack $ "findRefs: localRefs: " <> show localRefs
-        let localFileRanges = fmap (\loc -> FileWith {path, loc}) localRefs
-        pure localFileRanges
+  splice <- getThSplice path lineCol
+  mLocList <-
+    case splice of
+      Just _thSplice -> pure Nothing
+      Nothing ->
+        runMaybeT $ do
+          hieView <- getHieView path
+          lineCol' <- lineColToHieLineCol path lineCol
+          let names = HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty lineCol')) hieView
+          logInfo $ T.pack $ "findRefs: names: " <> show names
+          let nameDefRanges = Maybe.mapMaybe HieView.Name.getRange names
+          logInfo $ T.pack $ "findRefs: nameDefRanges: " <> show nameDefRanges
+          let localDefNames = concatMap (\range -> HieView.Query.fileLocalBindsAtRangeList (Just range) hieView) nameDefRanges
+          logInfo $ T.pack $ "findRefs: localDefNames: " <> show localDefNames
+          case localDefNames of
+            [] -> do
+              refRows <- traverse hieDbFindRefs names
+              refRows <- pure $ concat refRows
+              lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refRows
+            _ -> do
+              let localRefs = HieView.Query.fileRefsWithDefRanges nameDefRanges hieView
+              logInfo $ T.pack $ "findRefs: localRefs: " <> show localRefs
+              let localFileRanges = fmap (\loc -> FileWith {path, loc}) localRefs
+              pure localFileRanges
   let res = fromMaybe [] mLocList
   logInfo $ T.pack $ "number of references: " ++ show (length @[] res)
   logInfo "touching caches"

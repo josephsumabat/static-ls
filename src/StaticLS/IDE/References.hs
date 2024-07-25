@@ -56,6 +56,9 @@ findRefs path lineCol = do
         pure localFileRanges
   let res = fromMaybe [] mLocList
   logInfo $ "converting positions"
+  logInfo $ "touching caches"
+  touchCachesParallel $ (.path) <$> res
+  logInfo $ "finished touching caches"
   newRes <- for res \fileLcRange -> do
     new <- runMaybeT $ hieFileLcToFileLc fileLcRange
     logInfo $ T.pack $ "old: " <> show fileLcRange <> "new: " <> show new

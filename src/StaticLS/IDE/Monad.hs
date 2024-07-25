@@ -17,6 +17,8 @@ module StaticLS.IDE.Monad (
   DiffCache (..),
   HasDiffCacheRef (..),
   GetDiffCache (..),
+  TouchCachesParallel (..),
+  touchCachesParallelImpl,
   getDiffCacheImpl,
   getHieToSource,
   getSourceToHie,
@@ -33,11 +35,13 @@ module StaticLS.IDE.Monad (
 where
 
 import AST.Haskell qualified as Haskell
+import Control.Monad ((<$!>))
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath, toFilePath)
 import Data.RangeMap (RangeMap)
 import Data.Rope (Rope)
@@ -52,6 +56,8 @@ import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv
+import UnliftIO (MonadUnliftIO, pooledForConcurrently)
+import UnliftIO.Async (pooledMapConcurrently)
 import UnliftIO.Exception qualified as Exception
 import UnliftIO.IORef qualified as IORef
 
@@ -64,6 +70,7 @@ type MonadIde m =
   , HasLogger m
   , GetDiffCache m
   , RemovePath m
+  , TouchCachesParallel m
   )
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
@@ -153,6 +160,12 @@ instance (Monad m, SetHieCache m) => SetHieCache (MaybeT m) where
 class (Monad m) => MonadHieFile m where
   getHieCache :: AbsPath -> MaybeT m CachedHieFile
 
+class (Monad m) => TouchCachesParallel m where
+  touchCachesParallel :: [AbsPath] -> m ()
+
+instance (Monad m, TouchCachesParallel m) => TouchCachesParallel (MaybeT m) where
+  touchCachesParallel paths = lift $ touchCachesParallel paths
+
 getHieCacheImpl :: (HasHieCache m, SetHieCache m, MonadIde m, MonadIO m) => AbsPath -> MaybeT m CachedHieFile
 getHieCacheImpl path = do
   hieCacheMap <- getHieCacheMap
@@ -173,6 +186,43 @@ getHieCacheImpl path = do
               , hieTokenMap = PositionDiff.tokensToRangeMap tokens
               }
       setHieCacheMap $ HashMap.insert path hieFile hieCacheMap
+      pure hieFile
+
+forceCachedHieFile :: CachedHieFile -> CachedHieFile
+forceCachedHieFile
+  CachedHieFile
+    { hieSource = !hieSource
+    , hieSourceRope = !hieSourceRope
+    , file = !file
+    , fileView = !fileView
+    , hieTokenMap = hieTokenMap
+    } =
+    CachedHieFile
+      { hieSource
+      , hieSourceRope
+      , file
+      , fileView
+      , hieTokenMap
+      }
+
+getHieCacheWithMap :: (MonadIO m, HasStaticEnv m) => AbsPath -> HieCacheMap -> MaybeT m CachedHieFile
+getHieCacheWithMap path hieCacheMap =
+  case HashMap.lookup path hieCacheMap of
+    Just hieFile -> do
+      MaybeT $ pure $ Just hieFile
+    Nothing -> do
+      file <- HIE.File.getHieFileFromPath path
+      let fileView = HieView.viewHieFile file
+      let hieSource = fileView.source
+      let tokens = PositionDiff.lex $ T.unpack hieSource
+      let hieFile =
+            CachedHieFile
+              { hieSource
+              , hieSourceRope = Rope.fromText hieSource
+              , file = file
+              , fileView
+              , hieTokenMap = PositionDiff.tokensToRangeMap tokens
+              }
       pure hieFile
 
 instance (MonadHieFile m, Monad m) => MonadHieFile (MaybeT m) where
@@ -281,5 +331,28 @@ removeHieFromSourcePath path = do
   setHieCacheMap $ HashMap.delete path cache
   removeDiffCache path
 
-testing :: (Show a) => [a] -> String
-testing = show
+touchCachesParallelImpl ::
+  ( MonadIO m
+  , HasStaticEnv m
+  , HasHieCache m
+  , SetHieCache m
+  , MonadUnliftIO m
+  , HasDiffCacheRef m
+  ) =>
+  [AbsPath] ->
+  m ()
+touchCachesParallelImpl paths = do
+  map <- getHieCacheMap
+  res <- pooledForConcurrently paths \path -> runMaybeT do
+    _ <- MaybeT $ case HashMap.lookup path map of
+      Just _ -> pure Nothing
+      Nothing -> pure $ Just ()
+    hieCache <- getHieCacheWithMap path map
+    !hieCache <- pure $! forceCachedHieFile hieCache
+    pure $ (path, hieCache)
+  res <- pure $ Maybe.catMaybes res
+  let map' = HashMap.union map (HashMap.fromList res)
+  setHieCacheMap map'
+  -- diffCacheRef <- getDiffCacheRef
+  -- diffCache <- IORef.readIORef diffCacheRef
+  pure ()

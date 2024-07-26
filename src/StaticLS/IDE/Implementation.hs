@@ -3,7 +3,6 @@ module StaticLS.IDE.Implementation (getImplementation) where
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT (..))
-import Data.Foldable (foldl')
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.HashSet qualified as HashSet

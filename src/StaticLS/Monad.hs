@@ -29,6 +29,9 @@ type StaticLsM = ReaderT Env IO
 class (HasSemantic m, HasLogger m, HasStaticEnv m, MonadIO m) => HasStaticLsEnv m where
   getEnv :: m Env
 
+instance TouchCachesParallel StaticLsM where
+  touchCachesParallel = touchCachesParallelImpl
+
 instance HasHieCache StaticLsM where
   getHieCacheMap = do
     hieCacheRef <- asks (.hieCache)

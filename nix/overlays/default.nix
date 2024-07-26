@@ -2,8 +2,8 @@
 let
   tree-sitter-simple-repo = {
     url = "https://github.com/oberblastmeister/tree-sitter-simple";
-    sha256 = "sha256-a0Q14gQrIMuYmdLJu2RzXQoi+n99uli50JvGwTcXv1k=";
-    rev = "06f3e8978da4f49c336088802fc5562007850a6f";
+    sha256 = "sha256-7uBwHsyAvuOyLrP+CJRQlBD3H13CZKMz2m4mY0fWTQg=";
+    rev = "e2f69cad2a091b1ebf6ff46a88e12dbc7d94a4fa";
     fetchSubmodules = true;
   };
 

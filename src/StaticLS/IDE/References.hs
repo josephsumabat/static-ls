@@ -60,11 +60,13 @@ findRefs path lineCol = do
   logInfo $ "touching caches"
   touchCachesParallel $ (.path) <$> res
   logInfo $ "finished touching caches"
-  newRes <- pure res
-  -- newRes <- for res \fileLcRange -> do
-  --   new <- runMaybeT $ hieFileLcToFileLc fileLcRange
-  --   logInfo $ T.pack $ "old: " <> show fileLcRange <> "new: " <> show new
-  --   pure $ fromMaybe fileLcRange new
+  -- newRes <- pure res
+  logInfo $ "converting positions"
+  newRes <- for res \fileLcRange -> do
+    new <- runMaybeT $ hieFileLcToFileLc fileLcRange
+    -- logInfo $ T.pack $ "old: " <> show fileLcRange <> "new: " <> show new
+    pure $ fromMaybe fileLcRange new
+  logInfo $ "finished converting positions"
   pure newRes
 
 refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.RefRow -> MaybeT m FileLcRange

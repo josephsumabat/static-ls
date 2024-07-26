@@ -22,7 +22,6 @@ import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
-import StaticLS.HieView.View qualified as HieView
 import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith' (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
@@ -57,7 +56,6 @@ findRefs path lineCol = do
         pure localFileRanges
   let res = fromMaybe [] mLocList
   logInfo $ T.pack $ "number of references: " ++ show (length @[] res)
-  logInfo $ "converting positions"
   logInfo $ "touching caches"
   touchCachesParallel $ (.path) <$> res
   logInfo $ "finished touching caches"
@@ -65,7 +63,6 @@ findRefs path lineCol = do
   logInfo $ "converting positions"
   newRes <- for res \fileLcRange -> do
     new <- runMaybeT $ hieFileLcToFileLc fileLcRange
-    -- logInfo $ T.pack $ "old: " <> show fileLcRange <> "new: " <> show new
     pure $ fromMaybe fileLcRange new
   logInfo $ "finished converting positions"
   pure newRes
@@ -79,17 +76,6 @@ refRowToLocation refRow = do
   hieFilePath <- Path.filePathToAbs hieFilePath
   file <- hieFilePathToSrcFilePath hieFilePath
   pure $ FileWith file range
-
--- hieDbFindReferences :: (HasStaticEnv m, MonadIO m) => HieView.Name -> MaybeT m [HieDb.Res HieDb.RefRow]
--- hieDbFindReferences name =
---   runHieDbMaybeT \hieDb ->
---     HieDb.findReferences
---       hieDb
---       False
---       (HieView.Name.toGHCOccName name)
---       (fmap HieView.Name.toGHCModuleName (HieView.Name.getModuleName name))
---       Nothing
---       []
 
 hieDbFindRefs :: (HasStaticEnv m, MonadIO m) => HieView.Name.Name -> MaybeT m [HieDb.RefRow]
 hieDbFindRefs name =

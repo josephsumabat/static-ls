@@ -16,6 +16,7 @@ import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text qualified as T
 import Data.Traversable (for)
+import Database.SQLite.Simple qualified as SQL
 import HieDb qualified
 import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.HIE.Position
@@ -46,7 +47,7 @@ findRefs path lineCol = do
     logInfo $ T.pack $ "findRefs: localDefNames: " <> show localDefNames
     case localDefNames of
       [] -> do
-        refRows <- traverse hieDbFindReferences names
+        refRows <- traverse hieDbFindRefs names
         refRows <- pure $ concat refRows
         lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refRows
       _ -> do
@@ -69,8 +70,8 @@ findRefs path lineCol = do
   logInfo $ "finished converting positions"
   pure newRes
 
-refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.RefRow -> MaybeT m FileLcRange
-refRowToLocation (refRow HieDb.:. _) = do
+refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.RefRow -> MaybeT m FileLcRange
+refRowToLocation refRow = do
   let start = hiedbCoordsToLineCol (refRow.refSLine, refRow.refSCol)
       end = hiedbCoordsToLineCol (refRow.refELine, refRow.refECol)
       range = LineColRange start end
@@ -79,13 +80,25 @@ refRowToLocation (refRow HieDb.:. _) = do
   file <- hieFilePathToSrcFilePath hieFilePath
   pure $ FileWith file range
 
-hieDbFindReferences :: (HasStaticEnv m, MonadIO m) => HieView.Name -> MaybeT m [HieDb.Res HieDb.RefRow]
-hieDbFindReferences name =
+-- hieDbFindReferences :: (HasStaticEnv m, MonadIO m) => HieView.Name -> MaybeT m [HieDb.Res HieDb.RefRow]
+-- hieDbFindReferences name =
+--   runHieDbMaybeT \hieDb ->
+--     HieDb.findReferences
+--       hieDb
+--       False
+--       (HieView.Name.toGHCOccName name)
+--       (fmap HieView.Name.toGHCModuleName (HieView.Name.getModuleName name))
+--       Nothing
+--       []
+
+hieDbFindRefs :: (HasStaticEnv m, MonadIO m) => HieView.Name.Name -> MaybeT m [HieDb.RefRow]
+hieDbFindRefs name =
   runHieDbMaybeT \hieDb ->
-    HieDb.findReferences
-      hieDb
-      False
-      (HieView.Name.toGHCOccName name)
-      (fmap HieView.Name.toGHCModuleName (HieView.Name.getModuleName name))
-      Nothing
-      []
+    SQL.queryNamed
+      (HieDb.getConn hieDb)
+      "SELECT refs.* \
+      \FROM refs \
+      \WHERE occ = :occ AND (:mod IS NULL OR mod = :mod)"
+      [ ":occ" SQL.:= HieView.Name.toGHCOccName name
+      , ":mod" SQL.:= HieView.Name.getModule name
+      ]

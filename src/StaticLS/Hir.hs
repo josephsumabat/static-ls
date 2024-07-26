@@ -21,6 +21,8 @@ data NameSpace
   | NameSpacePattern
   deriving (Show)
 
+type ThSplice = Haskell.TopSplice :+ Haskell.Splice
+
 data Name = Name
   { node :: !DynNode
   , isOperator :: !Bool

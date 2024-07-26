@@ -204,8 +204,7 @@ viewAst hieAst =
 viewSourcedNodeInfo :: GHC.SourcedNodeInfo GHC.TypeIndex -> SourcedNodeInfo TypeIndex
 viewSourcedNodeInfo (GHC.SourcedNodeInfo sourcedNodeInfo) =
   Map.fromList
-    ( ( bimap viewNodeOrigin viewNodeInfo
-      )
+    ( (bimap viewNodeOrigin viewNodeInfo)
         <$> (Map.toList sourcedNodeInfo)
     )
 

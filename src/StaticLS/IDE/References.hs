@@ -59,7 +59,6 @@ findRefs path lineCol = do
   logInfo $ "touching caches"
   touchCachesParallel $ (.path) <$> res
   logInfo $ "finished touching caches"
-  -- newRes <- pure res
   logInfo $ "converting positions"
   newRes <- for res \fileLcRange -> do
     new <- runMaybeT $ hieFileLcToFileLc fileLcRange

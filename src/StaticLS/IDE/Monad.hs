@@ -35,7 +35,6 @@ module StaticLS.IDE.Monad (
 where
 
 import AST.Haskell qualified as Haskell
-import Control.Monad ((<$!>))
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Reader
@@ -59,7 +58,6 @@ import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import UnliftIO (MonadUnliftIO, pooledForConcurrently)
-import UnliftIO.Async (pooledMapConcurrently)
 import UnliftIO.Exception qualified as Exception
 import UnliftIO.IORef qualified as IORef
 

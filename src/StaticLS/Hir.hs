@@ -499,7 +499,7 @@ parseHaskell h = do
                       AST.Rest (AST.Rest nil) -> case nil of {}
               let decls = fmap parseChild children
               let (es, decls') = Either.partitionEithers decls
-              let decls'' = Maybe.mapMaybe id decls'
+              let decls'' = Maybe.catMaybes decls'
               pure (es, decls'')
         pure (es ++ es' ++ es'', Program {imports, exports, decls})
   case res of

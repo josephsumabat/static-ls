@@ -56,14 +56,14 @@ findRefs path lineCol = do
         pure localFileRanges
   let res = fromMaybe [] mLocList
   logInfo $ T.pack $ "number of references: " ++ show (length @[] res)
-  logInfo $ "touching caches"
+  logInfo "touching caches"
   touchCachesParallel $ (.path) <$> res
-  logInfo $ "finished touching caches"
-  logInfo $ "converting positions"
+  logInfo "finished touching caches"
+  logInfo "converting positions"
   newRes <- for res \fileLcRange -> do
     new <- runMaybeT $ hieFileLcToFileLc fileLcRange
     pure $ fromMaybe fileLcRange new
-  logInfo $ "finished converting positions"
+  logInfo "finished converting positions"
   pure newRes
 
 refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.RefRow -> MaybeT m FileLcRange

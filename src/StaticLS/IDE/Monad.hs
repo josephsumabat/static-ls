@@ -355,7 +355,7 @@ touchCachesParallelImpl paths = do
       Nothing -> pure $ Just ()
     hieCache <- getHieCacheWithMap path map
     !hieCache <- pure $! forceCachedHieFile hieCache
-    pure $ (path, hieCache)
+    pure (path, hieCache)
   res <- pure $ Maybe.catMaybes res
   let map' = HashMap.union map (HashMap.fromList res)
   setHieCacheMap map'

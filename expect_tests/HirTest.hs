@@ -61,9 +61,8 @@ tests =
     "HirTest"
     [ ( test "first" [expect|hello world|] do
           pure $ T.pack "hello world"
-      ),
-      (
-        checkHir
+      )
+    , ( checkHir
           "decls"
           src3
           [expect|Program

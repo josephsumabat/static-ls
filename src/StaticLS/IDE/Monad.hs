@@ -43,6 +43,7 @@ import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath, toFilePath)
+import Data.Path qualified as Path
 import Data.RangeMap (RangeMap)
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
@@ -56,6 +57,7 @@ import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv
+import System.Directory (doesFileExist)
 import UnliftIO (MonadUnliftIO, pooledForConcurrently)
 import UnliftIO.Async (pooledMapConcurrently)
 import UnliftIO.Exception qualified as Exception
@@ -119,20 +121,26 @@ getFileState path = do
     Nothing -> do
       -- use the double liftIO here to avoid the MonadUnliftIO constraint
       -- we really just want unliftio to handle not catching async exceptions
-      contents <-
-        liftIO $
-          Exception.tryAny
-            (liftIO $ T.readFile $ toFilePath path)
-      case contents of
-        Left e -> do
-          logError $ "Failed to read file: " <> T.pack (show e)
-          removePath path
+      doesExist <- liftIO $ doesFileExist (Path.toFilePath path)
+      if doesExist
+        then do
+          contents <-
+            liftIO $
+              Exception.tryAny
+                (liftIO $ T.readFile $ toFilePath path)
+          case contents of
+            Left e -> do
+              logError $ "Failed to read file: " <> T.pack (show e)
+              removePath path
+              pure Semantic.emptyFileState
+            Right contents -> do
+              let contentsRope = Rope.fromText contents
+              let fileState = Semantic.mkFileState contents contentsRope
+              Semantic.setFileState path fileState
+              pure fileState
+        else do
+          logInfo $ "File does not exist: " <> T.pack (show path)
           pure Semantic.emptyFileState
-        Right contents -> do
-          let contentsRope = Rope.fromText contents
-          let fileState = Semantic.mkFileState contents contentsRope
-          Semantic.setFileState path fileState
-          pure fileState
 
 type HieCacheMap = HashMap.HashMap AbsPath CachedHieFile
 

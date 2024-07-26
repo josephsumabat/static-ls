@@ -77,6 +77,7 @@ tests =
                     , isOperator = False
                     , isConstructor = False
                     }
+                , node = "data_type@(20 - 38)"
                 }
             )
         , DeclData
@@ -86,6 +87,7 @@ tests =
                     , isOperator = True
                     , isConstructor = True
                     }
+                , node = "data_type@(40 - 52)"
                 }
             )
         , DeclData
@@ -95,6 +97,7 @@ tests =
                     , isOperator = True
                     , isConstructor = True
                     }
+                , node = "data_type@(54 - 69)"
                 }
             )
         , DeclData
@@ -104,6 +107,7 @@ tests =
                     , isOperator = True
                     , isConstructor = True
                     }
+                , node = "data_type@(71 - 95)"
                 }
             )
         ]

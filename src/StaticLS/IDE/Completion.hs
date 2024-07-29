@@ -119,7 +119,6 @@ getFileCompletions cx = do
     runMaybeT $ do
       hieView <- getHieView path
       let symbols = fmap HieView.Name.toText $ HieView.Query.fileSymbolsList hieView
-      logInfo $ T.pack $ "file symbols: " <> show symbols
       let symbolsNubbed = nubOrd symbols
       let completions = fmap textCompletion symbolsNubbed
       pure completions

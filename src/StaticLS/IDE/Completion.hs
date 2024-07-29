@@ -253,7 +253,6 @@ getFlyImports cx qualifiedCompletions prefix match = do
 
 getCompletion :: Context -> StaticLsM (Bool, [Completion])
 getCompletion cx = do
-  logInfo $ "triggerKind: " <> T.pack (show cx.triggerKind)
   mode <- getCompletionMode cx
   logInfo $ "mode: " <> T.pack (show mode)
   case mode of

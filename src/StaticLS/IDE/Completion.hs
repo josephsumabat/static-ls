@@ -119,7 +119,6 @@ getFileCompletions cx = do
     runMaybeT $ do
       hieView <- getHieView path
       let symbols = fmap HieView.Name.toText $ HieView.Query.fileSymbolsList hieView
-      logInfo $ T.pack $ "file symbols: " <> show symbols
       let symbolsNubbed = nubOrd symbols
       let completions = fmap textCompletion symbolsNubbed
       pure completions
@@ -254,7 +253,6 @@ getFlyImports cx qualifiedCompletions prefix match = do
 
 getCompletion :: Context -> StaticLsM (Bool, [Completion])
 getCompletion cx = do
-  logInfo $ "triggerKind: " <> T.pack (show cx.triggerKind)
   mode <- getCompletionMode cx
   logInfo $ "mode: " <> T.pack (show mode)
   case mode of

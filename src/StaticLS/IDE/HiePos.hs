@@ -95,7 +95,7 @@ hieFileLcToFileLc fileLineCol = do
 hieFileLcToFileLcParallel :: (MonadIde m, MonadIO m) => [FileLcRange] -> m [FileLcRange]
 hieFileLcToFileLcParallel fileLcs = do
   let len = (length @[] fileLcs)
-  if len > 3000
+  if len > 10000
     then do
       logInfo "too many conversions, skipping"
       pure fileLcs

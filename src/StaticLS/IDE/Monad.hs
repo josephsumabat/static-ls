@@ -262,7 +262,7 @@ getHieSource :: (MonadHieFile m) => AbsPath -> MaybeT m Text
 getHieSource path = do
   hieCache <- getHieCache path
   pure $ hieCache.hieSource
-  
+
 getHieSourceRope :: (MonadHieFile m) => AbsPath -> MaybeT m Rope
 getHieSourceRope path = do
   hieCache <- getHieCache path

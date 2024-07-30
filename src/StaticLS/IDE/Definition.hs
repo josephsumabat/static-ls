@@ -2,8 +2,11 @@ module StaticLS.IDE.Definition (
   getDefinition,
   getTypeDefinition,
   nameToLocation,
+  findDefString,
 ) where
 
+import AST qualified
+import Control.Monad qualified as Monad
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (lift)
@@ -13,9 +16,11 @@ import Data.LineColRange (LineColRange (..))
 import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
 import Data.Maybe (catMaybes, fromMaybe, maybeToList)
+import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos (Pos (..))
+import Data.Range qualified as Range
 import Data.Text (Text)
 import Database.SQLite.Simple qualified as SQL
 import HieDb (HieDb)
@@ -26,6 +31,7 @@ import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
 import StaticLS.HieView.View qualified as HieView
+import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.FileWith qualified as FileWith
 import StaticLS.IDE.HiePos
@@ -40,14 +46,29 @@ getDefinition ::
   LineCol ->
   m [FileLcRange]
 getDefinition path lineCol = do
-  mLocationLinks <- runMaybeT $ do
+  pos <- lineColToPos path lineCol
+  hs <- getHaskell path
+  let qual = Hir.getQualifiedAtPoint (Range.empty pos) hs
+  identifiers <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
+    hiePos <- hieLineColToPos path hieLineCol
+    valid <- isHiePosValid path pos hiePos
+    Monad.guard valid
     hieView <- getHieView path
     let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
-    locations <- traverse identifierToLocation identifiers
-    locations <- pure $ concat locations
-    pure locations
-  pure $ fromMaybe [] mLocationLinks
+    pure identifiers
+  identifiers <- pure $ Maybe.fromMaybe [] identifiers
+  case qual of
+    Right (Just qual) | null identifiers -> do
+      logInfo "no identifiers under cursor found, fallback logic"
+      res <- findDefString qual
+      hieFileLcToFileLcParallel res
+    _ -> do
+      mLocationLinks <- do
+        locations <- traverse identifierToLocation identifiers
+        locations <- pure $ concat locations
+        pure locations
+      pure mLocationLinks
  where
   identifierToLocation :: (MonadIde m, MonadIO m) => HieView.Identifier -> m [FileLcRange]
   identifierToLocation ident = do
@@ -57,8 +78,7 @@ getDefinition path lineCol = do
         pure $ maybeToList res
       HieView.IdentName name -> do
         nameToLocation name
-    fileRanges <- mapM (runMaybeT . hieFileLcToFileLc) hieLcRanges
-    pure $ catMaybes fileRanges
+    hieFileLcToFileLcParallel hieLcRanges
 
   modToLocation :: (HasStaticEnv m, MonadIO m) => HieView.ModuleName -> m (Maybe FileLcRange)
   modToLocation modName = runMaybeT $ do
@@ -144,6 +164,33 @@ hieDbFindDef conn name unit =
     , ":mod" SQL.:= HieView.Name.getModule name
     , ":unit" SQL.:= unit
     ]
+
+findDefString ::
+  (MonadIde m, MonadIO m) =>
+  Hir.Qualified ->
+  m [FileLcRange]
+findDefString qual = do
+  let name = qual.name.node.nodeText
+  let mod = qual.mod
+  res <- runMaybeT do
+    res <- hieDbFindDefString name mod
+    mapMaybeM (runMaybeT . defRowToLocation) res
+  pure $ Maybe.fromMaybe [] res
+
+hieDbFindDefString :: (HasStaticEnv m, MonadIO m) => Text -> Maybe Hir.ModuleName -> MaybeT m [HieDb.DefRow]
+hieDbFindDefString name mod = do
+  -- we need to resolve the mod first
+  let modText = (.mod.text) <$> mod
+  runHieDbMaybeT
+    ( \hieDb ->
+        SQL.queryNamed
+          (HieDb.getConn hieDb)
+          "SELECT defs.* \
+          \FROM defs JOIN mods USING (hieFile) \
+          \WHERE occ LIKE :occ"
+          [ ":occ" SQL.:= ("_:" <> name)
+          ]
+    )
 
 defRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.DefRow -> MaybeT m FileLcRange
 defRowToLocation defRow = do

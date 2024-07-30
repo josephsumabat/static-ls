@@ -238,7 +238,7 @@ getHieCacheWithMap path hieCacheMap =
 instance (MonadHieFile m, Monad m) => MonadHieFile (MaybeT m) where
   getHieCache = lift . getHieCache
 
-getTokenMap :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m (RangeMap PositionDiff.Token)
+getTokenMap :: (MonadIde m, MonadIO m) => AbsPath -> m (RangeMap PositionDiff.Token)
 getTokenMap path = do
   fileState <- getFileState path
   pure fileState.tokenMap
@@ -262,7 +262,7 @@ getHieSource :: (MonadHieFile m) => AbsPath -> MaybeT m Text
 getHieSource path = do
   hieCache <- getHieCache path
   pure $ hieCache.hieSource
-
+  
 getHieSourceRope :: (MonadHieFile m) => AbsPath -> MaybeT m Rope
 getHieSourceRope path = do
   hieCache <- getHieCache path

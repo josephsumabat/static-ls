@@ -15,6 +15,7 @@ import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
+import UnliftIO (pooledForConcurrently)
 
 posToHiePos :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> MaybeT m Pos
 posToHiePos path pos = do
@@ -59,7 +60,7 @@ isHiePosValid :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> Pos -> m Bool
 isHiePosValid path pos hiePos = do
   res <- runMaybeT do
     hieTokenMap <- getHieTokenMap path
-    tokenMap <- getTokenMap path
+    tokenMap <- lift $ getTokenMap path
     pure $ RangeMap.lookup hiePos hieTokenMap == RangeMap.lookup pos tokenMap
   pure $ Maybe.fromMaybe False res
 
@@ -95,17 +96,17 @@ hieFileLcToFileLc fileLineCol = do
 hieFileLcToFileLcParallel :: (MonadIde m, MonadIO m) => [FileLcRange] -> m [FileLcRange]
 hieFileLcToFileLcParallel fileLcs = do
   let len = (length @[] fileLcs)
-  if len > 3000
+  if len > 10000
     then do
       logInfo "too many conversions, skipping"
       pure fileLcs
     else do
       logInfo $ T.pack $ "number of conversions: " ++ show len
       logInfo "touching caches"
-      touchCachesParallel $ (.path) <$> fileLcs
+      -- touchCachesParallel $ (.path) <$> fileLcs
       logInfo "finished touching caches"
       logInfo "converting positions"
-      newRes <- for fileLcs \fileLcRange -> do
+      newRes <- pooledForConcurrently fileLcs \fileLcRange -> do
         new <- runMaybeT $ hieFileLcToFileLc fileLcRange
         pure $ Maybe.fromMaybe fileLcRange new
       logInfo "finished converting positions"

@@ -89,6 +89,7 @@ setupCompilation prefix sourceFiles act = do
   staticEnv <- initEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
   res <- runStaticLsM staticEnv do
     for_ absSources \(absPath, (contents, _)) -> do
-      Semantic.updateSemantic absPath (Rope.fromText contents)
+      -- Semantic.updateSemantic absPath (Rope.fromText contents)
+      pure ()
     act dir (Map.fromList absSources)
   pure res

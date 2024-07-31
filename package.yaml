@@ -66,6 +66,7 @@ dependencies:
   - raw-strings-qq
   - row-types
   - regex-tdfa # why is the api for this library so bad
+  - stm
 language: GHC2021
 default-extensions:
 - LambdaCase

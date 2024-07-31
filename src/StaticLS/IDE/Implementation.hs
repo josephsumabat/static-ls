@@ -2,6 +2,7 @@ module StaticLS.IDE.Implementation (getImplementation) where
 
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
@@ -45,6 +46,6 @@ getImplementation path pos = do
     hieLocations <- traverse IDE.Definition.nameToLocation evidenceClosure
     logInfo $ T.pack $ "locations: " <> show hieLocations
     hieLocations <- pure $ concat hieLocations
-    locations <- mapMaybeM (runMaybeT . hieFileLcToFileLc) hieLocations
+    locations <- mapMaybeM (runMaybeT . lift . hieFileLcToFileLc) hieLocations
     pure locations
   pure $ Maybe.fromMaybe [] locations

@@ -15,6 +15,7 @@ import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
+import UnliftIO (pooledForConcurrently)
 
 posToHiePos :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> MaybeT m Pos
 posToHiePos path pos = do
@@ -105,7 +106,7 @@ hieFileLcToFileLcParallel fileLcs = do
       -- touchCachesParallel $ (.path) <$> fileLcs
       logInfo "finished touching caches"
       logInfo "converting positions"
-      newRes <- for fileLcs \fileLcRange -> do
+      newRes <- pooledForConcurrently fileLcs \fileLcRange -> do
         new <- runMaybeT $ hieFileLcToFileLc fileLcRange
         pure $ Maybe.fromMaybe fileLcRange new
       logInfo "finished converting positions"

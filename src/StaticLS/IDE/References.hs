@@ -50,7 +50,7 @@ findRefs path lineCol = do
         hieView <- getHieView path
         hieLineCol <- lineColToHieLineCol path lineCol
         hiePos <- hieLineColToPos path hieLineCol
-        valid <- isHiePosValid path pos hiePos
+        valid <- lift $ isHiePosValid path pos hiePos
         Monad.guard valid
         let names = HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
         logInfo $ T.pack $ "findRefs: names: " <> show names

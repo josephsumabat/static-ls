@@ -52,7 +52,7 @@ getDefinition path lineCol = do
   identifiers <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
     hiePos <- hieLineColToPos path hieLineCol
-    valid <- isHiePosValid path pos hiePos
+    valid <- lift $ isHiePosValid path pos hiePos
     Monad.guard valid
     hieView <- getHieView path
     let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView

@@ -14,18 +14,6 @@ import Data.Text qualified as T
 import StaticLS.Hir qualified as Hir
 import StaticLS.PositionDiff qualified as PositionDiff
 
-class (Monad m) => HasSemantic m where
-  getSemantic :: m Semantic
-
-class (Monad m) => SetSemantic m where
-  setSemantic :: Semantic -> m ()
-
-instance (HasSemantic m) => HasSemantic (MaybeT m) where
-  getSemantic = lift getSemantic
-
-instance (SetSemantic m) => SetSemantic (MaybeT m) where
-  setSemantic sema = lift (setSemantic sema)
-
 -- keep these fields lazy
 data FileState = FileState
   { contentsRope :: Rope
@@ -66,27 +54,3 @@ mkFileState contentsText contentsRope = do
     , tokens
     , tokenMap = PositionDiff.tokensToRangeMap tokens
     }
-
-removePath :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> m ()
-removePath path = do
-  sema <- getSemantic
-  setSemantic $
-    sema
-      { fileStates = HashMap.delete path sema.fileStates
-      }
-  pure ()
-
-setFileState :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> FileState -> m ()
-setFileState path fileState = do
-  sema <- getSemantic
-  setSemantic $
-    sema
-      { fileStates = HashMap.insert path fileState sema.fileStates
-      }
-  pure ()
-
-updateSemantic :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> Rope.Rope -> m ()
-updateSemantic path contentsRope = do
-  let contentsText = Rope.toText contentsRope
-  let fileState = mkFileState contentsText contentsRope
-  setFileState path fileState

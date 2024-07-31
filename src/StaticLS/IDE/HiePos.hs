@@ -59,7 +59,7 @@ isHiePosValid :: (MonadIde m, MonadIO m) => AbsPath -> Pos -> Pos -> m Bool
 isHiePosValid path pos hiePos = do
   res <- runMaybeT do
     hieTokenMap <- getHieTokenMap path
-    tokenMap <- getTokenMap path
+    tokenMap <- lift $ getTokenMap path
     pure $ RangeMap.lookup hiePos hieTokenMap == RangeMap.lookup pos tokenMap
   pure $ Maybe.fromMaybe False res
 
@@ -102,7 +102,7 @@ hieFileLcToFileLcParallel fileLcs = do
     else do
       logInfo $ T.pack $ "number of conversions: " ++ show len
       logInfo "touching caches"
-      touchCachesParallel $ (.path) <$> fileLcs
+      -- touchCachesParallel $ (.path) <$> fileLcs
       logInfo "finished touching caches"
       logInfo "converting positions"
       newRes <- for fileLcs \fileLcRange -> do

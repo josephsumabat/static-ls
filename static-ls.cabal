@@ -35,10 +35,13 @@ flag dev
 library
   exposed-modules:
       Data.Change
+      Data.ConcurrentCache
+      Data.ConcurrentCache2
       Data.Diff
       Data.Edit
       Data.ListUtils
       Data.Path
+      Data.PureConcurrentCache
       Data.RangeMap
       Data.Rope
       Data.TextUtils
@@ -147,6 +150,7 @@ library
     , regex-tdfa
     , row-types
     , sqlite-simple >=0.4.18 && <0.5
+    , stm
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range
@@ -219,6 +223,7 @@ executable print-hie
     , row-types
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
+    , stm
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range
@@ -292,6 +297,7 @@ executable static-ls
     , row-types
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
+    , stm
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range
@@ -368,6 +374,7 @@ test-suite expect_tests
     , row-types
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
+    , stm
     , tasty
     , tasty-expect
     , template-haskell >=2.19.0 && <2.21
@@ -390,6 +397,7 @@ test-suite static-ls-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Data.ConcurrentCacheSpec
       Data.RopeSpec
       Semantic.HirSpec
       Spec
@@ -472,6 +480,7 @@ test-suite static-ls-test
     , row-types
     , sqlite-simple >=0.4.18 && <0.5
     , static-ls
+    , stm
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range

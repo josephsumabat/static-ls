@@ -36,12 +36,10 @@ library
   exposed-modules:
       Data.Change
       Data.ConcurrentCache
-      Data.ConcurrentCache2
       Data.Diff
       Data.Edit
       Data.ListUtils
       Data.Path
-      Data.PureConcurrentCache
       Data.RangeMap
       Data.Rope
       Data.TextUtils

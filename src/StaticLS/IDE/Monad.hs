@@ -40,17 +40,13 @@ where
 
 import AST.Haskell qualified as Haskell
 import AST.Traversal qualified as AST
-import Colog.Core.IO qualified as Colog
-import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.ConcurrentCache (ConcurrentCache)
 import Data.ConcurrentCache qualified as ConcurrentCache
-import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineCol (LineCol)
-import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath, toFilePath)
 import Data.Path qualified as Path
 import Data.Range qualified as Range
@@ -68,11 +64,9 @@ import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic
 import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv
-import StaticLS.StaticEnv.Options
 import System.Directory (doesFileExist)
-import UnliftIO (MonadUnliftIO, pooledForConcurrently)
+import UnliftIO (MonadUnliftIO)
 import UnliftIO.Exception qualified as Exception
-import UnliftIO.IORef qualified as IORef
 
 data IdeEnv = IdeEnv
   { fileStateCache :: ConcurrentCache AbsPath FileState
@@ -308,23 +302,6 @@ data DiffCache = DiffCache
   }
   deriving (Show, Eq)
 
--- class HasDiffCacheRef m where
---   getDiffCacheRef :: m (IORef.IORef (HashMap.HashMap AbsPath DiffCache))
-
--- instance (Monad m, HasDiffCacheRef m) => HasDiffCacheRef (MaybeT m) where
---   getDiffCacheRef = lift getDiffCacheRef
-
--- getDiffCacheImpl :: (MonadIde m, HasDiffCacheRef m, MonadIO m) => AbsPath -> MaybeT m DiffCache
--- getDiffCacheImpl path = do
---   diffCacheRef <- getDiffCacheRef
---   diffCacheMap <- IORef.readIORef diffCacheRef
---   case HashMap.lookup path diffCacheMap of
---     Just diffCache -> MaybeT $ pure $ Just diffCache
---     Nothing -> do
---       diffCache <- getDiffCacheResult path
---       IORef.writeIORef diffCacheRef $ HashMap.insert path diffCache diffCacheMap
---       pure diffCache
-
 getDiffCache :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m DiffCache
 getDiffCache path = do
   env <- getIdeEnv
@@ -354,77 +331,11 @@ onNewSource path source = do
   ConcurrentCache.remove path env.diffCache
   pure ()
 
--- removeDiffCache :: (MonadIde m) => AbsPath -> m ()
--- removeDiffCache path = do
---   diffCacheRef <- getDiffCacheRef
---   diffCacheMap <- IORef.readIORef diffCacheRef
---   IORef.writeIORef diffCacheRef $ HashMap.delete path diffCacheMap
-
 removeHieFromSourcePath :: (MonadIde m) => AbsPath -> m ()
 removeHieFromSourcePath path = do
   env <- getIdeEnv
   ConcurrentCache.remove path env.hieCache
   ConcurrentCache.remove path env.diffCache
-  pure ()
-
--- touchFileStatesParallel ::
---   ( MonadIde m
---   , MonadIO m
---   , MonadUnliftIO m
---   ) =>
---   [AbsPath] ->
---   m ()
--- touchFileStatesParallel paths = do
---   sema <- Semantic.getSemantic
---   let map = sema.fileStates
---   res <- pooledForConcurrently paths \path -> runMaybeT do
---     _ <- MaybeT $ case HashMap.lookup path map of
---       Just _ -> pure Nothing
---       Nothing -> pure $ Just ()
---     fileState <- MaybeT $ getFileStateResult path
---     pure (path, fileState)
---   res <- pure $ Maybe.catMaybes res
---   let map' = HashMap.union map (HashMap.fromList res)
---   Semantic.setSemantic $ sema {Semantic.fileStates = map'}
-
-touchDiffCachesParallel :: (MonadIde m) => [AbsPath] -> m ()
-touchDiffCachesParallel paths = do
-  pure ()
-
--- diffCacheRef <- getDiffCacheRef
--- diffCache <- IORef.readIORef diffCacheRef
--- res <- pooledForConcurrently paths \path -> runMaybeT do
---   _ <- MaybeT $ case HashMap.lookup path diffCache of
---     Just _ -> pure Nothing
---     Nothing -> pure $ Just ()
---   diffCache <- getDiffCacheResult path
---   pure (path, diffCache)
--- res <- pure $ Maybe.catMaybes res
--- let diffCache' = HashMap.union diffCache (HashMap.fromList res)
--- IORef.writeIORef diffCacheRef diffCache'
-
-touchHieCachesParallel ::
-  (MonadIde m) =>
-  [AbsPath] ->
-  m ()
-touchHieCachesParallel paths = do
-  pure ()
-
-  -- map <- getHieCacheMap
-  -- res <- pooledForConcurrently paths \path -> runMaybeT do
-  --   _ <- MaybeT $ case HashMap.lookup path map of
-  --     Just _ -> pure Nothing
-  --     Nothing -> pure $ Just ()
-  --   hieCache <- getHieCacheWithMap path map
-  --   !hieCache <- pure $! forceCachedHieFile hieCache
-  --   pure (path, hieCache)
-  -- res <- pure $ Maybe.catMaybes res
-  -- let map' = HashMap.union map (HashMap.fromList res)
-  -- setHieCacheMap map'
-  pure ()
-
-touchCachesParallelImpl :: (MonadIde m) => [AbsPath] -> m ()
-touchCachesParallelImpl paths = do
   pure ()
 
 getThSplice :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m (Maybe Hir.ThSplice)

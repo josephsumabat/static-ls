@@ -17,9 +17,7 @@ module StaticLS.Logger (
 where
 
 import Colog.Core qualified as Colog
-import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Reader
-import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe (MaybeT)
 import Data.ByteString qualified as B
 import Data.Text (Text)

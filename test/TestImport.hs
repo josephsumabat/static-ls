@@ -28,7 +28,7 @@ updateTestFileState :: AbsPath -> StaticLsM ()
 updateTestFileState path = do
   contentsText <- liftIO $ T.readFile (Path.toFilePath path)
   let contents = Rope.fromText contentsText
-  _ <- Semantic.updateSemantic path contents
+  -- _ <- Semantic.updateSemantic path contents
   pure ()
 
 initStaticEnv :: IO StaticEnv
@@ -74,5 +74,5 @@ initTotalVfs staticLsEnv = do
     testDataFiles <- liftIO $ listDirectory testDataPath
     testDataFilePaths <- filterM (liftIO . doesFileExist) $ (testDataPath <>) <$> testDataFiles
     liftIO $ print testDataFilePaths
-    forM_ testDataFilePaths $ Path.filePathToAbs >=> updateTestFileState
+    -- forM_ testDataFilePaths $ Path.filePathToAbs >=> updateTestFileState
     ask

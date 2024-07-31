@@ -37,7 +37,7 @@ spec = do
     res2 <- ConcurrentCache.insert 'a' act cache
     res2 `shouldBe` Just 1
     pure @IO ()
-  fit "exception" do
+  it "exception" do
     cache <- ConcurrentCache.new
     act <- yieldList $ [throw Exn, 1 :: Int, throw Exn, 2 :: Int]
     ConcurrentCache.insert 'a' act cache `shouldThrow` (== Exn)

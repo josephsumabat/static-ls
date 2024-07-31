@@ -10,7 +10,6 @@ import Data.Pos (Pos (..))
 import Data.RangeMap qualified as RangeMap
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
-import Data.Traversable (for)
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
 import StaticLS.Logger
@@ -96,12 +95,12 @@ hieFileLcToFileLc fileLineCol = do
 hieFileLcToFileLcParallel :: (MonadIde m, MonadIO m) => [FileLcRange] -> m [FileLcRange]
 hieFileLcToFileLcParallel fileLcs = do
   let len = (length @[] fileLcs)
-  if len > 10000
+  logInfo $ T.pack $ "number of conversions: " ++ show len
+  if len > 5000
     then do
       logInfo "too many conversions, skipping"
       pure fileLcs
     else do
-      logInfo $ T.pack $ "number of conversions: " ++ show len
       logInfo "touching caches"
       -- touchCachesParallel $ (.path) <$> fileLcs
       logInfo "finished touching caches"

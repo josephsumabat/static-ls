@@ -3,8 +3,7 @@
 -- 'insert k v1' and 'insert k v2' are called concurrently,
 -- then only one of the computations v1 or v2 will run, and the one that runs will be cached
 -- so that subsequence inserts will return the cached value.
-module Data.ConcurrentCache
-(
+module Data.ConcurrentCache (
   ConcurrentCache,
   new,
   remove,

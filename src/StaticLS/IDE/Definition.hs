@@ -51,29 +51,34 @@ getDefinition ::
 getDefinition path lineCol = do
   pos <- lineColToPos path lineCol
   hs <- getHaskell path
-  let qual = Hir.getQualifiedAtPoint (Range.point pos) hs
-  identifiers <- runMaybeT $ do
-    hieLineCol <- lineColToHieLineCol path lineCol
-    hiePos <- hieLineColToPos path hieLineCol
-    valid <- lift $ isHiePosValid path pos hiePos
-    Monad.guard valid
-    hieView <- getHieView path
-    let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.point hieLineCol)) hieView
-    pure identifiers
-  identifiers <- pure $ Maybe.fromMaybe [] identifiers
-  fileLcs <- case qual of
-    Right (Just qual) | null identifiers -> do
-      logInfo "no identifiers under cursor found, fallback logic"
-      res <- findDefString qual
-      hieFileLcToFileLcParallel res
-    _ -> do
-      mLocationLinks <- do
-        locations <- traverse identifierToLocation identifiers
-        locations <- pure $ concat locations
-        pure locations
-      pure mLocationLinks
-  convertedFileLcs <- traverse convertPersistentModelFileLc fileLcs
-  pure $ concat convertedFileLcs
+  case Hir.getPersistentModelAtPoint (Range.point pos) hs of
+    Just persistentModelName -> do
+      res <- persistentModelNameToFileLc persistentModelName
+      pure $ maybeToList res
+    Nothing -> do
+      let qual = Hir.getQualifiedAtPoint (Range.point pos) hs
+      identifiers <- runMaybeT $ do
+        hieLineCol <- lineColToHieLineCol path lineCol
+        hiePos <- hieLineColToPos path hieLineCol
+        valid <- lift $ isHiePosValid path pos hiePos
+        Monad.guard valid
+        hieView <- getHieView path
+        let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.point hieLineCol)) hieView
+        pure identifiers
+      identifiers <- pure $ Maybe.fromMaybe [] identifiers
+      fileLcs <- case qual of
+        Right (Just qual) | null identifiers -> do
+          logInfo "no identifiers under cursor found, fallback logic"
+          res <- findDefString qual
+          hieFileLcToFileLcParallel res
+        _ -> do
+          mLocationLinks <- do
+            locations <- traverse identifierToLocation identifiers
+            locations <- pure $ concat locations
+            pure locations
+          pure mLocationLinks
+      convertedFileLcs <- traverse convertPersistentModelFileLc fileLcs
+      pure $ concat convertedFileLcs
  where
   identifierToLocation :: (MonadIde m, MonadIO m) => HieView.Identifier -> m [FileLcRange]
   identifierToLocation ident = do
@@ -207,6 +212,21 @@ defRowToLocation defRow = do
   file <- hieFilePathToSrcFilePath hieFilePath
   pure $ FileWith file range
 
+persistentModelNameToFileLc :: (MonadIde m, MonadIO m) => Text -> m (Maybe FileLcRange)
+persistentModelNameToFileLc persistentModelName = do
+  staticEnv <- getStaticEnv
+  let modelFilePath = staticEnv.modelsFilesDir Path.</> (Path.filePathToRel (T.unpack (persistentModelName <> ".persistentmodels")))
+  exists <- liftIO $ Directory.doesFileExist (FilePath.toFilePath modelFilePath)
+  if exists
+    then
+      pure $
+        Just
+          FileWith
+            { loc = LineColRange.empty (LineCol (Pos 0) (Pos 0))
+            , path = modelFilePath
+            }
+    else pure Nothing
+
 convertPersistentModelFileLc :: (MonadIde m, MonadIO m) => FileLcRange -> m [FileLcRange]
 convertPersistentModelFileLc fileLc = do
   let path = fileLc.path
@@ -216,16 +236,5 @@ convertPersistentModelFileLc fileLc = do
   case Hir.getPersistentModelAtPoint range hs of
     Nothing -> pure [fileLc]
     Just persistentModelName -> do
-      staticEnv <- getStaticEnv
-      let modelFilePath = staticEnv.modelsFilesDir Path.</> (Path.filePathToRel (T.unpack (persistentModelName <> ".persistentmodels")))
-      exists <- liftIO $ Directory.doesFileExist (FilePath.toFilePath modelFilePath)
-      if exists
-        then
-          pure
-            [ FileWith
-                { loc = LineColRange.empty (LineCol (Pos 0) (Pos 0))
-                , path = modelFilePath
-                }
-            , fileLc
-            ]
-        else pure [fileLc]
+      res <- persistentModelNameToFileLc persistentModelName
+      pure $ maybeToList res <> [fileLc]

@@ -95,15 +95,15 @@ spec = do
       (++++++++) x y z = x + y + z
       |]
 
-  -- check
-  --   "works for operator in not in parenthesis"
-  --   [trimming|
-  --      x ++++@0++++ y = x + y + z
-  --     |]
-  --   [trimming|
-  --     (++++++++) :: TY
-  --     x ++++++++ y = x + y + z
-  --     |]
+    -- check
+    --   "works for operator in not in parenthesis"
+    --   [trimming|
+    --     x ++++@0++++ y = x + y + z
+    --     |]
+    --   [trimming|
+    --     (++++++++) :: TY
+    --     x ++++++++ y = x + y + z
+    --     |]
 
   describe "it queries properly" do
     let check name src ident =

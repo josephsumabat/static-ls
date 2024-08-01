@@ -19,7 +19,7 @@ data Change = Change
   deriving (Show, Eq, Ord)
 
 insert :: Pos -> Text -> Change
-insert pos text = Change {insert = text, delete = Range.point pos}
+insert pos text = Change {insert = text, delete = Range.empty pos}
 
 delete :: Range -> Change
 delete r = Change {insert = T.empty, delete = r}

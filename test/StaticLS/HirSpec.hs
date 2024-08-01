@@ -2,27 +2,17 @@
 
 module StaticLS.HirSpec (spec) where
 
-import AST qualified
 import AST.Haskell qualified as H
-import AST.Haskell qualified as Haskell
 import Data.Foldable (for_)
 import Data.Function ((&))
-import Data.IntMap qualified as IntMap
-import Data.Map.Strict qualified as Map
-import Data.Path qualified as Path
-import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Read qualified as T.Read
 import NeatInterpolation (trimming)
 import StaticLS.Hir qualified as Hir
-import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
-import StaticLS.IDE.CodeActions.TestUtils qualified as TestUtils
-import StaticLS.Utils (isJustOrThrowS, isRightOrThrowS, isRightOrThrowT)
+import StaticLS.Utils (isJustOrThrowS, isRightOrThrowS)
 import Test.Hspec
 import TestImport.Annotation qualified as Annotation
-import TestImport.Compilation qualified
-import TestImport.Placeholder qualified as Placeholder
 import UnliftIO.Exception qualified as Exception
 
 spec :: Spec

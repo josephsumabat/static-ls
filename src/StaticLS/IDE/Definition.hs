@@ -48,14 +48,14 @@ getDefinition ::
 getDefinition path lineCol = do
   pos <- lineColToPos path lineCol
   hs <- getHaskell path
-  let qual = Hir.getQualifiedAtPoint (Range.empty pos) hs
+  let qual = Hir.getQualifiedAtPoint (Range.point pos) hs
   identifiers <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
     hiePos <- hieLineColToPos path hieLineCol
     valid <- lift $ isHiePosValid path pos hiePos
     Monad.guard valid
     hieView <- getHieView path
-    let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
+    let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.point hieLineCol)) hieView
     pure identifiers
   identifiers <- pure $ Maybe.fromMaybe [] identifiers
   case qual of
@@ -83,7 +83,7 @@ getDefinition path lineCol = do
   modToLocation :: (HasStaticEnv m, MonadIO m) => HieView.ModuleName -> m (Maybe FileLcRange)
   modToLocation modName = runMaybeT $ do
     srcFile <- modToSrcFile modName
-    pure $ FileWith srcFile (LineColRange.empty (LineCol (Pos 0) (Pos 0)))
+    pure $ FileWith srcFile (LineColRange.point (LineCol (Pos 0) (Pos 0)))
 
 getTypeDefinition ::
   (MonadIde m, MonadIO m) =>
@@ -94,7 +94,7 @@ getTypeDefinition path lineCol = do
   mLocationLinks <- runMaybeT $ do
     hieLineCol <- lineColToHieLineCol path lineCol
     hieView <- getHieView path
-    let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.empty hieLineCol)
+    let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.point hieLineCol)
     let names = concatMap HieView.Type.getTypeNames tys
     locations <- traverse nameToLocation names
     locations <- pure $ concat locations

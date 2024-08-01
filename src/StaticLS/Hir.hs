@@ -6,7 +6,9 @@ import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
 import AST.Sum (Nil, (:+))
 import Control.Applicative (asum, (<|>))
+import Control.Error (hush)
 import Control.Error qualified as Error
+import Control.Monad (guard)
 import Data.Either qualified as Either
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
@@ -533,3 +535,34 @@ parseThQuotedName thQuotedName = do
     <|> (ThQuotedName True . AST.getDynNode <$> type') of
     Just text -> pure text
     Nothing -> Left "ThQuotedName must have either a name or a type"
+
+getPersistentModelAtPoint :: Range -> H.Haskell -> Maybe Text
+getPersistentModelAtPoint range hs = do
+  splice <- AST.getDeepestContaining @H.TopSplice range hs.dynNode
+  _ <- AST.getDeepestSatisfying getMkModelApply splice.dynNode
+  modelFileArg <- AST.getDeepestSatisfying getModelFileApply splice.dynNode
+  (AST.Inj @H.Literal modelFileLit) <- pure modelFileArg.getExpression
+  modelFileLit <- hush $ AST.unwrap modelFileLit
+  (AST.Inj @H.String modelFileStr) <- pure modelFileLit.children
+  let persistentModelName = modelFileStr.dynNode.nodeText
+  persistentModelName <- T.stripPrefix "\"" persistentModelName
+  persistentModelName <- T.stripSuffix "\"" persistentModelName
+  pure persistentModelName
+ where
+  getMkModelApply :: DynNode -> Maybe H.Expression
+  getMkModelApply = getApplyVarWithName "mkModel"
+
+  getModelFileApply :: DynNode -> Maybe H.Expression
+  getModelFileApply = getApplyVarWithName "modelFile"
+
+  getApplyVarWithName :: Text -> DynNode -> Maybe H.Expression
+  getApplyVarWithName name node = do
+    apply <- AST.cast @H.Apply node
+    apply <- hush $ AST.unwrap apply
+    fun <- apply.function
+    (AST.Inj @H.Expression funExpr) <- pure fun
+    (AST.Inj @H.Variable funVar) <- pure funExpr.getExpression
+    let funText = funVar.dynNode.nodeText
+    guard $ funText == name
+    (AST.Inj @H.Expression argExpr) <- pure apply.argument
+    pure argExpr

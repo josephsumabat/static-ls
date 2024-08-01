@@ -90,7 +90,7 @@ retrieveHover path lineCol = do
 
 docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieView.File -> LineCol -> m [NameDocs]
 docsAtPoint hieView position = do
-  let names = fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty position)) hieView
+  let names = fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.point position)) hieView
       -- namesAtPoint hieFile (lineColToHieDbCoords position)
       modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
   modIfaceFiles <- fromMaybe [] <$> runMaybeT (mapM modToHiFile modNames)

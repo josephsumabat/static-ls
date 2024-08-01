@@ -98,7 +98,7 @@ spec = do
   -- check
   --   "works for operator in not in parenthesis"
   --   [trimming|
-  --      x ++++@0++++ y = x + y + z
+  --     x ++++@0++++ y = x + y + z
   --     |]
   --   [trimming|
   --     (++++++++) :: TY

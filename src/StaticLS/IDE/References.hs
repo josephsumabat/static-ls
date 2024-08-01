@@ -42,7 +42,7 @@ findRefs path lineCol = do
   pos <- lineColToPos path lineCol
   splice <- getThSplice path lineCol
   hs <- getHaskell path
-  let qual = Hir.getQualifiedAtPoint (Range.empty pos) hs
+  let qual = Hir.getQualifiedAtPoint (Range.point pos) hs
   case splice of
     Just _thSplice -> pure []
     Nothing -> do
@@ -52,7 +52,7 @@ findRefs path lineCol = do
         hiePos <- hieLineColToPos path hieLineCol
         valid <- lift $ isHiePosValid path pos hiePos
         Monad.guard valid
-        let names = HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
+        let names = HieView.Query.fileNamesAtRangeList (Just (LineColRange.point hieLineCol)) hieView
         logInfo $ T.pack $ "findRefs: names: " <> show names
         let nameDefRanges = Maybe.mapMaybe HieView.Name.getRange names
         logInfo $ T.pack $ "findRefs: nameDefRanges: " <> show nameDefRanges

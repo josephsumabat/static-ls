@@ -82,7 +82,7 @@ rename path pos lineCol newName = do
   refs <- References.findRefsPos path lineCol
   nameText <- do
     haskell <- getHaskell path
-    let nameTypes = Hir.getNameTypes (Range.empty pos) haskell
+    let nameTypes = Hir.getNameTypes (Range.point pos) haskell
     let nameText = AST.nodeToText <$> nameTypes
     pure nameText
   sourceEdits <- for refs \ref -> do
@@ -120,7 +120,7 @@ rename path pos lineCol newName = do
 canRenameAtPos :: AbsPath -> Pos -> StaticLsM (Maybe Range)
 canRenameAtPos path pos = do
   haskell <- getHaskell path
-  let name = AST.getDeepestContaining @Hir.GetNameTypes (Range.empty pos) (AST.getDynNode haskell)
+  let name = AST.getDeepestContaining @Hir.GetNameTypes (Range.point pos) (AST.getDynNode haskell)
   case name of
     Just n -> do
       let range = AST.nodeToRange n

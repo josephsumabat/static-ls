@@ -28,7 +28,7 @@ spec = do
       modiface <- Test.assertJust "expected succesful read" hiFile
       fnLocation <- myFunDefLocation
       let position = fnLocation.loc.start
-          names = fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.empty position)) (HieView.viewHieFile hieFile)
+          names = fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.point position)) (HieView.viewHieFile hieFile)
           expectedDocs = ["Lsp Position line: 10,  character: 0\n another line of comments"]
           readDocs = renderNameDocs <$> getDocsBatch names modiface
 

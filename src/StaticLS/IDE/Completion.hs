@@ -160,7 +160,7 @@ getImportPrefix cx sourceRope hs = do
   let lineCol = cx.lineCol
   let pos = cx.pos
   let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
-  let imports = AST.getDeepestContaining @Haskell.Imports (Range.empty pos) (AST.getDynNode hs)
+  let imports = AST.getDeepestContaining @Haskell.Imports (Range.point pos) (AST.getDynNode hs)
   case "import" `T.stripPrefix` line of
     Just rest | Maybe.isJust imports -> do
       let mod = T.dropWhile Char.isSpace rest

@@ -39,7 +39,7 @@ getImplementation path pos = do
     hieLineCol <- lineColToHieLineCol path pos
     hieView <- getHieView path
     let evidenceBinds = HieView.Query.fileEvidenceBinds hieView
-    let evidenceUses = HieView.Query.fileEvidenceUsesAtRangeList (Just (LineColRange.empty hieLineCol)) hieView
+    let evidenceUses = HieView.Query.fileEvidenceUsesAtRangeList (Just (LineColRange.point hieLineCol)) hieView
     logInfo $ T.pack $ "EvidenceUses: " <> show evidenceUses
     let evidenceClosure = getEvidenceClosure evidenceBinds evidenceUses
     logInfo $ T.pack $ "EvidenceClosure: " <> show evidenceClosure

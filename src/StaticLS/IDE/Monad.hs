@@ -343,6 +343,6 @@ getThSplice path lineCol = do
   srcRope <- getSourceRope path
   haskell <- getHaskell path
   let pos = Rope.lineColToPos srcRope lineCol
-      range = (Range.empty pos)
+      range = (Range.point pos)
       splice = AST.getDeepestContaining @Hir.ThSplice range haskell.dynNode
   pure splice

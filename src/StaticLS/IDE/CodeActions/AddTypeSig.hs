@@ -33,7 +33,7 @@ type BindName = Haskell.PrefixId :+ Haskell.Variable :+ Nil
 -- For now, it only works with top level declarations
 getDeclarationNameAtPos :: Haskell.Haskell -> Pos -> LineCol -> AST.Err (Maybe BindName)
 getDeclarationNameAtPos haskell pos lineCol = do
-  let node = AST.getDeepestContaining @AddTypeContext (Range.empty pos) haskell.dynNode
+  let node = AST.getDeepestContaining @AddTypeContext (Range.point pos) haskell.dynNode
   case node of
     Just bind
       | let dynNode = AST.getDynNode bind
@@ -80,7 +80,7 @@ codeAction cx = do
   res <- runMaybeT do
     hieView <- getHieView cx.path
     let getTypes lineCol = do
-          let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.empty lineCol)
+          let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.point lineCol)
           fmap HieView.Type.printType tys
     lift $ codeActionWith cx getTypes
   case res of

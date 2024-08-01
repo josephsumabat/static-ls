@@ -29,7 +29,7 @@ spec :: Spec
 spec = do
   it "multiple" do
     cache <- ConcurrentCache.new
-    act <- yieldList $ [1 :: Int .. 10000000]
+    act <- yieldList [1 :: Int .. 10000000]
     res1 <- ConcurrentCache.insert 'a' act cache
     res1 `shouldBe` Just 1
     res3 <- ConcurrentCache.insert 'b' act cache
@@ -39,7 +39,7 @@ spec = do
     pure @IO ()
   it "exception" do
     cache <- ConcurrentCache.new
-    act <- yieldList $ [throw Exn, 1 :: Int, throw Exn, 2 :: Int]
+    act <- yieldList [throw Exn, 1 :: Int, throw Exn, 2 :: Int]
     ConcurrentCache.insert 'a' act cache `shouldThrow` (== Exn)
     res1 <- ConcurrentCache.insert 'a' act cache
     res1 `shouldBe` Just 1

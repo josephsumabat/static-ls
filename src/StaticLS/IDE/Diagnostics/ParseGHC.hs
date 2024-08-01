@@ -123,7 +123,7 @@ parseHeader line =
         Just
           ( FileWith
               { path = Path.filePathToRel (T.unpack file)
-              , loc = LineColRange.empty (LineCol (Pos line) (Pos col))
+              , loc = LineColRange.point (LineCol (Pos line) (Pos col))
               }
           , sev
           , rest

@@ -73,7 +73,7 @@ getDefinition path lineCol = do
         pure locations
       pure mLocationLinks
   convertedFileLcs <- traverse convertPersistentModelFileLc fileLcs
-  pure convertedFileLcs
+  pure $ concat convertedFileLcs
  where
   identifierToLocation :: (MonadIde m, MonadIO m) => HieView.Identifier -> m [FileLcRange]
   identifierToLocation ident = do
@@ -207,14 +207,14 @@ defRowToLocation defRow = do
   file <- hieFilePathToSrcFilePath hieFilePath
   pure $ FileWith file range
 
-convertPersistentModelFileLc :: (MonadIde m, MonadIO m) => FileLcRange -> m FileLcRange
+convertPersistentModelFileLc :: (MonadIde m, MonadIO m) => FileLcRange -> m [FileLcRange]
 convertPersistentModelFileLc fileLc = do
   let path = fileLc.path
   hs <- getHaskell path
   rope <- getSourceRope path
   let range = Rope.lineColRangeToRange rope fileLc.loc
   case Hir.getPersistentModelAtPoint range hs of
-    Nothing -> pure fileLc
+    Nothing -> pure [fileLc]
     Just persistentModelName -> do
       staticEnv <- getStaticEnv
       let modelFilePath = staticEnv.modelsFilesDir Path.</> (Path.filePathToRel (T.unpack (persistentModelName <> ".persistentmodels")))
@@ -222,8 +222,10 @@ convertPersistentModelFileLc fileLc = do
       if exists
         then
           pure
-            FileWith
-              { loc = LineColRange.empty (LineCol (Pos 0) (Pos 0))
-              , path = modelFilePath
-              }
-        else pure fileLc
+            [ FileWith
+                { loc = LineColRange.empty (LineCol (Pos 0) (Pos 0))
+                , path = modelFilePath
+                }
+            , fileLc
+            ]
+        else pure [fileLc]

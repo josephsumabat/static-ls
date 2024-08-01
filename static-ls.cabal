@@ -402,6 +402,7 @@ test-suite static-ls-test
       SpecHook
       StaticLS.HI.FileSpec
       StaticLS.HIE.FileSpec
+      StaticLS.HirSpec
       StaticLS.HISpec
       StaticLS.IDE.CodeActions.AddTypeSigSpec
       StaticLS.IDE.CodeActions.AutoImportSpec

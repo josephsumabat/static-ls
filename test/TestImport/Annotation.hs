@@ -1,5 +1,6 @@
 module TestImport.Annotation (
   parseAnnotations,
+  Ann (..),
 )
 where
 
@@ -19,7 +20,6 @@ import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.TextUtils qualified as T
-import Debug.Trace
 import StaticLS.Utils (isJustOrThrowE)
 import UnliftIO.Exception qualified
 
@@ -103,16 +103,13 @@ sinkAnnotation rope linesWithAnnotations (LineCol (Pos line) (Pos col), len, tex
     | otherwise = trySink (currLine - 1)
   isValidLine line =
     not (line `IntSet.member` linesWithAnnotations)
-      && Rope.isValidLineCol rope (traceShowId (LineCol (Pos line) (Pos col)))
+      && Rope.isValidLineCol rope (LineCol (Pos line) (Pos col))
       -- don't include the newline here, so we don't use isValidLineColEnd
-      && Rope.isValidLineCol rope (traceShowId (LineCol (Pos line) (Pos (col + len))))
+      && Rope.isValidLineCol rope (LineCol (Pos line) (Pos (col + len)))
   mSunkenLine = trySink line
 
 sinkAnnotations :: Rope -> [CalculatedAnn] -> Either SomeException [CalculatedAnn]
-sinkAnnotations rope annotations =
-  trace
-    (show linesWithAnnotations)
-    sunkAnnotations
+sinkAnnotations rope annotations = sunkAnnotations
  where
   linesWithAnnotations = IntSet.fromList $ map (\(LineCol (Pos line) (Pos _col), _, _) -> line) annotations
   sunkAnnotations =

@@ -1,0 +1,72 @@
+{-# LANGUAGE QuasiQuotes #-}
+
+module StaticLS.HirSpec (spec) where
+
+import AST qualified
+import AST.Haskell qualified as H
+import AST.Haskell qualified as Haskell
+import Data.Foldable (for_)
+import Data.Function ((&))
+import Data.IntMap qualified as IntMap
+import Data.Map.Strict qualified as Map
+import Data.Path qualified as Path
+import Data.Rope qualified as Rope
+import Data.Text (Text)
+import Data.Text qualified as T
+import Data.Text.Read qualified as T.Read
+import NeatInterpolation (trimming)
+import StaticLS.Hir qualified as Hir
+import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
+import StaticLS.IDE.CodeActions.TestUtils qualified as TestUtils
+import StaticLS.Utils (isJustOrThrowS, isRightOrThrowS, isRightOrThrowT)
+import Test.Hspec
+import TestImport.Annotation qualified as Annotation
+import TestImport.Compilation qualified
+import TestImport.Placeholder qualified as Placeholder
+import UnliftIO.Exception qualified as Exception
+
+spec :: Spec
+spec = do
+  fdescribe "find persistent model" do
+    check
+      "first"
+      [trimming|
+        module First where
+
+        $(mkModel $(discoverEntities) $(modelFile "server_session"))
+        -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 1
+
+        $(mkModel $(discoverEntities) $(modelFile "another_one"))
+        -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 2
+
+        $(mkModel $(discoverEntities))
+        -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^ 3
+
+        $(mkAnotherOne $(discoverEntities) $(modelFile "anotherone"))
+        -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 4
+
+        $(unrelated)
+        -- ^^^^^^^^^ 5
+        |]
+      [ (1, Just "server_session")
+      , (2, Just "another_one")
+      , (3, Nothing)
+      , (4, Nothing)
+      , (5, Nothing)
+      ]
+
+check :: String -> Text -> [(Int, Maybe Text)] -> Spec
+check name src expected = it name do
+  let hs = H.parse src
+  let annotations = Annotation.parseAnnotations src
+  annotations <- case annotations of
+    Left err -> Exception.throwIO err
+    Right annotations -> pure annotations
+  for_ annotations \ann -> do
+    let range = ann.range
+    let annText = T.strip ann.annText
+    (expectedIndex :: Int, _) <- T.Read.decimal annText & isRightOrThrowS
+    let modelName = Hir.getPersistentModelAtPoint range hs
+    expected <- lookup expectedIndex expected & isJustOrThrowS "could not find index in expected"
+    modelName `shouldBe` expected
+  pure @IO ()

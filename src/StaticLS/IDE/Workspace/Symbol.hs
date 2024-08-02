@@ -26,14 +26,16 @@ import StaticLS.Logger (logInfo)
 import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
 import StaticLS.Utils (isJustOrThrowS)
+import Text.Fuzzy qualified as Fuzzy
 
 symbolInfo :: (MonadIde m) => T.Text -> m (VB.Vector Symbol)
 symbolInfo query = do
   logInfo $ "getting symbols: " <> query
   symbols <- getSymbols
-  let !filteredSymbols = VB.filter (\s -> query `T.isPrefixOf` s.name) symbols
+  let fuzzySymbols = Fuzzy.filter query (VB.toList symbols) "" "" (.name) True
+  let !res = VB.fromList $ Fuzzy.original <$> fuzzySymbols
   logInfo $ "done getting symbols"
-  pure $! filteredSymbols
+  pure res
 
 strictMapMaybe :: (a -> Maybe b) -> [a] -> [b]
 strictMapMaybe f = go []

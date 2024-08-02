@@ -14,6 +14,7 @@ import Data.Maybe (catMaybes)
 import Data.Path qualified as Path
 import Data.Text qualified as T
 import Data.Vector qualified as VB
+import Database.SQLite.Simple qualified as SQL
 import GHC.Plugins qualified as GHC
 import HieDb qualified
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
@@ -52,7 +53,12 @@ getSymbols = do
   ConcurrentCache.insert
     ()
     ( do
-        mHiedbDefs <- runMaybeT . runHieDbMaybeT $ \hieDb -> HieDb.searchDef hieDb ("")
+        mHiedbDefs <- runMaybeT . runHieDbMaybeT $ \hieDb -> do
+          let conn = HieDb.getConn hieDb
+          SQL.queryNamed
+            conn
+            "SELECT defs.* FROM defs"
+            []
         hiedbDefs <- isJustOrThrowS "could not get symbols" mHiedbDefs
         symbols <- mapM defRowToSymbolInfo hiedbDefs
         symbols' <- pure $ catMaybes symbols

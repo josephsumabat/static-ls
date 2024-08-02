@@ -8,6 +8,7 @@ module StaticLS.IDE.Workspace.Symbol (
 
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Control.Parallel.Strategies qualified as Parallel
 import Data.ConcurrentCache qualified as ConcurrentCache
 import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes)
@@ -29,8 +30,18 @@ import Text.Fuzzy qualified as Fuzzy
 symbolInfo :: (MonadIde m) => T.Text -> m [Symbol]
 symbolInfo query = do
   symbols <- getSymbols
-  let fuzzySymbols = Fuzzy.filter query symbols "" "" (.name) True
-  pure $ Fuzzy.original <$> fuzzySymbols
+  let fuzzySymbols = fmap (\t -> Fuzzy.match query t "" "" (.name) True) symbols `Parallel.using` Parallel.parListChunk 1000 Parallel.rseq
+  let fuzzySymbols' = catMaybes fuzzySymbols
+  pure $ Fuzzy.original <$> fuzzySymbols'
+
+strictMapMaybe :: (a -> Maybe b) -> [a] -> [b]
+strictMapMaybe f = go []
+ where
+  go acc xs = case xs of
+    [] -> acc
+    (x : xs) -> case f x of
+      Just y -> go (y : acc) xs
+      Nothing -> go acc xs
 
 getSymbols :: (MonadIde m) => m [Symbol]
 getSymbols = do

@@ -143,6 +143,7 @@ library
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
+    , parallel
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , raw-strings-qq
@@ -216,6 +217,7 @@ executable print-hie
     , neat-interpolation
     , optics
     , optparse-applicative >=0.17.0.0 && <0.19
+    , parallel
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , raw-strings-qq
@@ -291,6 +293,7 @@ executable static-ls
     , neat-interpolation
     , optics
     , optparse-applicative >=0.17.0.0 && <0.19
+    , parallel
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , raw-strings-qq
@@ -368,6 +371,7 @@ test-suite expect_tests
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
+    , parallel
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , quickcheck-instances
@@ -476,6 +480,7 @@ test-suite static-ls-test
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
+    , parallel
     , parsec >=3.1.0 && <3.2
     , pretty-simple
     , quickcheck-instances

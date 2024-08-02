@@ -68,6 +68,7 @@ dependencies:
   - regex-tdfa # why is the api for this library so bad
   - stm
   - fuzzy
+  - parallel
 language: GHC2021
 default-extensions:
 - LambdaCase

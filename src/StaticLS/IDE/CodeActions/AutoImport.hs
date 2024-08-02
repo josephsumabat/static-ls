@@ -71,7 +71,7 @@ getModulesToImport ::
 getModulesToImport path pos = do
   haskell <- getHaskell path
   -- TODO: Remove double traversal of AST
-  let qualified = Hir.getQualifiedAtPoint (Range.empty pos) haskell
+  let qualified = Hir.getQualifiedAtPoint (Range.point pos) haskell
   case qualified of
     Left e -> do
       logError $ T.pack $ "Error getting qualified: " <> show e

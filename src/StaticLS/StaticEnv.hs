@@ -54,6 +54,7 @@ data StaticEnv = StaticEnv
   , hieFilesPath :: AbsPath
   , hiFilesPath :: AbsPath
   , wsRoot :: AbsPath
+  , modelsFilesDir :: AbsPath
   -- ^ workspace root
   , srcDirs :: [AbsPath]
   -- ^ directories to search for source code in order of priority
@@ -86,6 +87,7 @@ initStaticEnv wsRoot staticEnvOptions = do
           , hieFilesPath = hieFilesPath
           , hiFilesPath = hiFilesPath
           , wsRoot = wsRoot
+          , modelsFilesDir = wsRoot Path.</> "config" Path.</> "modelsFiles"
           , srcDirs = srcDirs
           }
   pure serverStaticEnv

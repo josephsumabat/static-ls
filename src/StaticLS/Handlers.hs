@@ -11,6 +11,7 @@ import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
 import Data.Text.IO qualified as T.IO
+import Data.Vector qualified as VB
 import Language.LSP.Diagnostics qualified as LSP
 import Language.LSP.Protocol.Lens qualified as LSP hiding (publishDiagnostics)
 import Language.LSP.Protocol.Message qualified as LSP
@@ -187,7 +188,7 @@ handleWorkspaceSymbol :: Handlers (LspT c StaticLsM)
 handleWorkspaceSymbol = LSP.requestHandler LSP.SMethod_WorkspaceSymbol $ \req res -> do
   -- https://hackage.haskell.org/package/lsp-types-1.6.0.0/docs/Language-LSP-Types.html#t:WorkspaceSymbolParams
   symbols <- lift (symbolInfo req._params._query)
-  res $ Right . InL $ fmap ProtoLSP.symbolToProto symbols
+  res $ Right . InL $ fmap ProtoLSP.symbolToProto (VB.toList symbols)
 
 handleSetTrace :: Handlers (LspT c StaticLsM)
 handleSetTrace = LSP.notificationHandler LSP.SMethod_SetTrace $ \_ -> pure ()

@@ -13,6 +13,7 @@ import Data.LineColRange (LineColRange (..))
 import Data.Maybe (catMaybes)
 import Data.Path qualified as Path
 import Data.Text qualified as T
+import Data.Vector qualified as VB
 import GHC.Plugins qualified as GHC
 import HieDb qualified
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
@@ -21,16 +22,18 @@ import StaticLS.IDE.FileWith (FileWith' (..))
 import StaticLS.IDE.Monad (IdeEnv (..), MonadIde, getIdeEnv)
 import StaticLS.IDE.Symbol (Symbol (..))
 import StaticLS.IDE.Symbol qualified as Symbol
+import StaticLS.Logger (logInfo)
 import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
 import StaticLS.Utils (isJustOrThrowS)
-import StaticLS.Logger (logInfo)
 
-symbolInfo :: (MonadIde m) => T.Text -> m [Symbol]
+symbolInfo :: (MonadIde m) => T.Text -> m (VB.Vector Symbol)
 symbolInfo query = do
   logInfo $ "getting symbols: " <> query
   symbols <- getSymbols
-  pure $ filter (\s -> query `T.isPrefixOf` s.name) symbols
+  let !filteredSymbols = VB.filter (\s -> query `T.isPrefixOf` s.name) symbols
+  logInfo $ "done getting symbols"
+  pure $! filteredSymbols
 
 strictMapMaybe :: (a -> Maybe b) -> [a] -> [b]
 strictMapMaybe f = go []
@@ -41,7 +44,7 @@ strictMapMaybe f = go []
       Just y -> go (y : acc) xs
       Nothing -> go acc xs
 
-getSymbols :: (MonadIde m) => m [Symbol]
+getSymbols :: (MonadIde m) => m (VB.Vector Symbol)
 getSymbols = do
   env <- getIdeEnv
   ConcurrentCache.insert
@@ -51,7 +54,7 @@ getSymbols = do
         hiedbDefs <- isJustOrThrowS "could not get symbols" mHiedbDefs
         symbols <- mapM defRowToSymbolInfo hiedbDefs
         symbols' <- pure $ catMaybes symbols
-        pure symbols'
+        pure $ VB.fromList symbols'
     )
     env.workspaceSymbolCache
 

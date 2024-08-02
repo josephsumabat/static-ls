@@ -163,6 +163,7 @@ library
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
     , unordered-containers ==0.2.*
+    , vector
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
@@ -238,6 +239,7 @@ executable print-hie
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
     , unordered-containers ==0.2.*
+    , vector
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
@@ -314,6 +316,7 @@ executable static-ls
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
     , unordered-containers ==0.2.*
+    , vector
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
@@ -395,6 +398,7 @@ test-suite expect_tests
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
     , unordered-containers ==0.2.*
+    , vector
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
@@ -502,6 +506,7 @@ test-suite static-ls-test
     , unliftio >=0.2.1 && <0.3
     , unliftio-core >=0.2.1 && <0.3
     , unordered-containers ==0.2.*
+    , vector
   default-language: GHC2021
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables

@@ -69,6 +69,7 @@ dependencies:
   - stm
   - fuzzy
   - parallel
+  - vector
 language: GHC2021
 default-extensions:
 - LambdaCase

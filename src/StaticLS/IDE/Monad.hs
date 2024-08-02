@@ -19,6 +19,7 @@ import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
+import Data.Vector qualified as VB
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView qualified as HieView
 import StaticLS.Hir qualified as Hir
@@ -36,7 +37,7 @@ data IdeEnv = IdeEnv
   { fileStateCache :: ConcurrentCache AbsPath FileState
   , hieCache :: ConcurrentCache AbsPath (Maybe CachedHieFile)
   , diffCache :: ConcurrentCache AbsPath (Maybe DiffCache)
-  , workspaceSymbolCache :: ConcurrentCache () [Symbol]
+  , workspaceSymbolCache :: ConcurrentCache () (VB.Vector Symbol)
   }
 
 newIdeEnv :: IO IdeEnv

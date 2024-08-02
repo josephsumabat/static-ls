@@ -55,10 +55,7 @@ getSymbols = do
     ( do
         mHiedbDefs <- runMaybeT . runHieDbMaybeT $ \hieDb -> do
           let conn = HieDb.getConn hieDb
-          SQL.queryNamed
-            conn
-            "SELECT defs.* FROM defs"
-            []
+          SQL.query_ conn "SELECT defs.* FROM defs"
         hiedbDefs <- isJustOrThrowS "could not get symbols" mHiedbDefs
         symbols <- mapM defRowToSymbolInfo hiedbDefs
         symbols' <- pure $ catMaybes symbols
@@ -70,8 +67,8 @@ getSymbols = do
 -- With following modification
 -- a. instead of replying on `modInfoSrcFile` (which is only present when hiedb index with `--src-base-dir`)
 --    we could find src file path from `hieFilePathToSrcFilePath`
-defRowToSymbolInfo :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> m (Maybe Symbol)
-defRowToSymbolInfo (HieDb.DefRow {..} HieDb.:. _) = runMaybeT $ do
+defRowToSymbolInfo :: (HasStaticEnv m, MonadIO m) => HieDb.DefRow -> m (Maybe Symbol)
+defRowToSymbolInfo HieDb.DefRow {..} = runMaybeT $ do
   do
     defSrc <- Path.filePathToAbs defSrc
     srcFile <- hieFilePathToSrcFilePath defSrc

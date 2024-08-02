@@ -24,9 +24,11 @@ import StaticLS.IDE.Symbol qualified as Symbol
 import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
 import StaticLS.Utils (isJustOrThrowS)
+import StaticLS.Logger (logInfo)
 
 symbolInfo :: (MonadIde m) => T.Text -> m [Symbol]
 symbolInfo query = do
+  logInfo $ "getting symbols: " <> query
   symbols <- getSymbols
   pure $ filter (\s -> query `T.isPrefixOf` s.name) symbols
 

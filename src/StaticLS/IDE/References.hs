@@ -40,47 +40,44 @@ findRefsPos path lineCol = do
 findRefs :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
 findRefs path lineCol = do
   pos <- lineColToPos path lineCol
-  splice <- getThSplice path lineCol
+  throwIfInThSplice "findRefs" path pos
   hs <- getHaskell path
   let qual = Hir.getQualifiedAtPoint (Range.point pos) hs
-  case splice of
-    Just _thSplice -> pure []
-    Nothing -> do
-      nameRes <- runMaybeT do
-        hieView <- getHieView path
-        hieLineCol <- lineColToHieLineCol path lineCol
-        hiePos <- hieLineColToPos path hieLineCol
-        valid <- lift $ isHiePosValid path pos hiePos
-        Monad.guard valid
-        let names = HieView.Query.fileNamesAtRangeList (Just (LineColRange.point hieLineCol)) hieView
-        logInfo $ T.pack $ "findRefs: names: " <> show names
-        let nameDefRanges = Maybe.mapMaybe HieView.Name.getRange names
-        logInfo $ T.pack $ "findRefs: nameDefRanges: " <> show nameDefRanges
-        let localDefNames = concatMap (\range -> HieView.Query.fileLocalBindsAtRangeList (Just range) hieView) nameDefRanges
-        logInfo $ T.pack $ "findRefs: localDefNames: " <> show localDefNames
-        pure (hieView, names, nameDefRanges, localDefNames)
-      case nameRes of
-        Nothing
-          | Right (Just qual) <- qual -> do
-              logInfo "fallback logic for refs"
-              findRefsString qual.name.node.nodeText
-          | otherwise -> do
-              pure []
-        Just (hieView, names, nameDefRanges, localDefNames) -> do
-          mLocList <- runMaybeT $ do
-            case localDefNames of
-              [] -> do
-                refRows <- traverse hieDbFindRefs names
-                refRows <- pure $ concat refRows
-                lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refRows
-              _ -> do
-                let localRefs = HieView.Query.fileRefsWithDefRanges nameDefRanges hieView
-                logInfo $ T.pack $ "findRefs: localRefs: " <> show localRefs
-                let localFileRanges = fmap (\loc -> FileWith {path, loc}) localRefs
-                pure localFileRanges
-          let res = fromMaybe [] mLocList
-          newRes <- hieFileLcToFileLcParallel res
-          pure newRes
+  nameRes <- runMaybeT do
+    hieView <- getHieView path
+    hieLineCol <- lineColToHieLineCol path lineCol
+    hiePos <- hieLineColToPos path hieLineCol
+    valid <- lift $ isHiePosValid path pos hiePos
+    Monad.guard valid
+    let names = HieView.Query.fileNamesAtRangeList (Just (LineColRange.point hieLineCol)) hieView
+    logInfo $ T.pack $ "findRefs: names: " <> show names
+    let nameDefRanges = Maybe.mapMaybe HieView.Name.getRange names
+    logInfo $ T.pack $ "findRefs: nameDefRanges: " <> show nameDefRanges
+    let localDefNames = concatMap (\range -> HieView.Query.fileLocalBindsAtRangeList (Just range) hieView) nameDefRanges
+    logInfo $ T.pack $ "findRefs: localDefNames: " <> show localDefNames
+    pure (hieView, names, nameDefRanges, localDefNames)
+  case nameRes of
+    Nothing
+      | Right (Just qual) <- qual -> do
+          logInfo "fallback logic for refs"
+          findRefsString qual.name.node.nodeText
+      | otherwise -> do
+          pure []
+    Just (hieView, names, nameDefRanges, localDefNames) -> do
+      mLocList <- runMaybeT $ do
+        case localDefNames of
+          [] -> do
+            refRows <- traverse hieDbFindRefs names
+            refRows <- pure $ concat refRows
+            lift $ catMaybes <$> mapM (runMaybeT . refRowToLocation) refRows
+          _ -> do
+            let localRefs = HieView.Query.fileRefsWithDefRanges nameDefRanges hieView
+            logInfo $ T.pack $ "findRefs: localRefs: " <> show localRefs
+            let localFileRanges = fmap (\loc -> FileWith {path, loc}) localRefs
+            pure localFileRanges
+      let res = fromMaybe [] mLocList
+      newRes <- hieFileLcToFileLcParallel res
+      pure newRes
 
 refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.RefRow -> MaybeT m FileLcRange
 refRowToLocation refRow = do

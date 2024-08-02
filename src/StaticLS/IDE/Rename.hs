@@ -79,6 +79,7 @@ renameSplice node old new = do
 
 rename :: AbsPath -> Pos -> LineCol -> Text -> StaticLsM SourceEdit
 rename path pos lineCol newName = do
+  throwIfInThSplice "rename" path pos
   refs <- References.findRefsPos path lineCol
   nameText <- do
     haskell <- getHaskell path

@@ -49,6 +49,7 @@ import Data.HashMap.Strict qualified as HashMap
 import Data.LineCol (LineCol)
 import Data.Path (AbsPath, toFilePath)
 import Data.Path qualified as Path
+import Data.Pos (Pos)
 import Data.Range qualified as Range
 import Data.RangeMap (RangeMap)
 import Data.Rope (Rope)
@@ -296,6 +297,11 @@ getHieToSource path = do
   hieCache <- getDiffCache path
   pure $ hieCache.hieToSource
 
+lineColToPos :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m Pos
+lineColToPos path lineCol = do
+  sourceRope <- getSourceRope path
+  pure $ Rope.lineColToPos sourceRope lineCol
+
 data DiffCache = DiffCache
   { hieToSource :: PositionDiff.DiffMap
   , sourceToHie :: PositionDiff.DiffMap
@@ -338,11 +344,12 @@ removeHieFromSourcePath path = do
   ConcurrentCache.remove path env.diffCache
   pure ()
 
-getThSplice :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m (Maybe Hir.ThSplice)
-getThSplice path lineCol = do
-  srcRope <- getSourceRope path
+throwIfInThSplice :: (HasCallStack, MonadIde m, MonadIO m) => String -> AbsPath -> Pos -> m ()
+throwIfInThSplice msg path pos = do
   haskell <- getHaskell path
-  let pos = Rope.lineColToPos srcRope lineCol
-      range = (Range.point pos)
+  let range = (Range.point pos)
       splice = AST.getDeepestContaining @Hir.ThSplice range haskell.dynNode
-  pure splice
+  case splice of
+    Nothing -> pure ()
+    Just _ -> do
+      Exception.throwString $ "Cannot perform action in splice: " ++ msg

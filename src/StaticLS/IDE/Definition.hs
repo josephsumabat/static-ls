@@ -50,6 +50,7 @@ getDefinition ::
   m [FileLcRange]
 getDefinition path lineCol = do
   pos <- lineColToPos path lineCol
+  throwIfInThSplice "getDefinition" path pos
   hs <- getHaskell path
   case Hir.getPersistentModelAtPoint (Range.point pos) hs of
     Just persistentModelName -> do

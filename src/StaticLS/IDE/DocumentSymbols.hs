@@ -12,8 +12,8 @@ import Data.Path (AbsPath)
 import Data.Range (Range)
 import Data.Text (Text)
 import StaticLS.IDE.Monad
-import StaticLS.IDE.SymbolKind (SymbolKind)
-import StaticLS.IDE.SymbolKind qualified as SymbolKind
+import StaticLS.IDE.Symbol (SymbolKind)
+import StaticLS.IDE.Symbol qualified as Symbol
 import StaticLS.Logger
 import StaticLS.Monad
 
@@ -59,7 +59,7 @@ typeFamilyToSymbol typeFamily = do
     Just $
       mkSymbolTree
         (nodeToText name)
-        SymbolKind.Type
+        Symbol.Type
         (AST.nodeToRange typeFamily)
         (AST.nodeToRange name)
 
@@ -71,7 +71,7 @@ typeSynonymToSymbol typeSynonym = do
     Just $
       mkSymbolTree
         (nodeToText name)
-        SymbolKind.Type
+        Symbol.Type
         (AST.nodeToRange typeSynonym)
         (AST.nodeToRange name)
 
@@ -83,7 +83,7 @@ newtypeToSymbol newtype_ = do
     Just $
       mkSymbolTree
         (nodeToText name)
-        SymbolKind.Type
+        Symbol.Type
         (AST.nodeToRange newtype_)
         (AST.nodeToRange name)
 
@@ -95,7 +95,7 @@ classToSymbol class_ = do
     Just $
       mkSymbolTree
         (nodeToText name)
-        SymbolKind.Class
+        Symbol.Class
         (AST.nodeToRange class_)
         (AST.nodeToRange name)
 
@@ -107,7 +107,7 @@ dataTypeToSymbol dataType = do
     Just $
       mkSymbolTree
         (nodeToText name)
-        SymbolKind.Type
+        Symbol.Type
         (AST.nodeToRange dataType)
         (AST.nodeToRange name)
 
@@ -121,7 +121,7 @@ declToSymbol decl =
         Just $
           mkSymbolTree
             (nodeToText name)
-            SymbolKind.Function
+            Symbol.Function
             (AST.nodeToRange decl)
             (AST.nodeToRange name)
     Inj @Haskell.Function fun -> do
@@ -131,7 +131,7 @@ declToSymbol decl =
         Just $
           mkSymbolTree
             (nodeToText name)
-            SymbolKind.Function
+            Symbol.Function
             (AST.nodeToRange decl)
             (AST.nodeToRange name)
     _ -> pure []

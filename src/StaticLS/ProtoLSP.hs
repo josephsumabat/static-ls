@@ -47,8 +47,8 @@ import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
-import StaticLS.IDE.SymbolKind (SymbolKind)
-import StaticLS.IDE.SymbolKind qualified as SymbolKind
+import StaticLS.IDE.Symbol (SymbolKind)
+import StaticLS.IDE.Symbol qualified as Symbol
 import StaticLS.IDE.Workspace.Symbol (Symbol (..))
 import StaticLS.Monad
 import StaticLS.Utils
@@ -106,12 +106,12 @@ locationToFileLcRange (LSP.Location uri range) =
 
 symbolKindToProto :: SymbolKind -> LSP.SymbolKind
 symbolKindToProto = \case
-  SymbolKind.Variable -> LSP.SymbolKind_Variable
-  SymbolKind.Function -> LSP.SymbolKind_Function
-  SymbolKind.Type -> LSP.SymbolKind_Struct
-  SymbolKind.Class -> LSP.SymbolKind_Interface
-  SymbolKind.Constructor -> LSP.SymbolKind_Constructor
-  SymbolKind.Field -> LSP.SymbolKind_Property
+  Symbol.Variable -> LSP.SymbolKind_Variable
+  Symbol.Function -> LSP.SymbolKind_Function
+  Symbol.Type -> LSP.SymbolKind_Struct
+  Symbol.Class -> LSP.SymbolKind_Interface
+  Symbol.Constructor -> LSP.SymbolKind_Constructor
+  Symbol.Field -> LSP.SymbolKind_Property
 
 symbolToProto :: Symbol -> LSP.SymbolInformation
 symbolToProto Symbol {name, kind, loc} =

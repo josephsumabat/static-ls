@@ -79,7 +79,7 @@ library
       StaticLS.IDE.References
       StaticLS.IDE.Rename
       StaticLS.IDE.SourceEdit
-      StaticLS.IDE.SymbolKind
+      StaticLS.IDE.Symbol
       StaticLS.IDE.Utils
       StaticLS.IDE.Workspace.Symbol
       StaticLS.Logger
@@ -130,6 +130,7 @@ library
     , extra >=1.7.12 && <1.8
     , filepath
     , fsnotify
+    , fuzzy
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , hashable
@@ -201,6 +202,7 @@ executable print-hie
     , extra >=1.7.12 && <1.8
     , filepath
     , fsnotify
+    , fuzzy
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , hashable
@@ -275,6 +277,7 @@ executable static-ls
     , extra >=1.7.12 && <1.8
     , filepath
     , fsnotify
+    , fuzzy
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , hashable
@@ -351,6 +354,7 @@ test-suite expect_tests
     , extra >=1.7.12 && <1.8
     , filepath
     , fsnotify
+    , fuzzy
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , hashable
@@ -458,6 +462,7 @@ test-suite static-ls-test
     , extra >=1.7.12 && <1.8
     , filepath
     , fsnotify
+    , fuzzy
     , ghc >=9.4.3 && <9.7
     , ghc-paths >=0.1.0 && <0.2
     , hashable

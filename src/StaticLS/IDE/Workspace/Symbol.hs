@@ -8,35 +8,43 @@ module StaticLS.IDE.Workspace.Symbol (
 
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.ConcurrentCache qualified as ConcurrentCache
 import Data.LineColRange (LineColRange (..))
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (catMaybes)
 import Data.Path qualified as Path
-import Data.Text (Text)
 import Data.Text qualified as T
 import GHC.Plugins qualified as GHC
-import GHC.Stack (HasCallStack)
 import HieDb qualified
 import StaticLS.HIE.File (hieFilePathToSrcFilePath)
 import StaticLS.HIE.Position
-import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
-import StaticLS.IDE.SymbolKind (SymbolKind (..))
-import StaticLS.IDE.SymbolKind qualified as SymbolKind
+import StaticLS.IDE.FileWith (FileWith' (..))
+import StaticLS.IDE.Monad (IdeEnv (..), MonadIde, getIdeEnv)
+import StaticLS.IDE.Symbol (Symbol (..))
+import StaticLS.IDE.Symbol qualified as Symbol
 import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
+import StaticLS.Utils (isJustOrThrowS)
+import Text.Fuzzy qualified as Fuzzy
 
-data Symbol = Symbol
-  { name :: !Text
-  , kind :: !SymbolKind
-  , loc :: !FileLcRange
-  }
-  deriving (Show, Eq)
-
-symbolInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => T.Text -> m [Symbol]
+symbolInfo :: (MonadIde m) => T.Text -> m [Symbol]
 symbolInfo query = do
-  mHiedbDefs <- runMaybeT . runHieDbMaybeT $ \hieDb -> HieDb.searchDef hieDb (T.unpack query)
-  let hiedbDefs = fromMaybe [] mHiedbDefs
-  symbols <- mapM defRowToSymbolInfo hiedbDefs
-  pure (catMaybes symbols)
+  symbols <- getSymbols
+  let fuzzySymbols = Fuzzy.filter query symbols "" "" (.name) True
+  pure $ Fuzzy.original <$> fuzzySymbols
+
+getSymbols :: (MonadIde m) => m [Symbol]
+getSymbols = do
+  env <- getIdeEnv
+  ConcurrentCache.insert
+    ()
+    ( do
+        mHiedbDefs <- runMaybeT . runHieDbMaybeT $ \hieDb -> HieDb.searchDef hieDb ("")
+        hiedbDefs <- isJustOrThrowS "could not get symbols" mHiedbDefs
+        symbols <- mapM defRowToSymbolInfo hiedbDefs
+        symbols' <- pure $ catMaybes symbols
+        pure symbols'
+    )
+    env.workspaceSymbolCache
 
 -- Copy from https://github.com/haskell/haskell-language-server/blob/c126332850d27abc8efa519f8437ff7ea28d4049/ghcide/src/Development/IDE/Spans/AtPoint.hs#L392
 -- With following modification
@@ -58,9 +66,9 @@ defRowToSymbolInfo (HieDb.DefRow {..} HieDb.:. _) = runMaybeT $ do
         }
  where
   mKind
-    | GHC.isVarOcc defNameOcc = Just SymbolKind.Variable
-    | GHC.isDataOcc defNameOcc = Just SymbolKind.Constructor
-    | GHC.isTcOcc defNameOcc = Just SymbolKind.Type
+    | GHC.isVarOcc defNameOcc = Just Symbol.Variable
+    | GHC.isDataOcc defNameOcc = Just Symbol.Constructor
+    | GHC.isTcOcc defNameOcc = Just Symbol.Type
     | otherwise = Nothing
   range = LineColRange start end
   start = hiedbCoordsToLineCol (defSLine, defSCol)

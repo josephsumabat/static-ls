@@ -1,45 +1,8 @@
-module StaticLS.IDE.Monad
-where
-
--- (
---   MonadIde,
---   IdeEnv (..),
---   HasIdeEnv (..),
---   getHaskell,
---   getSourceRope,
---   getSource,
---   getHieToSrcDiffMap,
---   getSrcToHieDiffMap,
---   getHieSourceRope,
---   getHieSource,
---   getHieFile,
---   getHieCacheImpl,
---   CachedHieFile (..),
---   MonadHieFile (..),
---   SetHieCache (..),
---   HasHieCache (..),
---   DiffCache (..),
---   HasDiffCacheRef (..),
---   GetDiffCache (..),
---   TouchCachesParallel (..),
---   touchCachesParallelImpl,
---   getDiffCacheImpl,
---   getHieToSource,
---   getSourceToHie,
---   removeDiffCache,
---   removePathImpl,
---   removeHieFromSourcePath,
---   onNewSource,
---   getHieTokenMap,
---   getTokenMap,
---   getHir,
---   getHieView,
---   getThSplice,
---   getFileStateResult,
--- )
+module StaticLS.IDE.Monad where
 
 import AST.Haskell qualified as Haskell
 import AST.Traversal qualified as AST
+import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
@@ -59,6 +22,7 @@ import Data.Text.IO qualified as T
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView qualified as HieView
 import StaticLS.Hir qualified as Hir
+import StaticLS.IDE.Symbol (Symbol (..))
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic
@@ -72,6 +36,7 @@ data IdeEnv = IdeEnv
   { fileStateCache :: ConcurrentCache AbsPath FileState
   , hieCache :: ConcurrentCache AbsPath (Maybe CachedHieFile)
   , diffCache :: ConcurrentCache AbsPath (Maybe DiffCache)
+  , workspaceSymbolCache :: ConcurrentCache () [Symbol]
   }
 
 newIdeEnv :: IO IdeEnv
@@ -79,7 +44,14 @@ newIdeEnv = do
   fileStateCache <- ConcurrentCache.new
   hieCache <- ConcurrentCache.new
   diffCache <- ConcurrentCache.new
-  pure $ IdeEnv {fileStateCache, hieCache, diffCache}
+  workspaceSymbolCache <- ConcurrentCache.new
+  pure $
+    IdeEnv
+      { fileStateCache
+      , hieCache
+      , diffCache
+      , workspaceSymbolCache
+      }
 
 class HasIdeEnv m where
   getIdeEnv :: m IdeEnv
@@ -93,27 +65,13 @@ type MonadIde m =
   , HasStaticEnv m
   , HasLogger m
   , MonadUnliftIO m
+  , MonadThrow m
   )
 
 removePath :: (MonadIde m) => AbsPath -> m ()
 removePath path = do
   env <- getIdeEnv
   ConcurrentCache.remove path env.fileStateCache
-
--- setFileState :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> FileState -> m ()
--- setFileState path fileState = do
---   sema <- getSemantic
---   setSemantic $
---     sema
---       { fileStates = HashMap.insert path fileState sema.fileStates
---       }
---   pure ()
-
--- updateSemantic :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> Rope.Rope -> m ()
--- updateSemantic path contentsRope = do
---   let contentsText = Rope.toText contentsRope
---   let fileState = mkFileState contentsText contentsRope
---   setFileState path fileState
 
 getFileState :: (MonadIde m) => AbsPath -> m FileState
 getFileState path = do
@@ -336,6 +294,7 @@ removeHieFromSourcePath path = do
   env <- getIdeEnv
   ConcurrentCache.remove path env.hieCache
   ConcurrentCache.remove path env.diffCache
+  ConcurrentCache.remove () env.workspaceSymbolCache
   pure ()
 
 getThSplice :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m (Maybe Hir.ThSplice)

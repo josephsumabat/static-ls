@@ -533,7 +533,7 @@ parsePattern p = do
       synonym <- note "no synonym" eu.synonym
       res <- note "no name found" $ AST.getDeepestSatisfying (AST.cast @ParseNameTypes) (AST.getDynNode synonym)
       let name = parseName res
-      pure $ [DeclPattern PatternDecl {name, node = e}]
+      pure [DeclPattern PatternDecl {name, node = e}]
     AST.Inj @H.Signature s -> do
       su <- AST.unwrap s
       case su.names of
@@ -548,7 +548,7 @@ parsePattern p = do
               pure $ fmap (\name -> DeclPatternSig PatternSigDecl {name}) names
             AST.Rest name -> do
               name <- parseNamePrefix =<< removeQualified name
-              pure $ [DeclPatternSig PatternSigDecl {name}]
+              pure [DeclPatternSig PatternSigDecl {name}]
     _ -> pure []
 
 parseTypeFamily :: H.TypeFamily -> AST.Err (Decl)

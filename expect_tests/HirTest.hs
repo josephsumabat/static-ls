@@ -22,7 +22,7 @@ checkHir name source ex = test name ex $ do
   let (es, hir) = Hir.parseHaskell tree
   pure $ TL.toStrict $ Pretty.pShowNoColor hir
 
-src1 =
+
   [trimming|
   module First where
 

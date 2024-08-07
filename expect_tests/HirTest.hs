@@ -22,7 +22,7 @@ checkHir name source ex = test name ex $ do
   let (es, hir) = Hir.parseHaskell tree
   pure $ TL.toStrict $ Pretty.pShowNoColor hir
 
-
+src1 =
   [trimming|
   module First where
 
@@ -83,7 +83,7 @@ tests =
             ( DataDecl
                 { name = Name
                     { node = "unit@(45 - 47)"
-                    , isOperator = True
+                    , isOperator = False
                     , isConstructor = True
                     }
                 , node = "data_type@(40 - 52)"

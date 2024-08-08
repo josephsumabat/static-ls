@@ -34,3 +34,4 @@ errors.txt
 .direnv/
 .hiedb*
 .test_builds/
+result/

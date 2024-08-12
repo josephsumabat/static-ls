@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module StaticLS.Hir where
 
 import AST (DynNode)
@@ -8,6 +10,7 @@ import AST.Sum (Nil, (:+))
 import Control.Applicative (asum, (<|>))
 import Control.Error (hush)
 import Control.Error qualified as Error
+import Control.Error.Util (note)
 import Control.Monad (guard)
 import Data.Either qualified as Either
 import Data.List.NonEmpty (NonEmpty)
@@ -30,7 +33,12 @@ data Name = Name
   , isOperator :: !Bool
   , isConstructor :: !Bool
   }
+
+data NameShow = NameShow {name :: Text, node :: DynNode}
   deriving (Show)
+
+instance Show Name where
+  show Name {node} = show NameShow {name = AST.nodeToText node, node}
 
 data Qualified = Qualified
   { mod :: Maybe ModuleName
@@ -144,13 +152,27 @@ parseName ast = case ast of
  where
   node = AST.getDynNode ast
 
-parseNamePrefix :: (H.PrefixId :+ ParseNameTypes) -> AST.Err Name
+parseNamePrefix :: (H.PrefixId :+ H.PrefixList :+ H.Unit :+ ParseNameTypes) -> AST.Err Name
 parseNamePrefix node =
   case node of
-    AST.X prefixId -> do
+    [AST.x1|prefixId|] -> do
       prefixId <- AST.unwrap prefixId
       parseName <$> removeQualified prefixId.children
-    AST.Rest name -> pure $ parseName name
+    [AST.x2|prefixList|] -> do
+      pure
+        Name
+          { node = prefixList.dynNode
+          , isOperator = True
+          , isConstructor = True
+          }
+    [AST.x3|unit|] -> do
+      pure
+        Name
+          { node = unit.dynNode
+          , isOperator = False
+          , isConstructor = True
+          }
+    [AST.rest3|name|] -> pure $ parseName name
 
 parseModuleTextFromText :: Text -> ModuleText
 parseModuleTextFromText text =
@@ -196,8 +218,8 @@ parseExportOperator operator = do
   operator <- operator.children
   parseQualified $ AST.subset operator
 
-removeQualified :: (AST.Subset n (H.Qualified :+ ParseNameTypes)) => n -> AST.Err ParseNameTypes
-removeQualified n = case AST.subset @_ @(H.Qualified :+ ParseNameTypes) n of
+removeQualified :: forall n n'. (AST.Subset n (H.Qualified :+ n')) => n -> AST.Err n'
+removeQualified n = case AST.subset @_ @(H.Qualified :+ n') n of
   AST.X qualified -> Left $ "qualified name in import: " <> qualified.dynNode.nodeText
   AST.Rest name -> pure name
 
@@ -205,33 +227,33 @@ type ParseImportChildren = H.Qualified :+ H.AllNames :+ H.AssociatedType :+ H.Pr
 
 parseImportChild :: ParseImportChildren -> AST.Err ImportChildren
 parseImportChild child = case child of
-  AST.X qualified -> Left $ "qualified name in import children: " <> qualified.dynNode.nodeText
-  AST.Rest (AST.X _allNames) -> pure ImportAllChildren
-  AST.Rest (AST.Rest (AST.X assocType)) -> do
+  [AST.x1|qualified|] -> Left $ "qualified name in import children: " <> qualified.dynNode.nodeText
+  [AST.x2|_allNames|] -> pure ImportAllChildren
+  [AST.x3|assocType|] -> do
     type' <- assocType.type'
     name <- removeQualified type'
     pure $ ImportChild NameSpaceType (parseName name)
-  AST.Rest (AST.Rest (AST.Rest (AST.X prefixId))) -> do
+  [AST.x4|prefixId|] -> do
     operator <- prefixId.children
     name <- removeQualified operator
     pure $ ImportChild NameSpaceValue (parseName name)
-  AST.Rest (AST.Rest (AST.Rest (AST.Rest rest))) -> pure $ ImportChild NameSpaceValue (parseName rest)
+  [AST.rest4|rest|] -> pure $ ImportChild NameSpaceValue (parseName rest)
 
 parseExportChild :: ParseImportChildren -> AST.Err ExportChildren
 parseExportChild child = case child of
-  AST.X qualified -> do
+  [AST.x1|qualified|] -> do
     name <- parseQualified (AST.Inj qualified)
     pure $ ExportChild NameSpaceValue name
-  AST.Rest (AST.X _allNames) -> pure ExportAllChildren
-  AST.Rest (AST.Rest (AST.X assocType)) -> do
+  [AST.x2|_allNames|] -> pure ExportAllChildren
+  [AST.x3|assocType|] -> do
     type' <- assocType.type'
     name <- parseQualified $ AST.subset type'
     pure $ ExportChild NameSpaceType name
-  AST.Rest (AST.Rest (AST.Rest (AST.X prefixId))) -> do
+  [AST.x4|prefixId|] -> do
     operator <- prefixId.children
     name <- parseQualified $ AST.subset operator
     pure $ ExportChild NameSpaceValue name
-  AST.Rest (AST.Rest (AST.Rest (AST.Rest rest))) -> do
+  [AST.rest4|rest|] -> do
     name <- parseQualified (AST.subset rest)
     pure $ ExportChild NameSpaceValue name
 
@@ -384,6 +406,12 @@ data DataDecl = DataDecl
   }
   deriving (Show)
 
+data ClassDecl = ClassDecl
+  { name :: Name
+  , node :: H.Class
+  }
+  deriving (Show)
+
 data BindDecl = BindDecl
   { name :: Name
   , node :: H.Bind :+ H.Function :+ AST.Nil
@@ -396,66 +424,159 @@ data SigDecl = SigDecl
   }
   deriving (Show)
 
+data DataFamilyDecl = DataFamilyDecl
+  {name :: Name, node :: H.DataFamily}
+  deriving (Show)
+
+data NewtypeDecl = NewtypeDecl
+  { name :: Name
+  , node :: H.Newtype
+  }
+  deriving (Show)
+
+data PatternSigDecl = PatternSigDecl
+  { name :: Name
+  }
+  deriving (Show)
+
+data PatternDecl = PatternDecl
+  { name :: Name
+  , node :: H.Equation
+  }
+  deriving (Show)
+
+data TypeFamilyDecl = TypeFamilyDecl
+  { name :: Name
+  , node :: H.TypeFamily
+  }
+  deriving (Show)
+
+data TypeSynonymDecl = TypeSynonymDecl
+  { name :: Name
+  , node :: H.TypeSynomym
+  }
+  deriving (Show)
+
 data Decl
   = DeclData DataDecl
+  | DeclNewtype NewtypeDecl
+  | DeclClass ClassDecl
   | DeclSig SigDecl
   | DeclBind BindDecl
+  | DeclDataFamily DataFamilyDecl
+  | DeclPatternSig PatternSigDecl
+  | DeclPattern PatternDecl
+  | DeclTypeFamily TypeFamilyDecl
+  | DeclTypeSynonym TypeSynonymDecl
   deriving (Show)
 
 parseDataType :: H.DataType -> AST.Err DataDecl
 parseDataType node = do
   dt <- AST.unwrap node
   name <- Error.note "no name for data type" dt.name
-  name <- case name of
-    AST.X name -> pure $ parseName (AST.Inj name)
-    AST.Rest (AST.X prefixId) -> do
-      prefixId <- AST.unwrap prefixId
-      name <- removeQualified prefixId.children
-      pure $ parseName name
-    AST.Rest (AST.Rest (AST.X prefixList)) ->
-      pure
-        Name
-          { node = prefixList.dynNode
-          , isOperator = True
-          , isConstructor = True
-          }
-    AST.Rest (AST.Rest (AST.Rest (AST.X _qual))) -> Left "invalid qualified in data name"
-    AST.Rest (AST.Rest (AST.Rest (AST.Rest (AST.X unit)))) ->
-      pure
-        Name
-          { node = unit.dynNode
-          , isOperator = True
-          , isConstructor = True
-          }
-    AST.Rest (AST.Rest (AST.Rest (AST.Rest (AST.Rest nil)))) -> case nil of {}
+  name <- parseNamePrefix =<< removeQualified name
   pure DataDecl {name, node}
 
-parseBind :: H.Decl -> AST.Err (Maybe Decl)
+parseBind :: H.Decl -> AST.Err (Decl)
 parseBind decl = do
   case decl.getDecl of
-    AST.X bindNode -> do
+    [AST.x1|bindNode|] -> do
       bind <- AST.unwrap bindNode
       name <- Error.note "no bind name" bind.name
       name <- parseNamePrefix $ AST.subset name
-      pure $ Just $ DeclBind BindDecl {name, node = AST.Inj bindNode}
-    AST.Rest (AST.X fnNode) -> do
+      pure $ DeclBind BindDecl {name, node = AST.Inj bindNode}
+    [AST.x2|fnNode|] -> do
       fn <- AST.unwrap fnNode
       name <- Error.note "no function name" fn.name
       name <- parseNamePrefix $ AST.subset name
-      pure $ Just $ DeclBind BindDecl {name, node = AST.Inj fnNode}
-    AST.Rest (AST.Rest (AST.X sigNode)) -> do
+      pure $ DeclBind BindDecl {name, node = AST.Inj fnNode}
+    [AST.x3|sigNode|] -> do
       sig <- AST.unwrap sigNode
       name <- Error.note "no signature name" sig.name
       name <- parseNamePrefix $ AST.subset name
-      pure $ Just $ DeclSig SigDecl {name, node = sigNode}
-    AST.Rest (AST.Rest (AST.Rest nil)) -> case nil of {}
+      pure $ DeclSig SigDecl {name, node = sigNode}
+    [AST.rest3|nil|] -> case nil of {}
 
-parseDeclaration :: H.Declaration -> AST.Err (Maybe Decl)
+parseClass :: H.Class -> AST.Err (Decl)
+parseClass c = do
+  cu <- AST.unwrap c
+  name <- note "no name for class" cu.name
+  name <- parseNamePrefix $ AST.subset name
+  pure $ DeclClass ClassDecl {name, node = c}
+
+parseDataFamily :: H.DataFamily -> AST.Err (Decl)
+parseDataFamily d = do
+  du <- AST.unwrap d
+  name <- note "no name for data family" du.name
+  name <- parseNamePrefix $ AST.subset name
+  pure $ DeclDataFamily DataFamilyDecl {name, node = d}
+
+parseNewtype :: H.Newtype -> AST.Err (Decl)
+parseNewtype n = do
+  nu <- AST.unwrap n
+  name <- note "no name for newtype" nu.name
+  name <- parseNamePrefix =<< removeQualified name
+  pure $ DeclNewtype NewtypeDecl {name, node = n}
+
+parseBindingList :: H.BindingList -> AST.Err [Name]
+parseBindingList bs = do
+  bsu <- AST.unwrap bs
+  let names = NE.toList bsu.name
+  traverse (parseNamePrefix . AST.subset) names
+
+parsePattern :: H.PatternSynonym -> AST.Err ([Decl])
+parsePattern p = do
+  p <- p.children
+  case p of
+    AST.Inj @H.Equation e -> do
+      eu <- AST.unwrap e
+      synonym <- note "no synonym" eu.synonym
+      res <- note "no name found" $ AST.getDeepestSatisfying (AST.cast @ParseNameTypes) (AST.getDynNode synonym)
+      let name = parseName res
+      pure [DeclPattern PatternDecl {name, node = e}]
+    AST.Inj @H.Signature s -> do
+      su <- AST.unwrap s
+      case su.names of
+        Just bindingList -> do
+          names <- parseBindingList bindingList
+          pure $ fmap (\name -> DeclPatternSig PatternSigDecl {name}) names
+        Nothing -> do
+          synonym <- note "no synonym" su.synonym
+          case synonym of
+            AST.X bindingList -> do
+              names <- parseBindingList bindingList
+              pure $ fmap (\name -> DeclPatternSig PatternSigDecl {name}) names
+            AST.Rest name -> do
+              name <- parseNamePrefix =<< removeQualified name
+              pure [DeclPatternSig PatternSigDecl {name}]
+    _ -> pure []
+
+parseTypeFamily :: H.TypeFamily -> AST.Err (Decl)
+parseTypeFamily t = do
+  tu <- AST.unwrap t
+  name <- note "no name for type family" tu.name
+  name <- parseNamePrefix =<< removeQualified name
+  pure $ DeclTypeFamily TypeFamilyDecl {name, node = t}
+
+parseTypeSynonym :: H.TypeSynomym -> AST.Err (Decl)
+parseTypeSynonym t = do
+  tu <- AST.unwrap t
+  name <- note "no name for type synonym" tu.name
+  name <- parseNamePrefix =<< removeQualified name
+  pure $ DeclTypeSynonym TypeSynonymDecl {name, node = t}
+
+parseDeclaration :: H.Declaration -> AST.Err ([Decl])
 parseDeclaration decl = case decl.getDeclaration of
   AST.Inj @H.DataType d -> do
-    (Just . DeclData) <$> parseDataType d
-  AST.Inj @H.Decl b -> parseBind b
-  _ -> pure Nothing
+    (pure @[] . DeclData) <$> parseDataType d
+  AST.Inj @H.Decl b -> pure @[] <$> parseBind b
+  AST.Inj @H.Class c -> pure @[] <$> parseClass c
+  AST.Inj @H.DataFamily d -> pure @[] <$> parseDataFamily d
+  AST.Inj @H.Newtype n -> pure @[] <$> parseNewtype n
+  AST.Inj @H.PatternSynonym p -> parsePattern p
+  AST.Inj @H.TypeFamily t -> pure @[] <$> parseTypeFamily t
+  AST.Inj @H.TypeSynomym t -> pure @[] <$> parseTypeSynonym t
+  _ -> pure []
 
 data Program = Program
   { imports :: [Import]
@@ -503,7 +624,7 @@ parseHaskell h = do
                       AST.Rest (AST.Rest nil) -> case nil of {}
               let decls = fmap parseChild children
               let (es, decls') = Either.partitionEithers decls
-              let decls'' = Maybe.catMaybes decls'
+              let decls'' = concat decls'
               pure (es, decls'')
         pure (es ++ es' ++ es'', Program {imports, exports, decls})
   case res of

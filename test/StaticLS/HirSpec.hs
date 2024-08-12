@@ -17,7 +17,7 @@ import UnliftIO.Exception qualified as Exception
 
 spec :: Spec
 spec = do
-  fdescribe "find persistent model" do
+  describe "find persistent model" do
     check
       "first"
       [trimming|

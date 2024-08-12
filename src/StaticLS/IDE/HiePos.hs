@@ -26,11 +26,6 @@ hiePosToPos path hiePos = do
   hieToSource <- getHieToSource path
   pure $ PositionDiff.diffPos hiePos hieToSource
 
-lineColToPos :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m Pos
-lineColToPos path lineCol = do
-  sourceRope <- getSourceRope path
-  pure $ Rope.lineColToPos sourceRope lineCol
-
 hieLineColToPos :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> MaybeT m Pos
 hieLineColToPos path lineCol = do
   hieSourceRope <- getHieSourceRope path

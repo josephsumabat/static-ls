@@ -48,6 +48,8 @@ retrieveHover ::
   LineCol ->
   m (Maybe Hover)
 retrieveHover path lineCol = do
+  pos <- lineColToPos path lineCol
+  throwIfInThSplice "retriveHover" path pos
   runMaybeT $ do
     hieFile <- getHieFile path
     hieView <- getHieView path

@@ -34,9 +34,11 @@ getEvidenceClosure evidenceDeps evidences =
   go _visited [] res = res
 
 getImplementation :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
-getImplementation path pos = do
+getImplementation path lineCol = do
+  pos <- lineColToPos path lineCol
+  throwIfInThSplice "getImplementation" path pos
   locations <- runMaybeT do
-    hieLineCol <- lineColToHieLineCol path pos
+    hieLineCol <- lineColToHieLineCol path lineCol
     hieView <- getHieView path
     let evidenceBinds = HieView.Query.fileEvidenceBinds hieView
     let evidenceUses = HieView.Query.fileEvidenceUsesAtRangeList (Just (LineColRange.point hieLineCol)) hieView

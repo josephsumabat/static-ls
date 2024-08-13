@@ -54,13 +54,18 @@ reactor :: Conc.Chan ReactorMsg -> LSP.LanguageContextEnv LspConfig -> LoggerM I
 reactor chan lspEnv _logger = do
   Monad.forever do
     msg <- liftIO $ Conc.readChan chan
-    case msg of
-      ReactorMsgAct act -> act
-      ReactorMsgRequest act resp -> do
-        a <- act
-        Conc.putMVar resp a
-      ReactorMsgLspAct act -> do
-        LSP.runLspT lspEnv act
+    Exception.catchAny
+      ( case msg of
+          ReactorMsgAct act -> act
+          ReactorMsgRequest act resp -> do
+            a <- act
+            Conc.putMVar resp a
+          ReactorMsgLspAct act -> do
+            LSP.runLspT lspEnv act
+      )
+      ( \e -> do
+          logError $ "Error in reactor: " <> T.pack (show e)
+      )
 
 fileWatcher :: Conc.Chan ReactorMsg -> StaticEnv -> LoggerM IO -> IO ()
 fileWatcher chan staticEnv _logger = do

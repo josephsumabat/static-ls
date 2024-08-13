@@ -1,6 +1,7 @@
 module StaticLS.Handlers where
 
 import Control.Lens.Operators
+import Control.Monad qualified as Monad
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
@@ -44,6 +45,7 @@ import StaticLS.ProtoLSP (absPathToUri)
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv qualified as StaticEnv
 import StaticLS.Utils
+import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
 
@@ -287,13 +289,15 @@ handleDocumentSymbols = LSP.requestHandler LSP.SMethod_TextDocumentDocumentSymbo
 handleGhcidFileChange :: LspT c StaticLsM ()
 handleGhcidFileChange = do
   lift $ logInfo "handleGhcidFileChange"
-  contents <- liftIO $ T.IO.readFile "ghcid.txt"
-  staticEnv <- lift StaticEnv.getStaticEnv
-  let diags = IDE.Diagnostics.ParseGHC.parse (staticEnv.wsRoot Path.</>) contents
-  lift $ logInfo $ "diags: " <> T.pack (show diags)
-  clearDiagnostics
-  sendDiagnostics Nothing diags
-  pure ()
+  exists <- liftIO $ doesFileExist "ghcid.txt"
+  Monad.when exists do
+    contents <- liftIO $ T.IO.readFile "ghcid.txt"
+    staticEnv <- lift StaticEnv.getStaticEnv
+    let diags = IDE.Diagnostics.ParseGHC.parse (staticEnv.wsRoot Path.</>) contents
+    lift $ logInfo $ "diags: " <> T.pack (show diags)
+    clearDiagnostics
+    sendDiagnostics Nothing diags
+    pure ()
 
 sendDiagnostics :: (LSP.MonadLsp c m) => Maybe Int32 -> [IDE.Diagnostics.Diagnostic] -> m ()
 sendDiagnostics version diags = do

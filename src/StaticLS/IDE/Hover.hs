@@ -27,6 +27,7 @@ import Language.LSP.Protocol.Types (
 import StaticLS.HI
 import StaticLS.HI.File
 
+import Control.Monad qualified as Monad
 import Data.LineColRange qualified as LineColRange
 import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
@@ -56,6 +57,11 @@ retrieveHover path lineCol = do
     lineCol' <- lineColToHieLineCol path lineCol
     lift $ logInfo $ T.pack $ "lineCol: " <> show lineCol
     lift $ logInfo $ T.pack $ "lineCol': " <> show lineCol'
+    pos <- lift $ lineColToPos path lineCol
+    hieLineCol <- lineColToHieLineCol path lineCol
+    hiePos <- hieLineColToPos path hieLineCol
+    valid <- lift $ isHiePosValid path pos hiePos
+    _ <- Monad.guard valid
     docs <- docsAtPoint hieView lineCol'
     let mHieInfo =
           listToMaybe $

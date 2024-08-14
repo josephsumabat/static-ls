@@ -120,9 +120,9 @@ docsAtPoint path hieView pos position = do
   if inHover
     then do
       let
-          -- don't take too many here so we don't hang
-          names = take maxNames $ fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.point position)) hieView
-          modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
+        -- don't take too many here so we don't hang
+        names = take maxNames $ fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.point position)) hieView
+        modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
       modIfaceFiles <- fromMaybe [] <$> runMaybeT (mapM modToHiFile modNames)
       modIfaces <- catMaybes <$> mapM (runMaybeT . readHiFile . Path.toFilePath) modIfaceFiles
       let docs = getDocsBatch names =<< modIfaces

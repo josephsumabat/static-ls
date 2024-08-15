@@ -20,26 +20,32 @@ import Language.LSP.Protocol.Types (
   Hover (..),
   MarkupContent (..),
   MarkupKind (..),
-  Range (..),
   sectionSeparator,
   type (|?) (..),
  )
 import StaticLS.HI
 import StaticLS.HI.File
 
+import AST qualified
+import AST.Haskell qualified as H
 import Control.Monad qualified as Monad
 import Data.LineColRange qualified as LineColRange
+import Data.Maybe qualified as Maybe
+import Data.Pos (Pos)
+import Data.Range (Range)
+import Data.Range qualified as Range
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.View qualified as HieView
+import StaticLS.Hir qualified as Hir
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
 import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
-import StaticLS.StaticEnv
 
 -- | Retrieve hover information.
 retrieveHover ::
@@ -62,7 +68,7 @@ retrieveHover path lineCol = do
     hiePos <- hieLineColToPos path hieLineCol
     valid <- lift $ isHiePosValid path pos hiePos
     _ <- Monad.guard valid
-    docs <- docsAtPoint hieView lineCol'
+    docs <- lift $ docsAtPoint path hieView pos lineCol'
     let mHieInfo =
           listToMaybe $
             pointCommand
@@ -82,26 +88,44 @@ retrieveHover path lineCol = do
           mHieInfo
     pure $ hoverInfoToHover srcInfo
  where
-  hoverInfoToHover :: (Maybe Range, [Text]) -> Hover
+  hoverInfoToHover :: (Maybe LSP.Range, [Text]) -> Hover
   hoverInfoToHover (mRange, contents) =
     Hover
       { _range = mRange
       , _contents = InL $ MarkupContent MarkupKind_Markdown $ intercalate sectionSeparator contents
       }
 
-  hieRangeToSrcRange :: AbsPath -> Maybe LineColRange -> MaybeT m Range
+  hieRangeToSrcRange :: AbsPath -> Maybe LineColRange -> MaybeT m LSP.Range
   hieRangeToSrcRange path mLineColRange = do
     lineColRange <- toAlt mLineColRange
     srcStart <- hieLineColToLineCol path lineColRange.start
     srcEnd <- hieLineColToLineCol path lineColRange.end
     pure $ ProtoLSP.lineColRangeToProto (LineColRange srcStart srcEnd)
 
-docsAtPoint :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieView.File -> LineCol -> m [NameDocs]
-docsAtPoint hieView position = do
-  let names = fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.point position)) hieView
-      -- namesAtPoint hieFile (lineColToHieDbCoords position)
-      modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
-  modIfaceFiles <- fromMaybe [] <$> runMaybeT (mapM modToHiFile modNames)
-  modIfaces <- catMaybes <$> mapM (runMaybeT . readHiFile . Path.toFilePath) modIfaceFiles
-  let docs = getDocsBatch names =<< modIfaces
-  pure docs
+isInHoverName :: (MonadIde m) => AbsPath -> Range -> m Bool
+isInHoverName path range = do
+  hs <- getHaskell path
+  let node = AST.getDeepestContaining @(H.Module AST.:+ Hir.ParseQualifiedTypes) range hs.dynNode
+  pure $ Maybe.isJust node
+
+maxNames :: Int
+maxNames = 20
+
+docsAtPoint :: (MonadIde m) => AbsPath -> HieView.File -> Pos -> LineCol -> m [NameDocs]
+docsAtPoint path hieView pos position = do
+  -- make sure that we are on a name
+  -- there are no docs in a subexpression
+  -- this way we won't try to get all the possible names in some subexpression which could be huge
+  inHover <- isInHoverName path (Range.point pos)
+  if inHover
+    then do
+      let
+        -- don't take too many here so we don't hang
+        names = take maxNames $ fmap HieView.Name.toGHCName $ HieView.Query.fileNamesAtRangeList (Just (LineColRange.point position)) hieView
+        modNames = fmap GHC.moduleName . mapMaybe GHC.nameModule_maybe $ names
+      modIfaceFiles <- fromMaybe [] <$> runMaybeT (mapM modToHiFile modNames)
+      modIfaces <- catMaybes <$> mapM (runMaybeT . readHiFile . Path.toFilePath) modIfaceFiles
+      let docs = getDocsBatch names =<< modIfaces
+      pure docs
+    else do
+      pure []

@@ -102,6 +102,7 @@ tests =
                     { name = "First"
                     , node = "constructor@(48 - 53)"
                     }
+                , node = "signature@(48 - 84)"
                 }
             )
         , DeclPatternSig
@@ -110,6 +111,7 @@ tests =
                     { name = "Second"
                     , node = "constructor@(55 - 61)"
                     }
+                , node = "signature@(48 - 84)"
                 }
             )
         , DeclPatternSig
@@ -118,6 +120,7 @@ tests =
                     { name = "Third"
                     , node = "constructor@(63 - 68)"
                     }
+                , node = "signature@(48 - 84)"
                 }
             )
         , DeclClass

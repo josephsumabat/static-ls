@@ -164,8 +164,8 @@ data NewtypeDecl = NewtypeDecl
   deriving (Show)
 
 data PatternSigDecl = PatternSigDecl
-  { name :: Name,
-    node :: H.Signature
+  { name :: Name
+  , node :: H.Signature
   }
   deriving (Show)
 

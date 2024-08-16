@@ -60,9 +60,14 @@ library
       StaticLS.HieView.Utils
       StaticLS.HieView.View
       StaticLS.Hir
+      StaticLS.Hir.Make
       StaticLS.Hir.Name
+      StaticLS.Hir.Parse
+      StaticLS.Hir.Print
+      StaticLS.Hir.Types
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AddTypeSig
+      StaticLS.IDE.CodeActions.AutoExport
       StaticLS.IDE.CodeActions.AutoImport
       StaticLS.IDE.CodeActions.Types
       StaticLS.IDE.Completion

@@ -21,18 +21,24 @@ static sources once or can support a performant fully integrated editor
 workflow with some setup and usage of a file watcher to recompile your project.
 
 If you want to use `static-ls` in your IDE then
-[ghcid](https://github.com/ndmitchell/ghcid) or
-[ghciwatch](https://github.com/MercuryTechnologies/ghciwatch) are strongly
-recommended to watch files for compilation and the `-fdefer-type-errors flag`.
+[ghciwatch](https://github.com/MercuryTechnologies/ghciwatch) for recompilation is strongly
+recommended alongside `-fdefer-type-errors flag` for better UX
+and the [ghc hiedb plugin](https://github.com/josephsumabat/hiedb-plugin) for re-indexing. 
 
 Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add support for other versions of ghc if desired
 
 ## Quick start
 
-1. Compile your project with ide info `-fwrite-ide-info` and `-hiedir .hiefiles`.
+1. Compile your project with the following flags: 
+
+    ```
+    -fwrite-ide-info
+    -hiedir .hiefiles
+    ```
    You can also add `-hidir .hifiles` for haddock support (Only supported on 64
-   bit systems right now) though this may require some extra build
-   configuration)
+   bit systems right now) though this may also require some extra build
+   configuration.
+
    Note if you don't want to change the output directories of these files you
    can symlink them instead or point `static-ls` to them with its arguments.
    (See `static-ls --help` for info)
@@ -72,7 +78,7 @@ Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add
           -fno-defer-typed-holes
       ```
     
-3. Index your project in hiedb running:
+2. You can index your project in hiedb running:
       ```
         hiedb -D .hiedb index .hiefiles --src-base-dir .
       ```
@@ -82,18 +88,16 @@ Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add
       ```
         hiedb -D .hiedb index .hiefiles
       ```
-      
-      `entr` is also recommended if you want file watching functionality:
-      ```
-      find -L .hiefiles | entr hiedb -D .hiedb index /_       
-      ```
+    
+    if you want to let ghc handle this automatically on recompilation you can
+    use the [ghc hiedb plugin](https://github.com/josephsumabat/hiedb-plugin).
+    Using it alongside ghciwatch is generally recommended for a better UX.
 
 4. Point your language client to the `static-ls` binary and begin editing!
     (See [Editor Setup](#editor-setup) for instructions if you're not sure how)
 
-[ghciwatch](https://github.com/MercuryTechnologies/ghciwatch) or
-[ghcid](https://github.com/ndmitchell/ghcid) is recommended to refresh hie
-files but compiling with `cabal build` should work as well
+[ghciwatch](https://github.com/MercuryTechnologies/ghciwatch) is recommended to
+refresh hie files but compiling with `cabal build` should work as well
 
 ## Features
 
@@ -113,6 +117,14 @@ files but compiling with `cabal build` should work as well
   - Works on both local and top level definitions
 
 ![Find definition](./docs/gifs/find-definition.gif)
+
+- Rename
+- Go to Implementation
+- Go to type definition
+- Workspace symbols
+- Document symbols
+- Code actions
+- Autocomplete
 
 ## Supported static sources
 
@@ -153,21 +165,19 @@ call `:CocConfig` and copy the following in:
 
 ### Visual Studio Code
 
-1. Install the Haskell language extension
-  ![Haskell Extension](./docs/imgs/vs-code-extension.png)
+You can technically use any LSP compliant client - for a generic one we generally recommend https://github.com/MercuryTechnologies/alloglot
 
-2. Open the extension settings
-  ![Go to tsettings](./docs/imgs/vs-code-settings.png)
+1. Install the the alloglot language extension from the vscode store
 
-3. Scroll down until you see "Server Executable Path" and set the path to the path of your `static-ls` binary
-  ![Set the language server executable path](./docs/imgs/vs-code-settings-executable-path.png)
-
-Alternatively you can also in your workspace's `./vscode/settings.json` you can use the following:
+2. In your workspace's or global `./vscode/settings.json` you can use the following:
 ```
 {
-  "haskell.manageHLS": "PATH",
-  "haskell.serverExecutablePath": "static-ls",
-  "haskell.serverExtraArgs": ""
+  "alloglot.languages": [
+    {
+      "languageId": "haskell",
+      "serverCommand": "static-ls",
+    }
+  ]
 }
 ```
 (Note `haskell.serverExecutablePath` should be the path to your binary).

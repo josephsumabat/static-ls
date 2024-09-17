@@ -22,6 +22,7 @@ import Data.Hashable (Hashable (..))
 import Data.LineColRange (LineColRange)
 import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Word (Word64)
 import GHC.Plugins qualified as GHC
 import GHC.Types.Unique qualified
 import StaticLS.HieView.InternStr (InternStr)
@@ -32,7 +33,7 @@ newtype ModuleName = ModuleName {name :: GHC.ModuleName}
   deriving (Show, Eq)
 
 instance Hashable ModuleName where
-  hashWithSalt salt = hashWithSalt @Int salt . GHC.Types.Unique.getKey . GHC.getUnique . (.name)
+  hashWithSalt salt = hashWithSalt @Word64 salt . fromIntegral . GHC.Types.Unique.getKey . GHC.getUnique . (.name)
 
 moduleNameToInternStr :: ModuleName -> InternStr
 moduleNameToInternStr = InternStr.fromGHCFastString . GHC.moduleNameFS . (.name)
@@ -47,7 +48,7 @@ newtype Name = Name {name :: GHC.Name}
   deriving (Eq)
 
 instance Hashable Name where
-  hashWithSalt salt = hashWithSalt @Int salt . GHC.Types.Unique.getKey . GHC.nameUnique . (.name)
+  hashWithSalt salt = hashWithSalt @Word64 salt . fromIntegral . GHC.Types.Unique.getKey . GHC.nameUnique . (.name)
 
 fromGHCName :: GHC.Name -> Name
 fromGHCName = Name

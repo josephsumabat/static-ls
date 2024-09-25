@@ -1,5 +1,18 @@
 # Revision history for static-ls
 
+## 1.0.0 -- 2024-09-24
+  * Re-architect to use tree-sitter and in memory representation of file system
+  * New features:
+    * Auto-import code action
+    * Auto-completion
+    * Fly-imports on auto-completion
+    * Rename
+    * support for persistent files
+    * Diagnostics
+    * Go-to implementation
+  * Show all types for go to type def when ambiguous
+  * Use lexed diffing algorithm for position resolution on stale hiefiles
+
 ## 0.2.0 -- 2024-02-04
 
 * Add support for arguments

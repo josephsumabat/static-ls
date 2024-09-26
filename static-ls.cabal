@@ -1,6 +1,6 @@
 cabal-version: 2.0
 
--- This file has been generated from package.yaml by hpack version 0.37.0.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -143,8 +143,8 @@ library
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
     , lens
-    , lsp >=2.3 && <2.6
-    , lsp-types >=2.1 && <2.3
+    , lsp ==2.4.0.0
+    , lsp-types ==2.1.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -158,7 +158,7 @@ library
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range
-    , text-rope ==0.2.*
+    , text-rope ==0.2
     , transformers >=0.5.6.2 && <0.7
     , tree-sitter-ast
     , tree-sitter-haskell
@@ -214,8 +214,8 @@ executable print-hie
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
     , lens
-    , lsp >=2.3 && <2.6
-    , lsp-types >=2.1 && <2.3
+    , lsp ==2.4.0.0
+    , lsp-types ==2.1.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -231,7 +231,7 @@ executable print-hie
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range
-    , text-rope ==0.2.*
+    , text-rope ==0.2
     , transformers >=0.5.6.2 && <0.7
     , tree-sitter-ast
     , tree-sitter-haskell
@@ -288,8 +288,8 @@ executable static-ls
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
     , lens
-    , lsp >=2.3 && <2.6
-    , lsp-types >=2.1 && <2.3
+    , lsp ==2.4.0.0
+    , lsp-types ==2.1.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -305,7 +305,7 @@ executable static-ls
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range
-    , text-rope ==0.2.*
+    , text-rope ==0.2
     , transformers >=0.5.6.2 && <0.7
     , tree-sitter-ast
     , tree-sitter-haskell
@@ -365,8 +365,8 @@ test-suite expect_tests
     , hiedb ==0.6.*
     , hspec ==2.*
     , lens
-    , lsp >=2.3 && <2.6
-    , lsp-types >=2.1 && <2.3
+    , lsp ==2.4.0.0
+    , lsp-types ==2.1.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -384,7 +384,7 @@ test-suite expect_tests
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range
-    , text-rope ==0.2.*
+    , text-rope ==0.2
     , transformers >=0.5.6.2 && <0.7
     , tree-sitter-ast
     , tree-sitter-haskell
@@ -472,8 +472,8 @@ test-suite static-ls-test
     , hiedb ==0.6.*
     , hspec ==2.*
     , lens
-    , lsp >=2.3 && <2.6
-    , lsp-types >=2.1 && <2.3
+    , lsp ==2.4.0.0
+    , lsp-types ==2.1.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -489,7 +489,7 @@ test-suite static-ls-test
     , template-haskell >=2.19.0 && <2.21
     , text >=2.0.1 && <2.1
     , text-range
-    , text-rope ==0.2.*
+    , text-rope ==0.2
     , transformers >=0.5.6.2 && <0.7
     , tree-sitter-ast
     , tree-sitter-haskell

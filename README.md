@@ -27,7 +27,11 @@ and the [ghc hiedb plugin](https://github.com/josephsumabat/hiedb-plugin) for re
 
 Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add support for other versions of ghc if desired
 
+(NOTE: The current version on hackage is out of date. Building from source is currently recommended.)
+
 ## Quick start
+
+See [Advanced setup](docs/advanced-setup.md) for additional options
 
 1. Compile your project with the following flags: 
 

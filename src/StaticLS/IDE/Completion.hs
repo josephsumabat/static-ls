@@ -185,7 +185,7 @@ getLangextPrefix cx sourceRope = do
   let lineCol = cx.lineCol
   let pos = cx.pos
   let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
-  let (_rest, extPrefix) = Maybe.fromMaybe ("", "") $ TextUtils.splitOnceEnd "." line
+  let (_rest, extPrefix) = Maybe.fromMaybe ("", "") $ TextUtils.splitOnceEnd " " line
   case extPrefix of 
     	_ -> Just extPrefix 
 

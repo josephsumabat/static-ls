@@ -65,6 +65,7 @@ library
       StaticLS.Hir.Parse
       StaticLS.Hir.Print
       StaticLS.Hir.Types
+      StaticLS.IDE.AllExtensions
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AddTypeSig
       StaticLS.IDE.CodeActions.AutoExport

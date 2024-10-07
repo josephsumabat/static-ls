@@ -25,3 +25,5 @@ subRootExtensionFilepath wsRoot parent extension srcPath = do
       newPath = parent Path.</> noPrefixSrcPath Path.-<.> extension
   True <- liftIO $ Dir.doesFileExist newPath.path
   pure newPath
+
+

@@ -1,6 +1,8 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE MultiWayIf #-}
 
+
+
 module StaticLS.IDE.Completion (
   getCompletion,
   Context (..),
@@ -11,6 +13,7 @@ module StaticLS.IDE.Completion (
   resolveCompletionEdit,
 )
 where
+
 
 import AST qualified
 import AST.Haskell qualified as H
@@ -53,6 +56,7 @@ import StaticLS.Monad
 import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
+import StaticLS.IDE.AllExtensions (allExtensions)
 
 stripNameSpacePrefix :: Text -> Text
 stripNameSpacePrefix t = snd $ T.breakOnEnd ":" t
@@ -134,10 +138,16 @@ getUnqualifiedImportCompletions cx = do
   completions <- getCompletionsForMods $ (.mod.text) <$> unqualifiedImports
   pure $ fmap textCompletion completions
 
+getLangextCompletions :: Text -> StaticLsM [Completion]
+getLangextCompletions txt = do 
+  pure $ (textCompletion <$> allExtensions) <> (textCompletion <$> ["Foo" <> "Bar"])
+
+-- TODO add LanguageExtensionMode
 data CompletionMode
   = ImportMode !(Maybe Text)
   | HeaderMode !Text
   | QualifiedMode !Text !Text
+  | LangextMode !Text
   | UnqualifiedMode
   deriving (Show, Eq)
 
@@ -168,6 +178,19 @@ getImportPrefix cx sourceRope hs = do
       Just $ fst <$> modPrefix
     _ -> Nothing
 
+
+
+getLangextPrefix :: Context -> Rope -> Maybe Text 
+getLangextPrefix cx sourceRope = do
+  let lineCol = cx.lineCol
+  let pos = cx.pos
+  let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
+  let (_rest, extPrefix) = Maybe.fromMaybe ("", "") $ TextUtils.splitOnceEnd "." line
+  case extPrefix of 
+    	_ -> Just extPrefix 
+
+-- TODO return LanguageExtensionMode when appropriate
+--
 getCompletionMode :: Context -> StaticLsM CompletionMode
 getCompletionMode cx = do
   let path = cx.path
@@ -176,6 +199,8 @@ getCompletionMode cx = do
   sourceRope <- getSourceRope path
   mod <- IDE.Utils.pathToModule path
   if
+    | Just match <- getLangextPrefix cx sourceRope -> do
+        pure $ LangextMode match
     | (Nothing, Just mod) <- (header, mod) -> pure $ HeaderMode mod.text
     | Just modPrefix <- getImportPrefix cx sourceRope haskell -> do
         pure $ ImportMode modPrefix
@@ -251,6 +276,7 @@ getFlyImports cx qualifiedCompletions prefix match = do
   completions <- pure $ concat completions
   pure $ bootCompletions ++ completions
 
+-- TODO add language extension completions
 getCompletion :: Context -> StaticLsM (Bool, [Completion])
 getCompletion cx = do
   mode <- getCompletionMode cx
@@ -286,6 +312,9 @@ getCompletion cx = do
         "" -> pure []
         _ -> getFlyImports cx (HashSet.fromList qualifiedCompletions) mod match
       pure (match == "", (textCompletion <$> qualifiedCompletions) ++ flyImports)
+    LangextMode match -> do 
+      comps <- getLangextCompletions match
+      pure $ (True, comps)
 
 resolveCompletionEdit :: CompletionMessage -> StaticLsM Edit
 resolveCompletionEdit msg = do

@@ -1,6 +1,7 @@
 -- TODO: eventually move this into Hir
 module StaticLS.IDE.DocumentSymbols (SymbolTree (..), getDocumentSymbols) where
 
+
 import AST qualified
 import AST.Haskell qualified as Haskell
 import AST.Sum

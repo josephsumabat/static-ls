@@ -1,8 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE MultiWayIf #-}
 
-
-
 module StaticLS.IDE.Completion (
   getCompletion,
   Context (..),
@@ -140,11 +138,11 @@ getUnqualifiedImportCompletions cx = do
 
 getLangextCompletions :: Text -> StaticLsM [Completion]
 getLangextCompletions txt = do 
-  pure $ (textCompletion <$> allExtensions) <> (textCompletion <$> ["Foo" <> "Bar"])
+  pure $ (textCompletion <$> (allExtensions <> ["LANGUAGE"]))
 
 -- TODO add LanguageExtensionMode
 data CompletionMode
-  = ImportMode !(Maybe Text)
+  = ImportMode !(Maybe Text) 
   | HeaderMode !Text
   | QualifiedMode !Text !Text
   | LangextMode !Text
@@ -179,27 +177,31 @@ getImportPrefix cx sourceRope hs = do
     _ -> Nothing
 
 
-
-getLangextPrefix :: Context -> Rope -> Maybe Text 
-getLangextPrefix cx sourceRope = do
+getLangextPrefix :: Context -> Rope -> H.Haskell -> Maybe Text 
+getLangextPrefix cx sourceRope hs = do
   let lineCol = cx.lineCol
   let pos = cx.pos
+  let posRange = Range.point pos
   let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
   let (_rest, extPrefix) = Maybe.fromMaybe ("", "") $ TextUtils.splitOnceEnd " " line
-  case extPrefix of 
-    	_ -> Just extPrefix 
+  let pragma = AST.getDeepestContaining @Haskell.Pragma posRange (AST.getDynNode hs)
+  case pragma of 
+  	Just x | extPrefix /= "" -> Just extPrefix
+    	_ -> Nothing
 
 -- TODO return LanguageExtensionMode when appropriate
---
+
+
+
 getCompletionMode :: Context -> StaticLsM CompletionMode
 getCompletionMode cx = do
   let path = cx.path
   haskell <- getHaskell path
-  header <- Tree.getHeader haskell & isRightOrThrowT
+  header <- Tree.getHeader haskell & isRightOrThrowT -- check if it's in a pragma
   sourceRope <- getSourceRope path
   mod <- IDE.Utils.pathToModule path
   if
-    | Just match <- getLangextPrefix cx sourceRope -> do
+    | Just match <- getLangextPrefix cx sourceRope haskell -> do
         pure $ LangextMode match
     | (Nothing, Just mod) <- (header, mod) -> pure $ HeaderMode mod.text
     | Just modPrefix <- getImportPrefix cx sourceRope haskell -> do

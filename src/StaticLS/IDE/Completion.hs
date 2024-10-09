@@ -140,6 +140,7 @@ getLangextCompletions :: Text -> StaticLsM [Completion]
 getLangextCompletions txt = do 
   pure $ (textCompletion <$> (allExtensions <> ["LANGUAGE"]))
 
+
 -- TODO add LanguageExtensionMode
 data CompletionMode
   = ImportMode !(Maybe Text) 
@@ -184,10 +185,14 @@ getLangextPrefix cx sourceRope hs = do
   let posRange = Range.point pos
   let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
   let (_rest, extPrefix) = Maybe.fromMaybe ("", "") $ TextUtils.splitOnceEnd " " line
-  let pragma = AST.getDeepestContaining @Haskell.Pragma posRange (AST.getDynNode hs)
-  case pragma of 
-  	Just x | extPrefix /= "" -> Just extPrefix
-    	_ -> Nothing
+  let dyn = AST.getDynNode hs
+  let pragma = AST.getDeepestContaining @Haskell.Pragma posRange dyn
+  let header = AST.getDeepestContaining @Haskell.Header posRange dyn
+  let isInPragma = Maybe.isJust pragma 
+  let isInHeader = Maybe.isJust header 
+  if
+     | isInPragma {- && isInHeader -} && extPrefix /= "" -> Just extPrefix
+     | otherwise -> Nothing
 
 -- TODO return LanguageExtensionMode when appropriate
 

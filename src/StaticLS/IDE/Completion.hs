@@ -11,7 +11,6 @@ module StaticLS.IDE.Completion (
 )
 where
 
-
 import AST qualified
 import AST.Haskell qualified as H
 import AST.Haskell qualified as Haskell
@@ -45,6 +44,7 @@ import HieDb qualified
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.Hir qualified as Hir
+import StaticLS.IDE.AllExtensions (allExtensions)
 import StaticLS.IDE.CodeActions.AutoImport qualified as IDE.CodeActions.AutoImport
 import StaticLS.IDE.Monad
 import StaticLS.IDE.Utils qualified as IDE.Utils
@@ -53,7 +53,6 @@ import StaticLS.Monad
 import StaticLS.StaticEnv
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils (isRightOrThrowT)
-import StaticLS.IDE.AllExtensions (allExtensions)
 
 stripNameSpacePrefix :: Text -> Text
 stripNameSpacePrefix t = snd $ T.breakOnEnd ":" t
@@ -137,12 +136,11 @@ getUnqualifiedImportCompletions cx = do
 
 -- Why don't we need the text for this?
 getLangextCompletions :: Text -> StaticLsM [Completion]
-getLangextCompletions _ = do 
+getLangextCompletions _ = do
   pure (textCompletion <$> (allExtensions <> ["LANGUAGE"]))
 
-
 data CompletionMode
-  = ImportMode !(Maybe Text) 
+  = ImportMode !(Maybe Text)
   | HeaderMode !Text
   | QualifiedMode !Text !Text
   | LangextMode !Text
@@ -177,7 +175,7 @@ getImportPrefix cx sourceRope hs = do
     _ -> Nothing
 
 -- TODO: recognize headers properly
-getLangextPrefix :: Context -> Rope -> H.Haskell -> Maybe Text 
+getLangextPrefix :: Context -> Rope -> H.Haskell -> Maybe Text
 getLangextPrefix cx sourceRope hs = do
   let lineCol = cx.lineCol
   let pos = cx.pos
@@ -186,9 +184,8 @@ getLangextPrefix cx sourceRope hs = do
   let (_rest, extPrefix) = Maybe.fromMaybe ("", "") $ TextUtils.splitOnceEnd " " line
   let dyn = AST.getDynNode hs
   let pragma = AST.getDeepestContaining @Haskell.Pragma posRange dyn
-  let isInPragma = Maybe.isJust pragma 
+  let isInPragma = Maybe.isJust pragma
   if isInPragma && extPrefix /= "" then Just extPrefix else Nothing
-
 
 getCompletionMode :: Context -> StaticLsM CompletionMode
 getCompletionMode cx = do
@@ -311,7 +308,7 @@ getCompletion cx = do
         "" -> pure []
         _ -> getFlyImports cx (HashSet.fromList qualifiedCompletions) mod match
       pure (match == "", (textCompletion <$> qualifiedCompletions) ++ flyImports)
-    LangextMode match -> do 
+    LangextMode match -> do
       comps <- getLangextCompletions match
       pure (True, comps)
 

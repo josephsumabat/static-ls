@@ -9,8 +9,6 @@ import StaticLS.Logger
 import StaticLS.StaticEnv
 import StaticLS.StaticEnv.Options
 
-
-
 -- | An environment for running a language server
 -- This differs from a `StaticEnv` in that it includes mutable information
 -- meant for language server specific functionality

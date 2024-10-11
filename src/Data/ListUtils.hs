@@ -1,5 +1,3 @@
-
-
 module Data.ListUtils (
   spanMaybe,
 )

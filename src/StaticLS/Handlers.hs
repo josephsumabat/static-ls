@@ -48,6 +48,7 @@ import StaticLS.Utils
 import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
+
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
 -----------------------------------------------------------------

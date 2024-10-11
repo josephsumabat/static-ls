@@ -3,4 +3,3 @@ module StaticLS.HieView (
 ) where
 
 import StaticLS.HieView.View as X
-

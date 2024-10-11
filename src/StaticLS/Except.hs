@@ -18,5 +18,3 @@ testing2 x =
     ++ show x
     ++ show x
     ++ show x
-
-

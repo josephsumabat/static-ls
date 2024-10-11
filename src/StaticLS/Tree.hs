@@ -27,7 +27,6 @@ getHeader haskell = do
   header <- AST.collapseErr haskell.children
   pure header
 
-
 -- getDeepestContaining @pragma should also work
 
 data Imports = Imports

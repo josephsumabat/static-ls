@@ -18,7 +18,6 @@ import GHC.Plugins qualified as GHC
 import GHC.Types.Unique.Map qualified as GHC
 import StaticLS.SDoc
 
-
 data NameDocs = NameDocs
   { declComment :: [GHC.HsDoc GHC.GhcRn]
   , argComments :: IntMap.IntMap (GHC.HsDoc GHC.GhcRn)

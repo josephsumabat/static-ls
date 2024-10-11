@@ -138,7 +138,7 @@ getUnqualifiedImportCompletions cx = do
 -- Why don't we need the text for this?
 getLangextCompletions :: Text -> StaticLsM [Completion]
 getLangextCompletions _ = do 
-  pure $ (textCompletion <$> (allExtensions <> ["LANGUAGE"]))
+  pure (textCompletion <$> (allExtensions <> ["LANGUAGE"]))
 
 
 data CompletionMode
@@ -187,10 +187,7 @@ getLangextPrefix cx sourceRope hs = do
   let dyn = AST.getDynNode hs
   let pragma = AST.getDeepestContaining @Haskell.Pragma posRange dyn
   let isInPragma = Maybe.isJust pragma 
-  if
-     | isInPragma && extPrefix /= "" -> Just extPrefix
-     | otherwise -> Nothing
-
+  if isInPragma && extPrefix /= "" then Just extPrefix else Nothing
 
 
 getCompletionMode :: Context -> StaticLsM CompletionMode
@@ -316,7 +313,7 @@ getCompletion cx = do
       pure (match == "", (textCompletion <$> qualifiedCompletions) ++ flyImports)
     LangextMode match -> do 
       comps <- getLangextCompletions match
-      pure $ (True, comps)
+      pure (True, comps)
 
 resolveCompletionEdit :: CompletionMessage -> StaticLsM Edit
 resolveCompletionEdit msg = do

@@ -1,4 +1,3 @@
-{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE MultiWayIf #-}
 
 module StaticLS.IDE.Completion (
@@ -136,12 +135,12 @@ getUnqualifiedImportCompletions cx = do
   completions <- getCompletionsForMods $ (.mod.text) <$> unqualifiedImports
   pure $ fmap textCompletion completions
 
+-- Why don't we need the text for this?
 getLangextCompletions :: Text -> StaticLsM [Completion]
-getLangextCompletions txt = do 
+getLangextCompletions _ = do 
   pure $ (textCompletion <$> (allExtensions <> ["LANGUAGE"]))
 
 
--- TODO add LanguageExtensionMode
 data CompletionMode
   = ImportMode !(Maybe Text) 
   | HeaderMode !Text
@@ -177,7 +176,7 @@ getImportPrefix cx sourceRope hs = do
       Just $ fst <$> modPrefix
     _ -> Nothing
 
-
+-- TODO: recognize headers properly
 getLangextPrefix :: Context -> Rope -> H.Haskell -> Maybe Text 
 getLangextPrefix cx sourceRope hs = do
   let lineCol = cx.lineCol
@@ -187,14 +186,10 @@ getLangextPrefix cx sourceRope hs = do
   let (_rest, extPrefix) = Maybe.fromMaybe ("", "") $ TextUtils.splitOnceEnd " " line
   let dyn = AST.getDynNode hs
   let pragma = AST.getDeepestContaining @Haskell.Pragma posRange dyn
-  let header = AST.getDeepestContaining @Haskell.Header posRange dyn
   let isInPragma = Maybe.isJust pragma 
-  let isInHeader = Maybe.isJust header 
   if
-     | isInPragma {- && isInHeader -} && extPrefix /= "" -> Just extPrefix
+     | isInPragma && extPrefix /= "" -> Just extPrefix
      | otherwise -> Nothing
-
--- TODO return LanguageExtensionMode when appropriate
 
 
 

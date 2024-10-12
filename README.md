@@ -185,3 +185,25 @@ You can technically use any LSP compliant client - for a generic one we generall
 }
 ```
 (Note `haskell.serverExecutablePath` should be the path to your binary).
+
+### Sublime Text
+
+1. Install [Sublime Text LSP](https://lsp.sublimetext.io/) using [Sublime Text Package Manager](https://packagecontrol.io/installation).
+
+2. Follow the [client configuration instructions](https://lsp.sublimetext.io/client_configuration/) to configure static-ls to launch when you open a Haskell file. You will need to add a new client:
+
+```
+{
+  "clients": {
+    "static_ls": {
+      "enabled": true,
+      "command": ["static-ls"],
+      "selector": "source.haskell",
+    },
+  },
+}
+```
+
+(Note `"command"` should point to your static-ls binary).
+
+3. Some helpful LSP troubleshooting information can be found [here](https://lsp.sublimetext.io/troubleshooting/)

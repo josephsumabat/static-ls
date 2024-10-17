@@ -184,7 +184,7 @@ You can technically use any LSP compliant client - for a generic one we generall
   ]
 }
 ```
-(Note `haskell.serverExecutablePath` should be the path to your binary).
+(Note `serverCommand` should be the path to your binary).
 
 ### Sublime Text
 

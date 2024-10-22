@@ -5,6 +5,7 @@
 
 module StaticLS.IDE.CodeActions where
 
+import Control.Monad.IO.Class
 import Data.LineCol (LineCol (..))
 import Data.Path (AbsPath)
 import Data.Rope qualified as Rope
@@ -16,8 +17,8 @@ import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Monad (StaticLsM)
-import Control.Monad.IO.Class
 import System.IO
+
 getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]
 getCodeActions path lineCol = do
   rope <- getSourceRope path

@@ -10,12 +10,14 @@ import Data.Path (AbsPath)
 import Data.Rope qualified as Rope
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
 import StaticLS.IDE.CodeActions.AutoImport qualified as AutoImport
+import StaticLS.IDE.CodeActions.RemoveRedundantImports as RemoveRedundantImports
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
 import StaticLS.IDE.SourceEdit qualified as SourceEdit
 import StaticLS.Monad (StaticLsM)
-
+import Control.Monad.IO.Class
+import System.IO
 getCodeActions :: AbsPath -> LineCol -> StaticLsM [Assist]
 getCodeActions path lineCol = do
   rope <- getSourceRope path
@@ -23,7 +25,8 @@ getCodeActions path lineCol = do
   let cx = CodeActionContext {path, pos, lineCol}
   typesCodeActions <- AddTypeSig.codeAction cx
   importCodeActions <- AutoImport.codeAction cx
-  let codeActions = typesCodeActions ++ importCodeActions
+  removeRedundantImports <- RemoveRedundantImports.codeAction cx
+  let codeActions = typesCodeActions ++ importCodeActions ++ removeRedundantImports
   pure codeActions
 
 resolveLazyAssist :: CodeActionMessage -> StaticLsM SourceEdit

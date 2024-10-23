@@ -71,6 +71,6 @@ createDeletion diagnostic = do
   let edit = single path (delete range)
   pure edit
 
--- This allows us to remove the whole line rather than just the contents of the line
+-- This allows us to remove the whole line rather than just the contents of the line.
 extend :: Int -> Int -> Range.Range -> Range.Range
 extend startex endex (Range.Range (Pos.Pos start) (Pos.Pos end)) = Range.mkRange (Pos.mkPos (start - startex)) (Pos.mkPos (end + endex))

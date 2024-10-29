@@ -1,9 +1,9 @@
 # Keep this up to date with cabal.project
 let
   tree-sitter-simple-repo = {
-    url = "https://github.com/oberblastmeister/tree-sitter-simple";
-    sha256 = "sha256-8i2NYbILmGDH+0EIQ/UzRoyuonWzyAqFD06vbjEJH2g=";
-    rev = "309ac26ecbb94e6f534bff5c4c5c6a50808397e0";
+    url = "https://github.com/josephsumabat/tree-sitter-simple";
+    sha256 = "sha256-Taje8q2fYZzA68sSt8f9/oCDdYjTWegfoYusQtmrz8A=";
+    rev = "64f8a19b7e65a4a572770a92085f872caf212833";
     fetchSubmodules = true;
   };
 
@@ -49,7 +49,8 @@ in
         hiedb = self.haskell.lib.dontCheck (haskellSuper.callHackage "hiedb" "0.6.0.1" {});
         text-rope = haskellSuper.callHackage "text-rope" "0.2" {};
 
-        lsp = haskellSuper.callHackage "lsp" "2.4.0.0" {};
+        lsp-types = haskellSuper.callHackage "lsp-types" "2.3.0.0" {};
+        lsp = haskellSuper.callHackage "lsp" "2.7.0.0" {};
       };
     };
   }

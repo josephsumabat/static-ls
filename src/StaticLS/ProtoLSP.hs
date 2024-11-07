@@ -1,5 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
-
 module StaticLS.ProtoLSP (
   lineColToProto,
   lineColFromProto,
@@ -22,7 +20,6 @@ module StaticLS.ProtoLSP (
   completionToProto,
   diagnosticToProto,
   diagnosticsToProto,
-  inlayHintToProto,
 )
 where
 
@@ -41,7 +38,6 @@ import Data.Path qualified as Path
 import Data.Pos
 import Data.Rope (Rope)
 import Data.Rope qualified as Rope
-import Data.Text qualified as Text
 import Data.Traversable (for)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.CodeActions.Types (Assist (..))
@@ -49,7 +45,6 @@ import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Diagnostics qualified as IDE.Diagnostics
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
-import StaticLS.IDE.InlayHints qualified as IDE.InlayHints
 import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
 import StaticLS.IDE.SymbolKind (SymbolKind)
@@ -256,18 +251,3 @@ diagnosticsToProto diags =
     diag <- diags
     let path = diag.range.path
     pure (path, [diagnosticToProto diag])
-
-inlayHintToProto :: IDE.InlayHints.InlayHint -> LSP.InlayHint
-inlayHintToProto IDE.InlayHints.InlayHint {position = p', label = l', textEdits = te'} =
-  LSP.InlayHint
-    { _position = lineColToProto p'
-    , _label = LSP.InL l'
-    , _kind = Nothing
-    , _textEdits = fmap convert te'
-    , _tooltip = Nothing
-    , _paddingLeft = Nothing
-    , _paddingRight = Nothing
-    , _data_ = Nothing
-    }
- where
-  convert (rope, changes) = fmap (changeToProto rope) changes

@@ -70,8 +70,8 @@ library
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
     , lens
-    , lsp ==2.7.0.0
-    , lsp-types ==2.3.0.0
+    , lsp >=2.4.0.0 && <2.8.0.0
+    , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -215,8 +215,8 @@ executable print-hie
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
     , lens
-    , lsp ==2.7.0.0
-    , lsp-types ==2.3.0.0
+    , lsp >=2.4.0.0 && <2.8.0.0
+    , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -283,8 +283,8 @@ executable static-ls
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
     , lens
-    , lsp ==2.7.0.0
-    , lsp-types ==2.3.0.0
+    , lsp >=2.4.0.0 && <2.8.0.0
+    , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -366,8 +366,8 @@ test-suite expect_tests
     , hiedb ==0.6.*
     , hspec ==2.*
     , lens
-    , lsp ==2.7.0.0
-    , lsp-types ==2.3.0.0
+    , lsp >=2.4.0.0 && <2.8.0.0
+    , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics
@@ -439,8 +439,8 @@ test-suite static-ls-test
     , hiedb ==0.6.*
     , hspec ==2.*
     , lens
-    , lsp ==2.7.0.0
-    , lsp-types ==2.3.0.0
+    , lsp >=2.4.0.0 && <2.8.0.0
+    , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
     , optics

@@ -220,9 +220,9 @@ serverDef argOptions logger = do
               , handleResolveCodeAction
               , handleDocumentSymbols
               , handleCompletion
-                -- Currently disabled until we support configuration for the formatter
+              , -- Currently disabled until we support configuration for the formatter
                 -- , handleFormat
-              , handleCompletionItemResolve
+                handleCompletionItemResolve
               ]
       , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO
       , options = lspOptions

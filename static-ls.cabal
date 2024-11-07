@@ -70,7 +70,7 @@ library
     , haskell-lexer >=1.1.1 && <1.2.0
     , hiedb ==0.6.*
     , lens
-    , lsp >=2.4.0.0 && <2.8.0.0
+    , lsp >=2.4.0.0 && <2.7.0.0
     , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation

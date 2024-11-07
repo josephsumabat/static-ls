@@ -1,10 +1,7 @@
 module StaticLS.Semantic where
 
 import AST.Haskell qualified as Haskell
-import Control.Monad.Trans (lift)
-import Control.Monad.Trans.Maybe (MaybeT)
 import Data.HashMap.Strict (HashMap)
-import Data.HashMap.Strict qualified as HashMap
 import Data.Path (AbsPath)
 import Data.RangeMap (RangeMap)
 import Data.Rope (Rope)

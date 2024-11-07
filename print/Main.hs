@@ -1,6 +1,6 @@
 module Main where
 
-import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
+import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Text.IO qualified as T.IO
 import StaticLS.HieView.View qualified as HieView
 import System.Environment (getArgs)

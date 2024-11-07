@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE PolyKinds #-}
@@ -108,6 +109,7 @@ fileWatcher chan staticEnv _logger = do
 
   pure ()
 
+#if MIN_VERSION_lsp(2,7,0)
 initServer ::
   Conc.Chan ReactorMsg ->
   StaticEnvOptions ->
@@ -133,6 +135,33 @@ initServer reactorChan staticEnvOptions logger serverConfig _ = do
     pure $ case mRootPath of
       Nothing -> Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
       Just p -> Right p
+#else
+initServer ::
+  Conc.Chan ReactorMsg ->
+  StaticEnvOptions ->
+  LoggerM IO ->
+  LanguageContextEnv LspConfig ->
+  TMessage 'Method_Initialize ->
+  IO (Either LSP.ResponseError (LanguageContextEnv LspConfig))
+initServer reactorChan staticEnvOptions logger serverConfig _ = do
+  runExceptT $ do
+    wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
+    wsRoot <- Path.filePathToAbs wsRoot
+    env <- ExceptT $ Right <$> initEnv wsRoot staticEnvOptions logger
+    _ <- liftIO $ Conc.forkIO $ runStaticLsM env $ reactor reactorChan serverConfig logger
+    _ <- liftIO $ Conc.forkIO $ fileWatcher reactorChan env.staticEnv logger
+    -- pretend that the ghcid file changed so we can get diagnostics immediately when the editor opens
+    -- the ghcid file may still have diagnostics from the last usage, so show them here
+    Conc.writeChan reactorChan $ ReactorMsgLspAct Handlers.handleGhcidFileChange
+    pure serverConfig
+ where
+  getWsRoot :: LSP.LspM config (Either LSP.ResponseError FilePath)
+  getWsRoot = do
+    mRootPath <- LSP.getRootPath
+    pure $ case mRootPath of
+      Nothing -> Left $ LSP.ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
+      Just p -> Right p
+#endif
 
 serverDef :: StaticEnvOptions -> LoggerM IO -> IO (ServerDefinition ())
 serverDef argOptions logger = do
@@ -205,11 +234,19 @@ serverDef argOptions logger = do
   catchAndLog m = do
     Exception.catchAny m $ \e ->
       logException e
-
-  respondWithError res e = res $ Left $ ResponseError (InR ErrorCodes_InvalidRequest) ("An error was caught: " <> T.pack (show e)) Nothing
-
   logException e = do
     LSP.Logging.logToLogMessage Colog.<& Colog.WithSeverity (T.pack (show e)) Colog.Error
+
+#if MIN_VERSION_lsp(2,7,0)
+respondWithError :: forall {f :: LSP.MessageDirection} {a}
+                                 {m :: Method f LSP.Request} {b1} {b2}.
+                          Show a =>
+                          (Either (LSP.TResponseError m) b1 -> b2) -> a -> b2
+respondWithError res e = res $ Left $ LSP.TResponseError (InR ErrorCodes_InvalidRequest) ("An error was caught: " <> T.pack (show e)) Nothing
+#else
+respondWithError :: Show a => (Either LSP.ResponseError b1 -> b2) -> a -> b2
+respondWithError res e = res $ Left $ LSP.ResponseError (InR ErrorCodes_InvalidRequest) ("An error was caught: " <> T.pack (show e)) Nothing
+#endif
 
 lspOptions :: LSP.Options
 lspOptions =

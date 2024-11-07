@@ -50,7 +50,7 @@ getTypedefInlays absPath getTypes = do
 fmtTypeStr :: Text -> Text
 fmtTypeStr text
   | text == "" = ""
-  | Text.length text > 50 = "" -- hide overly long inlays and buggy inlays
+  | Text.length text > 50 = "" -- hide overly long inlays and buggy inlays 
   | otherwise = " :: " <> text
 
 getTypedefInlays_ :: AbsPath -> StaticLsM [InlayHint]

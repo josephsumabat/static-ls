@@ -221,7 +221,8 @@ serverDef argOptions logger = do
               , handleResolveCodeAction
               , handleDocumentSymbols
               , handleCompletion
-              , handleInlayHintRequest -- TODO make this work. newly added
+	      -- Disabled. Will enable in its own branch
+              -- , handleInlayHintRequest 
               , -- Currently disabled until we support configuration for the formatter
                 -- , handleFormat
                 handleCompletionItemResolve

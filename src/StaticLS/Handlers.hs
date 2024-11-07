@@ -35,11 +35,11 @@ import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Format qualified as IDE.Format
 import StaticLS.IDE.Hover
 import StaticLS.IDE.Implementation qualified as IDE.Implementation
+import StaticLS.IDE.InlayHints
 import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.IDE.References
 import StaticLS.IDE.Rename qualified as IDE.Rename
 import StaticLS.IDE.Workspace.Symbol
-import StaticLS.IDE.InlayHints
 import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.ProtoLSP (absPathToUri)
@@ -135,13 +135,13 @@ handlePrepareRenameRequest = LSP.requestHandler LSP.SMethod_TextDocumentPrepareR
       pure ()
 
 handleInlayHintRequest :: Handlers (LspT c StaticLsM)
-handleInlayHintRequest = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do 
+handleInlayHintRequest = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
   lift $ logInfo "Received inlay hint request"
   let params = req._params
-  path <- ProtoLSP.tdiToAbsPath params._textDocument 
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
   inlayHints <- lift $ getInlayHints path
   let resp = ProtoLSP.inlayHintToProto <$> inlayHints
-  res $ Right $ InL resp  
+  res $ Right $ InL resp
   pure ()
 
 handleCancelNotification :: Handlers (LspT c StaticLsM)

@@ -192,7 +192,7 @@ serverDef argOptions logger = do
               , handleResolveCodeAction
               , handleDocumentSymbols
               , handleCompletion
-	      , handleInlayHintRequest -- TODO make this work. newly added
+              , handleInlayHintRequest -- TODO make this work. newly added
               , -- Currently disabled until we support configuration for the formatter
                 -- , handleFormat
                 handleCompletionItemResolve

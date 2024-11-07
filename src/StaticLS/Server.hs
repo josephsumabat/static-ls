@@ -19,6 +19,7 @@ import Data.Text qualified as T
 import Language.LSP.Logging qualified as LSP.Logging
 import Language.LSP.Protocol.Message (
   Method (..),
+  ResponseError (..),
   TMessage,
  )
 import Language.LSP.Protocol.Message qualified as LSP
@@ -115,7 +116,7 @@ initServer ::
   LoggerM IO ->
   LanguageContextEnv LspConfig ->
   TMessage 'Method_Initialize ->
-  IO (Either (LSP.TResponseError Method_Initialize) (LanguageContextEnv LspConfig))
+  IO (Either ResponseError (LanguageContextEnv LspConfig))
 initServer reactorChan staticEnvOptions logger serverConfig _ = do
   runExceptT $ do
     wsRoot <- ExceptT $ LSP.runLspT serverConfig getWsRoot
@@ -128,11 +129,11 @@ initServer reactorChan staticEnvOptions logger serverConfig _ = do
     Conc.writeChan reactorChan $ ReactorMsgLspAct Handlers.handleGhcidFileChange
     pure serverConfig
  where
-  getWsRoot :: LSP.LspM config (Either (LSP.TResponseError Method_Initialize) FilePath)
+  getWsRoot :: LSP.LspM config (Either ResponseError FilePath)
   getWsRoot = do
     mRootPath <- LSP.getRootPath
     pure $ case mRootPath of
-      Nothing -> Left $ LSP.TResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
+      Nothing -> Left $ ResponseError (InR ErrorCodes_InvalidRequest) "No root workspace was found" Nothing
       Just p -> Right p
 #else
 initServer ::
@@ -220,6 +221,7 @@ serverDef argOptions logger = do
               , handleResolveCodeAction
               , handleDocumentSymbols
               , handleCompletion
+              , handleInlayHintRequest -- TODO make this work. newly added
               , -- Currently disabled until we support configuration for the formatter
                 -- , handleFormat
                 handleCompletionItemResolve

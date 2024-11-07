@@ -50,7 +50,7 @@ getTypedefInlays absPath getTypes = do
 fmtTypeStr :: Text -> Text
 fmtTypeStr text
   | text == "" = ""
-  | Text.length text > 50 = "" -- hide overly long inlays and buggy inlays 
+  | Text.length text > 50 = "" -- hide overly long inlays and buggy inlays
   | otherwise = " :: " <> text
 
 getTypedefInlays_ :: AbsPath -> StaticLsM [InlayHint]
@@ -65,7 +65,7 @@ getTypedefInlays_ absPath = do
       getTypedefInlays absPath getTypes
 
 nodeToDescendants :: DynNode -> [DynNode]
-nodeToDescendants node = node : (nodeToDescendants. getDynNode =<< node.nodeChildren)
+nodeToDescendants node = node : (nodeToDescendants . getDynNode =<< node.nodeChildren)
 
 selectNodesToType :: DynNode -> [DynNode]
 selectNodesToType root = do

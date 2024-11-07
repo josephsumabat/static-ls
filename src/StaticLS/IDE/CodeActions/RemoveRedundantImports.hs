@@ -41,7 +41,7 @@ ghcidFile :: FilePath
 ghcidFile = "ghcid.txt"
 
 codeAction :: CodeActionContext -> StaticLsM [Assist]
-codeAction CodeActionContext {path, lineCol, pos} = do
+codeAction CodeActionContext {path} = do
   diagnostics <- getDiagnostics
   let relevantDiagnostics = filter isRedundantImportDiagnostic diagnostics
   deletionInfos <- traverse mkDeletionInfo relevantDiagnostics
@@ -71,7 +71,6 @@ data FullDeletionInfo = FullDeletionInfo
   , haskell :: Haskell.Haskell
   , loc :: Range
   , node :: Maybe Haskell.Import
-  , isPartial :: Bool
   }
 
 mkDeletionInfo :: Diagnostic -> StaticLsM DeletionInfo
@@ -138,7 +137,7 @@ isDeletionInFile curPath = \case
 
 createDeletion :: DeletionInfo -> SourceEdit
 createDeletion = \case
-  Partial pdi -> SourceEdit.empty
+  Partial _pdi -> SourceEdit.empty
   Full fdi -> createFullDeletion fdi
 
 createFullDeletion :: FullDeletionInfo -> SourceEdit
@@ -149,13 +148,11 @@ createFullDeletion FullDeletionInfo {..} = do
   edit
 
 createPartialDeletion :: DeletionInfo -> SourceEdit
-createPartialDeletion diagnostic = do
-  -- let startChar = '‘'
-  -- let endChar = '’'
+createPartialDeletion _diagnostic = do
   SourceEdit.empty
 
 extend :: Rope -> Haskell.Haskell -> Range -> Range
-extend rope haskell range@(Range start end) = do
+extend rope haskell _range@(Range start end) = do
   let newEnd = fromMaybe end $ lastPosOnLine rope end
   let nodePred node = if (AST.nodeRange node).start.pos > start.pos then Just node else Nothing
   let node = getDeepestContainingSatisfying nodePred (Range.point newEnd) haskell.dynNode

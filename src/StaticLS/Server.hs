@@ -220,11 +220,9 @@ serverDef argOptions logger = do
               , handleResolveCodeAction
               , handleDocumentSymbols
               , handleCompletion
-              , -- Disabled. Will enable in its own branch
-                -- , handleInlayHintRequest
                 -- Currently disabled until we support configuration for the formatter
                 -- , handleFormat
-                handleCompletionItemResolve
+              , handleCompletionItemResolve
               ]
       , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO
       , options = lspOptions

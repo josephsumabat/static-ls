@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module StaticLS.ProtoLSP (
   lineColToProto,
   lineColFromProto,

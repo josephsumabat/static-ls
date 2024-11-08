@@ -134,6 +134,7 @@ library
       StaticLS.IDE.CodeActions.AddTypeSig
       StaticLS.IDE.CodeActions.AutoExport
       StaticLS.IDE.CodeActions.AutoImport
+      StaticLS.IDE.CodeActions.RemoveRedundantImports
       StaticLS.IDE.CodeActions.Types
       StaticLS.IDE.Completion
       StaticLS.IDE.Definition

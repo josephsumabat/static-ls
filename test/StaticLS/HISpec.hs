@@ -8,7 +8,6 @@ import Data.Path qualified as Path
 import StaticLS.HI
 import StaticLS.HI.File
 import StaticLS.HIE.File
-import StaticLS.HIE.Position
 import StaticLS.HieView qualified as HieView
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query

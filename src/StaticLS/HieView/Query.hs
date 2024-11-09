@@ -105,7 +105,7 @@ fileEvidenceBinds file =
       )
       file
  where
-  evSourceNames (EvInstBind {cls}) = Nothing
+  evSourceNames (EvInstBind {}) = Nothing
   evSourceNames (EvLetBind (EvBindDeps {deps})) = Just deps
   evSourceNames EvOther = Nothing
 

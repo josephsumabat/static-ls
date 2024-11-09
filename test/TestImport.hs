@@ -9,7 +9,6 @@ import Data.Rope qualified as Rope
 import Data.Text.IO qualified as T
 import StaticLS.Logger
 import StaticLS.Monad
-import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv as StaticEnv
 import StaticLS.StaticEnv.Options as Options
 import System.Directory (doesFileExist, listDirectory)
@@ -27,7 +26,7 @@ runStaticLsSimple action = do
 updateTestFileState :: AbsPath -> StaticLsM ()
 updateTestFileState path = do
   contentsText <- liftIO $ T.readFile (Path.toFilePath path)
-  let contents = Rope.fromText contentsText
+  let _contents = Rope.fromText contentsText
   -- _ <- Semantic.updateSemantic path contents
   pure ()
 

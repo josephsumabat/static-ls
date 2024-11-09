@@ -19,7 +19,6 @@ import Data.Traversable (for)
 import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.Logger qualified as Logger
 import StaticLS.Monad
-import StaticLS.Semantic qualified as Semantic
 import StaticLS.StaticEnv.Options qualified as StaticEnv.Options
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
@@ -88,7 +87,7 @@ setupCompilation prefix sourceFiles act = do
     (Path.toFilePath dir)
   staticEnv <- initEnv dir StaticEnv.Options.defaultStaticEnvOptions Logger.noOpLogger
   res <- runStaticLsM staticEnv do
-    for_ absSources \(absPath, (contents, _)) -> do
+    for_ absSources \(_absPath, (_contents, _)) -> do
       -- Semantic.updateSemantic absPath (Rope.fromText contents)
       pure ()
     act dir (Map.fromList absSources)

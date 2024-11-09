@@ -7,15 +7,19 @@
 module Data.ConcurrentCache (
   ConcurrentCache,
   new,
+  Data.ConcurrentCache.lookup,
   remove,
   insert,
 ) where
 
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.IO.Unlift (MonadUnliftIO)
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.Hashable (Hashable)
+import StaticLS.Maybe
 import UnliftIO (onException)
 import UnliftIO.Exception (mask)
 import UnliftIO.IORef (IORef)
@@ -36,6 +40,13 @@ remove :: (Hashable k, MonadIO m) => k -> ConcurrentCache k v -> m ()
 remove k cache = do
   IORef.atomicModifyIORef' cache.map \m -> do
     (HashMap.delete k m, ())
+
+lookup :: (MonadIO m, Hashable k) => k -> ConcurrentCache k v -> m (Maybe v)
+lookup k cache = do
+  runMaybeT $ do
+    cacheMap <- lift $ IORef.readIORef cache.map
+    (m :: MVar (Maybe v)) <- toAlt $ HashMap.lookup k cacheMap
+    MaybeT $ MVar.readMVar m
 
 insert :: (Hashable k, MonadUnliftIO m) => k -> m v -> ConcurrentCache k v -> m v
 insert k act cache = mask \restore -> do

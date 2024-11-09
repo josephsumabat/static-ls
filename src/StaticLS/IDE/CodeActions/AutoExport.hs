@@ -43,5 +43,5 @@ getDeclarationsAtPoint range decls =
 codeAction :: CodeActionContext -> StaticLsM [Assist]
 codeAction cx = do
   hir <- getHir cx.path
-  let decls = getDeclarationsAtPoint (Range.point cx.pos) hir.decls
+  let _decls = getDeclarationsAtPoint (Range.point cx.pos) hir.decls
   pure []

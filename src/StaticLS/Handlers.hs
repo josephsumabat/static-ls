@@ -160,8 +160,9 @@ handleDidChange = LSP.notificationHandler LSP.SMethod_TextDocumentDidChange $ \m
 handleDidSave :: Handlers (LspT c StaticLsM)
 handleDidSave = LSP.notificationHandler LSP.SMethod_TextDocumentDidSave $ \message -> do
   let params = message._params
-  let _uri = params._textDocument._uri
-  pure ()
+  let uri = params._textDocument._uri
+  -- Useful to invalidate for file watchers if a branch checkout invalidates the file state cache
+  updateFileStateForUri uri
 
 handleDidClose :: Handlers (LspT c StaticLsM)
 handleDidClose = LSP.notificationHandler LSP.SMethod_TextDocumentDidClose $ \_ -> do

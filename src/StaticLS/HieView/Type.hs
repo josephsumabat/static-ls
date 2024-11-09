@@ -1,7 +1,7 @@
 module StaticLS.HieView.Type (
   Type,
-  TypeArray,
-  FlatType,
+  TypeArray (..),
+  FlatType (..),
   TypeIndex (..),
   fromGHCHieType,
   fromGHCHieTypeFlat,

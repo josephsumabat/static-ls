@@ -104,7 +104,7 @@ createAutoImportCodeActions path mQualifier importMod =
         ]
 
 codeAction :: CodeActionContext -> StaticLsM [Assist]
-codeAction CodeActionContext {path, lineCol, pos} = do
+codeAction CodeActionContext {path, pos} = do
   hir <- getHir path
   modulesToImport <- getModulesToImport path pos
 
@@ -135,7 +135,7 @@ data ImportInsertPoint
   | AfterImportInsertPoint !Pos
 
 getImportsInsertPoint :: Rope -> Haskell.Haskell -> AST.Err ImportInsertPoint
-getImportsInsertPoint rope hs = do
+getImportsInsertPoint _rope hs = do
   imports <- Tree.getImports hs
   header <- Tree.getHeader hs
   let headerPos =

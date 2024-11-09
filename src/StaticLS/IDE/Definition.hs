@@ -191,7 +191,7 @@ findDefString qual = do
 hieDbFindDefString :: (HasStaticEnv m, MonadIO m) => Text -> Maybe Hir.ModuleName -> MaybeT m [HieDb.DefRow]
 hieDbFindDefString name mod = do
   -- we need to resolve the mod first
-  let modText = (.mod.text) <$> mod
+  let _modText = (.mod.text) <$> mod
   runHieDbMaybeT
     ( \hieDb ->
         SQL.queryNamed

@@ -40,6 +40,7 @@ where
 
 import AST.Haskell qualified as Haskell
 import AST.Traversal qualified as AST
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
@@ -47,6 +48,7 @@ import Data.ConcurrentCache (ConcurrentCache)
 import Data.ConcurrentCache qualified as ConcurrentCache
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineCol (LineCol)
+import Data.Maybe
 import Data.Path (AbsPath, toFilePath)
 import Data.Path qualified as Path
 import Data.Pos (Pos)
@@ -57,6 +59,8 @@ import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
+import Data.Time
+import StaticLS.FilePath
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView qualified as HieView
 import StaticLS.Hir qualified as Hir
@@ -193,11 +197,13 @@ data CachedHieFile = CachedHieFile
   , file :: HIE.File.HieFile
   , fileView :: HieView.File
   , hieTokenMap :: RangeMap PositionDiff.Token
+  , modifiedAt :: UTCTime
   }
 
 getHieCacheResult :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m CachedHieFile
 getHieCacheResult path = do
   file <- HIE.File.getHieFileFromPath path
+  modifiedAt <- getFileModifiedAt path
   let fileView = HieView.viewHieFile file
   let hieSource = fileView.source
   let tokens = PositionDiff.lex $ T.unpack hieSource
@@ -208,12 +214,26 @@ getHieCacheResult path = do
           , file = file
           , fileView
           , hieTokenMap = PositionDiff.tokensToRangeMap tokens
+          , modifiedAt = modifiedAt
           }
   pure hieFile
+
+invalidateStaleHieCacheFile :: (MonadIde m, MonadIO m) => AbsPath -> m ()
+invalidateStaleHieCacheFile path = do
+  fmap (fromMaybe ()) $ runMaybeT $ do
+    env <- getIdeEnv
+    latestHieModifiedAt <- getFileModifiedAt path
+    cachedHieFile <- MaybeT $ ConcurrentCache.lookup path env.hieCache
+    case cachedHieFile of
+      Just hieFile -> do
+        when (hieFile.modifiedAt < latestHieModifiedAt) $
+          ConcurrentCache.remove path env.hieCache
+      Nothing -> pure ()
 
 getHieCache :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m CachedHieFile
 getHieCache path = do
   env <- getIdeEnv
+  _ <- lift $ invalidateStaleHieCacheFile path
   MaybeT $
     ConcurrentCache.insert
       path
@@ -228,6 +248,7 @@ forceCachedHieFile
     , file = !file
     , fileView = !fileView
     , hieTokenMap = hieTokenMap
+    , modifiedAt = !modifiedAt
     } =
     CachedHieFile
       { hieSource
@@ -235,6 +256,7 @@ forceCachedHieFile
       , file
       , fileView
       , hieTokenMap
+      , modifiedAt
       }
 
 getHieCacheWithMap :: (MonadIO m, HasStaticEnv m) => AbsPath -> HieCacheMap -> MaybeT m CachedHieFile
@@ -244,6 +266,7 @@ getHieCacheWithMap path hieCacheMap =
       MaybeT $ pure $ Just hieFile
     Nothing -> do
       file <- HIE.File.getHieFileFromPath path
+      modifiedAt <- getFileModifiedAt path
       let fileView = HieView.viewHieFile file
       let hieSource = fileView.source
       let tokens = PositionDiff.lex $ T.unpack hieSource
@@ -254,6 +277,7 @@ getHieCacheWithMap path hieCacheMap =
               , file = file
               , fileView
               , hieTokenMap = PositionDiff.tokensToRangeMap tokens
+              , modifiedAt = modifiedAt
               }
       pure hieFile
 

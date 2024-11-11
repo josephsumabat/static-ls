@@ -35,6 +35,7 @@ import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Format qualified as IDE.Format
 import StaticLS.IDE.Hover
 import StaticLS.IDE.Implementation qualified as IDE.Implementation
+import StaticLS.IDE.InlayHints
 import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.IDE.References
 import StaticLS.IDE.Rename qualified as IDE.Rename
@@ -92,6 +93,16 @@ handleImplementationRequest = LSP.requestHandler LSP.SMethod_TextDocumentImpleme
   defs <- lift $ IDE.Implementation.getImplementation path (ProtoLSP.lineColFromProto params._position)
   let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
   resp $ Right . InR . InL $ locations
+
+handleInlayHintRequest :: Handlers (LspT c StaticLsM)
+handleInlayHintRequest = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
+  lift $ logInfo "Received inlay hint request"
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  inlayHints <- lift $ getInlayHints path
+  let resp = ProtoLSP.inlayHintToProto <$> inlayHints
+  res $ Right $ InL resp
+  pure ()
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler LSP.SMethod_TextDocumentReferences $ \req res -> do

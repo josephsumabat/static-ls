@@ -220,6 +220,7 @@ serverDef argOptions logger = do
               , handleResolveCodeAction
               , handleDocumentSymbols
               , handleCompletion
+              , handleInlayHintRequest
               , -- Currently disabled until we support configuration for the formatter
                 -- , handleFormat
                 handleCompletionItemResolve

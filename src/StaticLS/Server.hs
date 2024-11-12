@@ -199,7 +199,7 @@ serverDef argOptions logger = do
       , -- TODO: Do handlers need to inspect clientCapabilities?
         staticHandlers = \_clientCapabilities ->
           mapHandlers goReq goNot $
-            mconcat
+            mconcat (
               [ handleInitialized
               , handleChangeConfiguration
               , handleTextDocumentHoverRequest
@@ -220,11 +220,12 @@ serverDef argOptions logger = do
               , handleResolveCodeAction
               , handleDocumentSymbols
               , handleCompletion
-              , handleInlayHintRequest
               , -- Currently disabled until we support configuration for the formatter
                 -- , handleFormat
                 handleCompletionItemResolve
               ]
+              ++ if argOptions.provideInlays then [handleInlayHintRequest] else [])
+
       , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO
       , options = lspOptions
       , defaultConfig = ()

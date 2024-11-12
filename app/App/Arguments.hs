@@ -99,6 +99,10 @@ staticEnvOptParser =
           <> value defaultSrcDirs
           <> help "Path to directories containing source code. Comma delimited strings"
           <> showDefault
+      ) 
+    <*> switch 
+      ( long "provideInlays"
+          <> help "If enabled, static-ls will provide inlay hints"
       )
  where
   -- Parse a list of comma delimited strings

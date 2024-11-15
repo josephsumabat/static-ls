@@ -1,5 +1,5 @@
 {-# LANGUAGE LambdaCase#-} 
-module StaticLS.IDE.InlayHints (getInlayHints, InlayHint (..), InlayHintKind(..)) where
+module StaticLS.IDE.InlayHints (getInlayHints, InlayHint (..), InlayHintKind(..), InlayHintLabelPart (..), MarkupContent (..), Command (..)) where
 
 import AST.Cast
 import AST.Haskell.Generated qualified as Haskell
@@ -21,9 +21,10 @@ import StaticLS.IDE.Monad
 import StaticLS.Monad
 import Data.List
 import StaticLS.IDE.HiePos
+import StaticLS.IDE.FileWith
 import Control.Monad
 import Control.Applicative
-
+import Data.Pos
 
 getInlayHints :: AbsPath -> StaticLsM [InlayHint]
 getInlayHints path = getTypedefInlays_ path
@@ -34,7 +35,7 @@ getInlayHints path = getTypedefInlays_ path
 -- data type and constructors
 data InlayHint = InlayHint
   { position :: LineCol
-  , label :: Text
+  , label :: Either Text [InlayHintLabelPart]
   , kind :: Maybe InlayHintKind
   , -- TODO add kind kind :: ??
     textEdits :: Maybe (Rope, [Change]) -- we need the rope to convert ranges in changes to lineColRanges
@@ -43,15 +44,38 @@ data InlayHint = InlayHint
   , paddingRight :: Maybe Bool 
   }
 
+data InlayHintLabelPart = InlayHintLabelPart {
+  value :: Text,
+  tooltip :: Maybe (Either Text MarkupContent),
+  location :: Maybe FileLcRange,
+  command :: Maybe Command
+}
+
+
+-- data types to be implemented later
+data Command
+
+data MarkupContent
+
+defaultInlayHint = InlayHint {position = LineCol (Pos 0) (Pos 0), kind=Nothing, label = Left "", textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
+
+
 mkInlayText :: LineCol -> Text -> InlayHint
-mkInlayText lineCol text = InlayHint {position = lineCol, kind=Nothing, label = text, textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
+mkInlayText lineCol text = InlayHint {position = lineCol, kind=Nothing, label = Left text, textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
 
 mkTypedefInlay :: LineCol -> Text -> InlayHint
-mkTypedefInlay lineCol text = (mkInlayText lineCol text){kind = Just InlayHintKind_Type}
+mkTypedefInlay lineCol text = (mkTruncatedInlayText lineCol text){kind = Just InlayHintKind_Type}
+--
+--
+mkTruncatedInlayText :: LineCol -> Text -> InlayHint
+mkTruncatedInlayText lineCol text = defaultInlayHint {position = lineCol, kind=Nothing, label = Right [InlayHintLabelPart {value = truncate text, tooltip = Just (Left text), location = Nothing, command = Nothing}]}
+  where truncate text | Text.length text <= maxLen = text 
+                      | otherwise = Text.take (maxLen - 1) text <> "\x2026"
+        maxLen = 32
+
 
 data InlayHintKind = InlayHintKind_Type | InlayHintKind_Parameter
 
--- typedef inlays
 
 getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> StaticLsM [InlayHint]
 getTypedefInlays absPath getTypes = do
@@ -68,11 +92,10 @@ getTypedefInlays absPath getTypes = do
   let inlayHints = uncurry mkTypedefInlay <$> inlayData
   pure inlayHints
 
-
 fmtTypeStr :: Text -> Text
 fmtTypeStr text
   | text == "" = ""
-  | Text.length text > 50 = "" -- hide overly long inlays and buggy inlays
+  -- | Text.length text > 50 = "" -- hide overly long inlays and buggy inlays foeoij
   | otherwise = " :: " <> text
 
 getTypedefInlays_ :: AbsPath -> StaticLsM [InlayHint]
@@ -138,7 +161,6 @@ isBind = isJust . cast @Haskell.Bind
 
 isLet :: DynNode -> Bool
 isLet = isJust . cast @Haskell.Let
-
 
 
 isNonTopLevel :: [DynNode] -> Bool

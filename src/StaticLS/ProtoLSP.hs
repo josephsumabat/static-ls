@@ -251,7 +251,7 @@ inlayHintToProto :: IDE.InlayHints.InlayHint -> LSP.InlayHint
 inlayHintToProto IDE.InlayHints.InlayHint {..} =
   LSP.InlayHint
     { _position = lineColToProto position
-    , _label = LSP.InL label
+    , _label = eitherToProto id (fmap inlayHintLabelPartToProto) label
     , _kind = inlayHintKindToProto <$> kind
     , _textEdits = fmap convert textEdits
     , _tooltip = Nothing
@@ -267,6 +267,25 @@ inlayHintKindToProto = \case
   IDE.InlayHints.InlayHintKind_Type -> LSP.InlayHintKind_Type 
   IDE.InlayHints.InlayHintKind_Parameter -> LSP.InlayHintKind_Parameter
 
+inlayHintLabelPartToProto :: IDE.InlayHints.InlayHintLabelPart -> LSP.InlayHintLabelPart
+inlayHintLabelPartToProto IDE.InlayHints.InlayHintLabelPart {..} = 
+  LSP.InlayHintLabelPart {
+    _value = value,
+    _tooltip = eitherToProto id markupContentToProto <$> tooltip ,
+    _location = fileLcRangeToLocation <$> location,
+    _command = commandToProto <$> command
+  }
+
+
+markupContentToProto :: IDE.InlayHints.MarkupContent -> LSP.MarkupContent
+markupContentToProto p = case p of {} 
+
+commandToProto :: IDE.InlayHints.Command -> LSP.Command 
+commandToProto cmd = case cmd of {}
+
+
+eitherToProto :: (a -> a') -> (b -> b') -> Either a b -> a' LSP.|? b'
+eitherToProto f g = either (LSP.InL . f) (LSP.InR . g)
 
 diagnosticsToProto :: [IDE.Diagnostics.Diagnostic] -> HashMap AbsPath [LSP.Diagnostic]
 diagnosticsToProto diags =

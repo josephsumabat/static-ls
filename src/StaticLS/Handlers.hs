@@ -50,6 +50,7 @@ import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
 
+
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
 -----------------------------------------------------------------
@@ -102,6 +103,11 @@ handleInlayHintRequest = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ 
   inlayHints <- lift $ getInlayHints path
   let resp = ProtoLSP.inlayHintToProto <$> inlayHints
   res $ Right $ InL resp
+  pure ()
+
+
+handleResolveInlayHint :: Handlers (LspT c StaticLsM)
+handleResolveInlayHint = LSP.requestHandler LSP.SMethod_InlayHintResolve $ \req res -> do 
   pure ()
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
@@ -234,6 +240,7 @@ handleResolveCodeAction = LSP.requestHandler LSP.SMethod_CodeActionResolve $ \re
       res $ Right newCodeAction
       pure ()
     Nothing -> res $ Right codeAction
+
 
 handleFormat :: Handlers (LspT c StaticLsM)
 handleFormat = LSP.requestHandler LSP.SMethod_TextDocumentFormatting $ \req res -> do

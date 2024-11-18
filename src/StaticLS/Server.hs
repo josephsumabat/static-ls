@@ -224,7 +224,7 @@ serverDef argOptions logger = do
                 -- , handleFormat
                 handleCompletionItemResolve
               ]
-              ++ if argOptions.provideInlays then [handleInlayHintRequest] else [])
+              ++ if argOptions.provideInlays then [handleInlayHintRequest, handleResolveInlayHint] else [])
 
       , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO
       , options = lspOptions

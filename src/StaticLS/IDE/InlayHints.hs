@@ -11,20 +11,17 @@ import Data.LineColRange qualified as LineColRange
 import Data.Maybe
 import Data.Path
 import Data.Range
-import Data.Rope qualified as Rope
 import Data.Rope (Rope, posToLineCol)
 import Data.Text (Text)
-import Data.Text qualified as Text
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
 import StaticLS.IDE.Monad
 import StaticLS.Monad
-import Data.List
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.FileWith
 import Control.Monad
-import Control.Applicative
 import Data.Pos
+
 
 getInlayHints :: AbsPath -> StaticLsM [InlayHint]
 getInlayHints path = getTypedefInlays_ path
@@ -52,30 +49,23 @@ data InlayHintLabelPart = InlayHintLabelPart {
 }
 
 
--- data types to be implemented later
+-- May be implemented later
 data Command
 
+-- May be implemented later
 data MarkupContent
-
-defaultInlayHint = InlayHint {position = LineCol (Pos 0) (Pos 0), kind=Nothing, label = Left "", textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
-
-
-mkInlayText :: LineCol -> Text -> InlayHint
-mkInlayText lineCol text = InlayHint {position = lineCol, kind=Nothing, label = Left text, textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
-
-mkTypedefInlay :: LineCol -> Text -> InlayHint
-mkTypedefInlay lineCol text = (mkTruncatedInlayText lineCol text){kind = Just InlayHintKind_Type}
---
---
-mkTruncatedInlayText :: LineCol -> Text -> InlayHint
-mkTruncatedInlayText lineCol text = defaultInlayHint {position = lineCol, kind=Nothing, label = Right [InlayHintLabelPart {value = truncate text, tooltip = Just (Left text), location = Nothing, command = Nothing}]}
-  where truncate text | Text.length text <= maxLen = text 
-                      | otherwise = Text.take (maxLen - 1) text <> "\x2026"
-        maxLen = 32
 
 
 data InlayHintKind = InlayHintKind_Type | InlayHintKind_Parameter
 
+defaultInlayHint :: InlayHint
+defaultInlayHint = InlayHint {position = LineCol (Pos 0) (Pos 0), kind=Nothing, label = Left "", textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
+
+mkInlayText :: LineCol -> Text -> InlayHint
+mkInlayText lineCol text = defaultInlayHint{position = lineCol, label = Left text}
+
+mkTypedefInlay :: LineCol -> Text -> InlayHint
+mkTypedefInlay lineCol text = (mkInlayText lineCol text){kind = Just InlayHintKind_Type, paddingLeft = Just True}
 
 getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> StaticLsM [InlayHint]
 getTypedefInlays absPath getTypes = do
@@ -85,7 +75,7 @@ getTypedefInlays absPath getTypes = do
   let ranges = nodeToRange <$> targetNodes
   let srcLineCols' = posToLineCol rope . (.start) <$> ranges
   hieLineCols' <- traverse (runMaybeT . lineColToHieLineCol absPath) srcLineCols'
-  let (srcLineCols, hieLineCols) = unzip $ mapMaybe sequenceA $ zip srcLineCols' hieLineCols'
+  let hieLineCols = catMaybes $ hieLineCols'
   let endPosns = posToLineCol rope . (.end) <$> ranges
   let typeStrs = getTypes <$> hieLineCols
   let inlayData = zip endPosns (fmtTypeStr . fromMaybe "" . lastSafe <$> typeStrs)
@@ -95,8 +85,7 @@ getTypedefInlays absPath getTypes = do
 fmtTypeStr :: Text -> Text
 fmtTypeStr text
   | text == "" = ""
-  -- | Text.length text > 50 = "" -- hide overly long inlays and buggy inlays foeoij
-  | otherwise = " :: " <> text
+  | otherwise = ":: " <> text
 
 getTypedefInlays_ :: AbsPath -> StaticLsM [InlayHint]
 getTypedefInlays_ absPath = do
@@ -108,7 +97,6 @@ getTypedefInlays_ absPath = do
             let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.point lineCol)
             fmap HieView.Type.printType tys
       getTypedefInlays absPath getTypes
-
 
 
 includeNode :: DynNode -> [DynNode] -> Bool

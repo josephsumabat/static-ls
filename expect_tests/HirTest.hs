@@ -1,6 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 
-module HirTest (tests) where
+module HirTest where
 
 import AST.Haskell qualified as H
 import Data.Text qualified as T
@@ -19,9 +19,10 @@ checkParse name source ex = test name ex $ do
 checkHir :: String -> T.Text -> Expect -> TestTree
 checkHir name source ex = test name ex $ do
   let tree = H.parse source
-  let (es, hir) = Hir.parseHaskell tree
+  let (_es, hir) = Hir.parseHaskell tree
   pure $ TL.toStrict $ Pretty.pShowNoColor hir
 
+src1 :: T.Text
 src1 =
   [trimming|
   module First where
@@ -30,6 +31,7 @@ src1 =
   import Second (First, C(.., first, type Another, (+++))) as Another
   |]
 
+src2 :: T.Text
 src2 =
   [trimming|
   module Second
@@ -43,6 +45,7 @@ src2 =
 
   |]
 
+src3 :: T.Text
 src3 =
   [trimming|
   module Third where
@@ -74,6 +77,7 @@ src3 =
     first :: a -> a
   |]
 
+tests :: TestTree
 tests =
   testGroup
     "HirTest"

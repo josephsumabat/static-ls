@@ -7,7 +7,8 @@ import StaticLS.StaticEnv.Options
 import System.Environment
 import System.Exit
 import Text.Parsec hiding (many, option)
-
+import Data.Word
+import Control.Applicative
 currVersion :: String
 currVersion = showVersion version
 
@@ -99,7 +100,13 @@ staticEnvOptParser =
           <> value defaultSrcDirs
           <> help "Path to directories containing source code. Comma delimited strings"
           <> showDefault
-      )
+      ) 
+    <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag True False (long "disableInlays" <> help "Explicitly disable inlay hints.")) 
+
+    -- switch 
+    --   ( long "provideInlays"
+    --       <> help "If enabled, static-ls will provide inlay hints"
+    --   )
  where
   -- Parse a list of comma delimited strings
   listOption = option $ eitherReader (either (Left . show) Right . runParser (sepEndBy (many alphaNum) (char ',')) () "")

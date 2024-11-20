@@ -32,7 +32,7 @@ type BindName = Haskell.PrefixId :+ Haskell.Variable :+ Nil
 
 -- For now, it only works with top level declarations
 getDeclarationNameAtPos :: Haskell.Haskell -> Pos -> LineCol -> AST.Err (Maybe BindName)
-getDeclarationNameAtPos haskell pos lineCol = do
+getDeclarationNameAtPos haskell pos _lineCol = do
   let node = AST.getDeepestContaining @AddTypeContext (Range.point pos) haskell.dynNode
   case node of
     Just bind

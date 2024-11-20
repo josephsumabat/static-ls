@@ -106,6 +106,7 @@ isFileSaved absPath = do
     Just src -> src == contentsText
     Nothing -> False
 
+
 deletionsToAssist :: Text.Text -> [DeletionInfo] -> Maybe Assist
 deletionsToAssist message deletions = do
   let numFixes = length deletions

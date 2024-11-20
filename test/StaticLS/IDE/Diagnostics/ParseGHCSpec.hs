@@ -6,7 +6,6 @@ import Data.Path qualified as Path
 import NeatInterpolation
 import StaticLS.IDE.Diagnostics.ParseGHC
 import Test.Hspec
-import Text.RawString.QQ
 
 spec :: Spec
 spec = do

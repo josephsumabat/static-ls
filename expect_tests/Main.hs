@@ -1,6 +1,5 @@
 module Main where
 
-import Data.Text qualified as T
 import HirTest qualified
 import Test.Tasty
 import Test.Tasty.Expect

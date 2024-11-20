@@ -35,6 +35,7 @@ import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Format qualified as IDE.Format
 import StaticLS.IDE.Hover
 import StaticLS.IDE.Implementation qualified as IDE.Implementation
+import StaticLS.IDE.InlayHints
 import StaticLS.IDE.Monad qualified as IDE
 import StaticLS.IDE.References
 import StaticLS.IDE.Rename qualified as IDE.Rename
@@ -48,6 +49,7 @@ import StaticLS.Utils
 import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
+
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -92,6 +94,22 @@ handleImplementationRequest = LSP.requestHandler LSP.SMethod_TextDocumentImpleme
   defs <- lift $ IDE.Implementation.getImplementation path (ProtoLSP.lineColFromProto params._position)
   let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
   resp $ Right . InR . InL $ locations
+
+handleInlayHintRequest :: Handlers (LspT c StaticLsM)
+handleInlayHintRequest = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
+  lift $ logInfo "Received inlay hint request"
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  inlayHints <- lift $ getInlayHints path
+  let resp = ProtoLSP.inlayHintToProto <$> inlayHints
+  res $ Right $ InL resp
+  pure ()
+
+
+handleResolveInlayHint :: Handlers (LspT c StaticLsM)
+handleResolveInlayHint = LSP.requestHandler LSP.SMethod_InlayHintResolve $ \req res -> do 
+  pure ()
+
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler LSP.SMethod_TextDocumentReferences $ \req res -> do
@@ -160,8 +178,9 @@ handleDidChange = LSP.notificationHandler LSP.SMethod_TextDocumentDidChange $ \m
 handleDidSave :: Handlers (LspT c StaticLsM)
 handleDidSave = LSP.notificationHandler LSP.SMethod_TextDocumentDidSave $ \message -> do
   let params = message._params
-  let _uri = params._textDocument._uri
-  pure ()
+  let uri = params._textDocument._uri
+  -- Useful to invalidate for file watchers if a branch checkout invalidates the file state cache
+  updateFileStateForUri uri
 
 handleDidClose :: Handlers (LspT c StaticLsM)
 handleDidClose = LSP.notificationHandler LSP.SMethod_TextDocumentDidClose $ \_ -> do
@@ -222,6 +241,7 @@ handleResolveCodeAction = LSP.requestHandler LSP.SMethod_CodeActionResolve $ \re
       res $ Right newCodeAction
       pure ()
     Nothing -> res $ Right codeAction
+
 
 handleFormat :: Handlers (LspT c StaticLsM)
 handleFormat = LSP.requestHandler LSP.SMethod_TextDocumentFormatting $ \req res -> do

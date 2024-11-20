@@ -22,9 +22,9 @@ mkModuleText parts =
     , text = T.intercalate "." (NE.toList parts)
     }
 
-mkModuleName :: NonEmpty Text -> ModuleName
-mkModuleName parts =
-  ModuleName
-    { mod = mkModuleText parts
-    -- , node = AST.defaultNode
-    }
+-- mkModuleName :: NonEmpty Text -> ModuleName
+-- mkModuleName parts =
+--  ModuleName
+--    { mod = mkModuleText parts
+--    , node = AST.defaultNode
+--    }

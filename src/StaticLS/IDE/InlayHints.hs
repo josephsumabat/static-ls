@@ -99,14 +99,6 @@ getTypedefInlays_ absPath = do
       getTypedefInlays absPath getTypes
 
 
-includeNode :: DynNode -> [DynNode] -> Bool
-includeNode node parents = do
-  let isVariable = isJust $ cast @Haskell.Variable node
-  let nodeFieldName = node.nodeFieldName 
-  let validNodeFieldName = maybe False (`elem` ["name", "pattern", "element", "left_operand", "right_operand"]) nodeFieldName
-  isVariable && isNonTopLevel parents && validNodeFieldName
-
-
 nodeIsVarAtBinding :: [(Int, DynNode)] -> Bool
 nodeIsVarAtBinding path = do
   let checkHeadNode n = (isJust (cast @Haskell.Variable n) || isJust (cast @Haskell.Function n))
@@ -120,6 +112,8 @@ nodeIsVarAtBinding path = do
     guard $ isNonTopLevel (snd <$> d1)
     pure ()
 
+
+-- logic for manipulating AST to find where to show inlay hints
 
 data IndexedTree a = IndexedTree {root :: (Int, a), children :: [IndexedTree a]}
 
@@ -160,10 +154,10 @@ isNonTopLevel parents = do
 selectNodesToType :: DynNode -> [DynNode]
 selectNodesToType root = do
   let tree = nodeToIndexedTree root 
-  let trav = indexedTreeTraversalGeneric (:) [] tree 
-  let trav' = filter nodeIsVarAtBinding trav 
-  let trav'' = snd . head <$> trav'
-  trav''
+  let nodePaths = indexedTreeTraversalGeneric (:) [] tree 
+  let filteredNodePaths = filter nodeIsVarAtBinding nodePaths 
+  let dynNodesToShow = snd . head <$> filteredNodePaths
+  dynNodesToShow
 
 
 lastSafe :: [a] -> Maybe a

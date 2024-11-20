@@ -42,5 +42,5 @@ defaultStaticEnvOptions =
     , optionHieFilesPath = defaultHieFiles
     , optionSrcDirs = defaultSrcDirs
     , optionHiFilesPath = defaultHiFiles
-    , provideInlays = False
+    , provideInlays = True
     }

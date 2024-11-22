@@ -13,6 +13,7 @@ import Data.Path
 import Data.Range
 import Data.Rope (Rope, posToLineCol)
 import Data.Text (Text)
+import Data.Text qualified as Text
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
 import StaticLS.IDE.Monad
@@ -65,7 +66,13 @@ mkInlayText :: LineCol -> Text -> InlayHint
 mkInlayText lineCol text = defaultInlayHint{position = lineCol, label = Left text}
 
 mkTypedefInlay :: LineCol -> Text -> InlayHint
-mkTypedefInlay lineCol text = (mkInlayText lineCol text){kind = Just InlayHintKind_Type, paddingLeft = Just True}
+mkTypedefInlay lineCol text = (mkInlayText lineCol (formatInlayText text)){kind = Just InlayHintKind_Type, paddingLeft = Just True}
+
+
+formatInlayText :: Text -> Text
+formatInlayText = normalizeWhitespace
+  where 
+    normalizeWhitespace = Text.unwords . Text.words
 
 getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> StaticLsM [InlayHint]
 getTypedefInlays absPath getTypes = do

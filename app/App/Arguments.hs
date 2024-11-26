@@ -101,7 +101,7 @@ staticEnvOptParser =
           <> help "Path to directories containing source code. Comma delimited strings"
           <> showDefault
       ) 
-    <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag True False (long "disableInlays" <> help "Explicitly disable inlay hints.")) 
+    <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag False False (long "disableInlays" <> help "Explicitly disable inlay hints.")) 
 
     -- switch 
     --   ( long "provideInlays"

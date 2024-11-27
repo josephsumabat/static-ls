@@ -272,5 +272,3 @@ runServer :: StaticEnvOptions -> LoggerM IO -> IO Int
 runServer argOptions logger = do
   server <- serverDef argOptions logger
   LSP.runServer server
-
-

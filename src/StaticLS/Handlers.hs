@@ -107,9 +107,8 @@ handleInlayHintRequest = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ 
 
 
 handleResolveInlayHint :: Handlers (LspT c StaticLsM)
-handleResolveInlayHint = LSP.requestHandler LSP.SMethod_InlayHintResolve $ \req res -> do 
+handleResolveInlayHint = LSP.requestHandler LSP.SMethod_InlayHintResolve $ \_ _ -> do 
   pure ()
-
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler LSP.SMethod_TextDocumentReferences $ \req res -> do

@@ -49,7 +49,7 @@ codeAction CodeActionContext {path} = do
   let localRedundantImportDiagnostics = filter (isDeletionInFile path) deletionInfos
   let globalAssist = deletionsToAssist "Remove redundant imports in project" globalRedundantImportDiagnostics
   let localAssist = deletionsToAssist "Remove redundant imports in file" localRedundantImportDiagnostics
-  pure [localAssist, globalAssist]
+  pure $ catMaybes [localAssist, globalAssist]
 
 getDiagnostics :: StaticLsM [Diagnostic]
 getDiagnostics = do
@@ -106,12 +106,15 @@ isFileSaved absPath = do
     Just src -> src == contentsText
     Nothing -> False
 
-deletionsToAssist :: Text.Text -> [DeletionInfo] -> Assist
+deletionsToAssist :: Text.Text -> [DeletionInfo] -> Maybe Assist
 deletionsToAssist message deletions = do
   let numFixes = length deletions
-  let fixCase = if numFixes == 1 then "fix" else "fixes"
-  let message' = message <> " (" <> (Text.pack . show) numFixes <> " " <> fixCase <> ")"
-  mkAssist message' $ actOnDeletions deletions
+  if numFixes == 0
+    then Nothing
+    else do
+      let fixCase = if numFixes == 1 then "fix" else "fixes"
+      let message' = message <> " (" <> (Text.pack . show) numFixes <> " " <> fixCase <> ")"
+      Just $ mkAssist message' $ actOnDeletions deletions
 
 actOnDeletions :: [DeletionInfo] -> SourceEdit
 actOnDeletions deletionInfos = do

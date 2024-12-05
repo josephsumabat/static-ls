@@ -20,6 +20,8 @@ data StaticEnvOptions = StaticEnvOptions
   , optionSrcDirs :: [FilePath]
 
   , provideInlays :: Bool
+
+  , inlayLengthCap :: Maybe Int
   }
   deriving (Show, Eq)
 
@@ -43,4 +45,5 @@ defaultStaticEnvOptions =
     , optionSrcDirs = defaultSrcDirs
     , optionHiFilesPath = defaultHiFiles
     , provideInlays = True
+    , inlayLengthCap = Just 32
     }

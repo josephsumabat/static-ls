@@ -95,12 +95,12 @@ handleImplementationRequest = LSP.requestHandler LSP.SMethod_TextDocumentImpleme
   let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
   resp $ Right . InR . InL $ locations
 
-handleInlayHintRequest :: Handlers (LspT c StaticLsM)
-handleInlayHintRequest = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
+handleInlayHintRequest :: (Maybe Int) ->  Handlers (LspT c StaticLsM)
+handleInlayHintRequest maxLen  = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
   lift $ logInfo "Received inlay hint request"
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
-  inlayHints <- lift $ getInlayHints path
+  inlayHints <- lift $ getInlayHints path maxLen
   let resp = ProtoLSP.inlayHintToProto <$> inlayHints
   res $ Right $ InL resp
   pure ()

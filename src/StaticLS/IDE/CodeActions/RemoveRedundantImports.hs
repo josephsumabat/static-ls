@@ -113,7 +113,7 @@ deletionsToAssist message deletions = do
   let fixCase = if numFixes == 1 then "fix" else "fixes"
   let message' = message <> " (" <> (Text.pack . show) numFixes <> " " <> fixCase <> ")"
   case deletions of 
-    [] -> Nothing
+    -- [] -> Nothing
     _ -> Just $ mkAssist message' $ actOnDeletions deletions
 
 actOnDeletions :: [DeletionInfo] -> SourceEdit

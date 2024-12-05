@@ -9,6 +9,7 @@ import System.Exit
 import Text.Parsec hiding (many, option)
 import Data.Word
 import Control.Applicative
+import Text.Read
 currVersion :: String
 currVersion = showVersion version
 
@@ -101,12 +102,11 @@ staticEnvOptParser =
           <> help "Path to directories containing source code. Comma delimited strings"
           <> showDefault
       ) 
-    <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag False False (long "disableInlays" <> help "Explicitly disable inlay hints.")) 
+    <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag False defaultStaticEnvOptions.provideInlays (long "disableInlays" <> help "Explicitly disable inlay hints.")) 
 
-    -- switch 
-    --   ( long "provideInlays"
-    --       <> help "If enabled, static-ls will provide inlay hints"
-    --   )
+    <*> Control.Applicative.optional  readInlayLen   -- switch 
+
  where
   -- Parse a list of comma delimited strings
   listOption = option $ eitherReader (either (Left . show) Right . runParser (sepEndBy (many alphaNum) (char ',')) () "")
+  readInlayLen = (option auto $ long "maxInlayLength" <> help "Length to which inlay hints will be truncated.") 

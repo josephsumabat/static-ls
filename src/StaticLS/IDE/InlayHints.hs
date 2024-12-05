@@ -22,10 +22,10 @@ import StaticLS.IDE.HiePos
 import StaticLS.IDE.FileWith
 import Control.Monad
 import Data.Pos
+import Data.List as Shit
 
-
-getInlayHints :: AbsPath -> StaticLsM [InlayHint]
-getInlayHints path = getTypedefInlays_ path
+getInlayHints :: AbsPath -> Maybe Int -> StaticLsM [InlayHint]
+getInlayHints path maxLen = getTypedefInlays_ path maxLen
 
 
 -- everything below this line could potentially be moved to a different file
@@ -65,17 +65,21 @@ defaultInlayHint = InlayHint {position = LineCol (Pos 0) (Pos 0), kind=Nothing, 
 mkInlayText :: LineCol -> Text -> InlayHint
 mkInlayText lineCol text = defaultInlayHint{position = lineCol, label = Left text}
 
-mkTypedefInlay :: LineCol -> Text -> InlayHint
-mkTypedefInlay lineCol text = (mkInlayText lineCol (formatInlayText text)){kind = Just InlayHintKind_Type, paddingLeft = Just True}
-
+mkTypedefInlay :: Maybe Int -> LineCol -> Text -> InlayHint
+mkTypedefInlay maxLen  lineCol text = (mkInlayText lineCol (truncateInlay maxLen(formatInlayText text))){kind = Just InlayHintKind_Type, paddingLeft = Just True}
 
 formatInlayText :: Text -> Text
 formatInlayText = normalizeWhitespace
   where 
     normalizeWhitespace = Text.unwords . Text.words
 
-getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> StaticLsM [InlayHint]
-getTypedefInlays absPath getTypes = do
+truncateInlay Nothing text = text
+truncateInlay (Just maxLen) text 
+  | Text.length text <= maxLen = text 
+  | otherwise = Text.take maxLen text <> "\x2026"
+
+getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> Maybe Int -> StaticLsM [InlayHint]
+getTypedefInlays absPath getTypes maxLen = do
   haskell <- getHaskell absPath
   rope <- getSourceRope absPath
   let targetNodes = selectNodesToType (getDynNode haskell)
@@ -86,7 +90,7 @@ getTypedefInlays absPath getTypes = do
   let endPosns = posToLineCol rope . (.end) <$> ranges
   let typeStrs = getTypes <$> hieLineCols
   let inlayData = zip endPosns (fmtTypeStr . fromMaybe "" . lastSafe <$> typeStrs)
-  let inlayHints = uncurry mkTypedefInlay <$> inlayData
+  let inlayHints = uncurry (mkTypedefInlay maxLen) <$> inlayData
   pure inlayHints
 
 fmtTypeStr :: Text -> Text
@@ -94,8 +98,8 @@ fmtTypeStr text
   | text == "" = ""
   | otherwise = ":: " <> text
 
-getTypedefInlays_ :: AbsPath -> StaticLsM [InlayHint]
-getTypedefInlays_ absPath = do
+getTypedefInlays_ :: AbsPath -> Maybe Int -> StaticLsM [InlayHint]
+getTypedefInlays_ absPath maxLen = do
   hieView' <- runMaybeT $ getHieView absPath
   case hieView' of
     Nothing -> pure []
@@ -103,7 +107,7 @@ getTypedefInlays_ absPath = do
       let getTypes lineCol = do
             let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.point lineCol)
             fmap HieView.Type.printType tys
-      getTypedefInlays absPath getTypes
+      getTypedefInlays absPath getTypes maxLen
 
 
 nodeIsVarAtBinding :: [(Int, DynNode)] -> Bool
@@ -119,6 +123,11 @@ nodeIsVarAtBinding path = do
     guard $ isNonTopLevel (snd <$> d1)
     pure ()
 
+nodeIsVarBoundInLambda :: [(Int, DynNode)] -> Bool 
+nodeIsVarBoundInLambda path = do 
+  let headIsVar = maybe False (isVar . snd) (listToMaybe path)
+
+  headIsVar && any (isJust . cast @Haskell.Patterns  . snd) path 
 
 -- logic for manipulating AST to find where to show inlay hints
 
@@ -151,10 +160,15 @@ isBind = isJust . cast @Haskell.Bind
 isLet :: DynNode -> Bool
 isLet = isJust . cast @Haskell.Let
 
+isLam :: DynNode -> Bool 
+isLam = isJust . cast @Haskell.Lambda
+
+isVar :: DynNode -> Bool
+isVar = isJust . cast @Haskell.Variable
 
 isNonTopLevel :: [DynNode] -> Bool
 isNonTopLevel parents = do
-  let stripped = drop 1 $ dropWhile (\x -> not (isLet x || isBind x)) parents 
+  let stripped = drop 1 $ dropWhile (\x -> not (isLet x || isBind x || isLam x)) parents 
   any (\x -> isFunction x || isBind x) stripped
 
 
@@ -162,7 +176,7 @@ selectNodesToType :: DynNode -> [DynNode]
 selectNodesToType root = do
   let tree = nodeToIndexedTree root 
   let nodePaths = indexedTreeTraversalGeneric (:) [] tree 
-  let filteredNodePaths = filter nodeIsVarAtBinding nodePaths 
+  let filteredNodePaths = filter (\x -> nodeIsVarAtBinding x) nodePaths 
   let dynNodesToShow = snd . head <$> filteredNodePaths
   dynNodesToShow
 

@@ -86,7 +86,7 @@ getTypedefInlays absPath getTypes maxLen = do
   let ranges = nodeToRange <$> targetNodes
   let srcLineCols' = posToLineCol rope . (.start) <$> ranges
   hieLineCols' <- traverse (runMaybeT . lineColToHieLineCol absPath) srcLineCols'
-  let hieLineCols = catMaybes $ hieLineCols'
+  let hieLineCols = catMaybes hieLineCols'
   let endPosns = posToLineCol rope . (.end) <$> ranges
   let typeStrs = getTypes <$> hieLineCols
   let inlayData = zip endPosns (fmtTypeStr . fromMaybe "" . lastSafe <$> typeStrs)

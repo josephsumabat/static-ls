@@ -18,9 +18,7 @@ data StaticEnvOptions = StaticEnvOptions
   , optionHiFilesPath :: FilePath
   -- ^ Relative path to hi files directory
   , optionSrcDirs :: [FilePath]
-
   , provideInlays :: Bool
-
   , inlayLengthCap :: Maybe Int
   }
   deriving (Show, Eq)

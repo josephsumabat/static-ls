@@ -36,7 +36,6 @@ import StaticLS.StaticEnv (runHieDbExceptT)
 import StaticLS.Tree qualified as Tree
 import StaticLS.Utils
 
-
 findModulesForDefQuery :: HieDb -> Text -> IO [Text]
 findModulesForDefQuery (getConn -> conn) name = do
   res <-

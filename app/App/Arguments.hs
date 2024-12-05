@@ -1,15 +1,16 @@
 module App.Arguments (execArgParser) where
 
+import Control.Applicative
 import Data.Version (showVersion)
+import Data.Word
 import Options.Applicative
 import Paths_static_ls (version)
 import StaticLS.StaticEnv.Options
 import System.Environment
 import System.Exit
 import Text.Parsec hiding (many, option)
-import Data.Word
-import Control.Applicative
 import Text.Read
+
 currVersion :: String
 currVersion = showVersion version
 
@@ -101,12 +102,10 @@ staticEnvOptParser =
           <> value defaultSrcDirs
           <> help "Path to directories containing source code. Comma delimited strings"
           <> showDefault
-      ) 
-    <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag False defaultStaticEnvOptions.provideInlays (long "disableInlays" <> help "Explicitly disable inlay hints.")) 
-
-    <*> Control.Applicative.optional  readInlayLen   -- switch 
-
+      )
+    <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag False defaultStaticEnvOptions.provideInlays (long "disableInlays" <> help "Explicitly disable inlay hints."))
+    <*> Control.Applicative.optional readInlayLen -- switch
  where
   -- Parse a list of comma delimited strings
   listOption = option $ eitherReader (either (Left . show) Right . runParser (sepEndBy (many alphaNum) (char ',')) () "")
-  readInlayLen = (option auto $ long "maxInlayLength" <> help "Length to which inlay hints will be truncated.") 
+  readInlayLen = (option auto $ long "maxInlayLength" <> help "Length to which inlay hints will be truncated.")

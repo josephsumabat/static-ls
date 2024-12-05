@@ -17,7 +17,6 @@ import Data.Pos (Pos)
 import Data.Range (Range (..))
 import Data.Text (Text)
 
-
 -- Invariant: disjoint, sorted by delete
 data Edit = Edit [Change]
   deriving (Show, Eq, Ord)
@@ -31,7 +30,7 @@ instance Monoid Edit where
 insert :: Pos -> Text -> Edit
 insert p t = Edit [Change.insert p t]
 
-delete :: Range -> Edit 
+delete :: Range -> Edit
 delete r = Edit [Change.delete r]
 
 replace :: Range -> Text -> Edit

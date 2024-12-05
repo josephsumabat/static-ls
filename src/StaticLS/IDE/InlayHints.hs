@@ -1,32 +1,32 @@
-{-# LANGUAGE LambdaCase#-} 
-module StaticLS.IDE.InlayHints (getInlayHints, InlayHint (..), InlayHintKind(..), InlayHintLabelPart (..), MarkupContent (..), Command (..)) where
+{-# LANGUAGE LambdaCase #-}
+
+module StaticLS.IDE.InlayHints (getInlayHints, InlayHint (..), InlayHintKind (..), InlayHintLabelPart (..), MarkupContent (..), Command (..)) where
 
 import AST.Cast
 import AST.Haskell.Generated qualified as Haskell
 import AST.Node
+import Control.Monad
 import Control.Monad.Trans.Maybe
 import Data.Change
 import Data.LineCol
 import Data.LineColRange qualified as LineColRange
+import Data.List as Shit
 import Data.Maybe
 import Data.Path
+import Data.Pos
 import Data.Range
 import Data.Rope (Rope, posToLineCol)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
+import StaticLS.IDE.FileWith
+import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
 import StaticLS.Monad
-import StaticLS.IDE.HiePos
-import StaticLS.IDE.FileWith
-import Control.Monad
-import Data.Pos
-import Data.List as Shit
 
 getInlayHints :: AbsPath -> Maybe Int -> StaticLsM [InlayHint]
 getInlayHints path maxLen = getTypedefInlays_ path maxLen
-
 
 -- everything below this line could potentially be moved to a different file
 
@@ -38,17 +38,16 @@ data InlayHint = InlayHint
   , -- TODO add kind kind :: ??
     textEdits :: Maybe (Rope, [Change]) -- we need the rope to convert ranges in changes to lineColRanges
     -- TODO add tooltip
-  , paddingLeft :: Maybe Bool 
-  , paddingRight :: Maybe Bool 
+  , paddingLeft :: Maybe Bool
+  , paddingRight :: Maybe Bool
   }
 
-data InlayHintLabelPart = InlayHintLabelPart {
-  value :: Text,
-  tooltip :: Maybe (Either Text MarkupContent),
-  location :: Maybe FileLcRange,
-  command :: Maybe Command
-}
-
+data InlayHintLabelPart = InlayHintLabelPart
+  { value :: Text
+  , tooltip :: Maybe (Either Text MarkupContent)
+  , location :: Maybe FileLcRange
+  , command :: Maybe Command
+  }
 
 -- May be implemented later
 data Command
@@ -56,26 +55,25 @@ data Command
 -- May be implemented later
 data MarkupContent
 
-
 data InlayHintKind = InlayHintKind_Type | InlayHintKind_Parameter
 
 defaultInlayHint :: InlayHint
-defaultInlayHint = InlayHint {position = LineCol (Pos 0) (Pos 0), kind=Nothing, label = Left "", textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
+defaultInlayHint = InlayHint {position = LineCol (Pos 0) (Pos 0), kind = Nothing, label = Left "", textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
 
 mkInlayText :: LineCol -> Text -> InlayHint
-mkInlayText lineCol text = defaultInlayHint{position = lineCol, label = Left text}
+mkInlayText lineCol text = defaultInlayHint {position = lineCol, label = Left text}
 
 mkTypedefInlay :: Maybe Int -> LineCol -> Text -> InlayHint
-mkTypedefInlay maxLen  lineCol text = (mkInlayText lineCol (truncateInlay maxLen(formatInlayText text))){kind = Just InlayHintKind_Type, paddingLeft = Just True}
+mkTypedefInlay maxLen lineCol text = (mkInlayText lineCol (truncateInlay maxLen (formatInlayText text))) {kind = Just InlayHintKind_Type, paddingLeft = Just True}
 
 formatInlayText :: Text -> Text
 formatInlayText = normalizeWhitespace
-  where 
-    normalizeWhitespace = Text.unwords . Text.words
+ where
+  normalizeWhitespace = Text.unwords . Text.words
 
 truncateInlay Nothing text = text
-truncateInlay (Just maxLen) text 
-  | Text.length text <= maxLen = text 
+truncateInlay (Just maxLen) text
+  | Text.length text <= maxLen = text
   | otherwise = Text.take maxLen text <> "\x2026"
 
 getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> Maybe Int -> StaticLsM [InlayHint]
@@ -109,47 +107,48 @@ getTypedefInlays_ absPath maxLen = do
             fmap HieView.Type.printType tys
       getTypedefInlays absPath getTypes maxLen
 
-
 nodeIsVarAtBinding :: [(Int, DynNode)] -> Bool
 nodeIsVarAtBinding path = do
-  let checkHeadNode n = (isJust (cast @Haskell.Variable n) || isJust (cast @Haskell.Function n))
-       && (maybe False (`elem` ["name", "pattern", "element", "left_operand", "right_operand"]) n.nodeFieldName)
+  let checkHeadNode n =
+        (isJust (cast @Haskell.Variable n) || isJust (cast @Haskell.Function n))
+          && (maybe False (`elem` ["name", "pattern", "element", "left_operand", "right_operand"]) n.nodeFieldName)
   let headNodeGood = maybe False (checkHeadNode . snd) (listToMaybe path)
-  let bindLhsP ((0, _):(_, y):_) = isJust (cast @Haskell.Bind y) || isJust (cast @Haskell.Alternative y) || isJust (cast @Haskell.Function y)
+  let bindLhsP ((0, _) : (_, y) : _) = isJust (cast @Haskell.Bind y) || isJust (cast @Haskell.Alternative y) || isJust (cast @Haskell.Function y)
       bindLhsP _ = False
   (&&) headNodeGood $ isJust $ do
     bindLhs <- stripUntil bindLhsP path
-    let d1 = drop 1 bindLhs 
+    let d1 = drop 1 bindLhs
     guard $ isNonTopLevel (snd <$> d1)
     pure ()
 
-nodeIsVarBoundInLambda :: [(Int, DynNode)] -> Bool 
-nodeIsVarBoundInLambda path = do 
+nodeIsVarBoundInLambda :: [(Int, DynNode)] -> Bool
+nodeIsVarBoundInLambda path = do
   let headIsVar = maybe False (isVar . snd) (listToMaybe path)
 
-  headIsVar && any (isJust . cast @Haskell.Patterns  . snd) path 
+  headIsVar && any (isJust . cast @Haskell.Patterns . snd) path
 
 -- logic for manipulating AST to find where to show inlay hints
 
 data IndexedTree a = IndexedTree {root :: (Int, a), children :: [IndexedTree a]}
 
 nodeToIndexedTree :: DynNode -> IndexedTree DynNode
-nodeToIndexedTree t = go ((-1),t) where
-  go x@(_, node) = IndexedTree x $ go <$> zip [0..] node.nodeChildren 
+nodeToIndexedTree t = go ((-1), t)
+ where
+  go x@(_, node) = IndexedTree x $ go <$> zip [0 ..] node.nodeChildren
 
 indexedTreeTraversalGeneric :: ((Int, DynNode) -> st -> st) -> st -> IndexedTree DynNode -> [st]
-indexedTreeTraversalGeneric fn = go where 
-  go st tree = do 
-      let newSt = fn tree.root st
-      newSt : (go newSt =<< tree.children)
-
+indexedTreeTraversalGeneric fn = go
+ where
+  go st tree = do
+    let newSt = fn tree.root st
+    newSt : (go newSt =<< tree.children)
 
 stripUntil :: ([a] -> Bool) -> [a] -> Maybe [a]
-stripUntil f = go where 
+stripUntil f = go
+ where
   go xs | f xs = Just xs
   go [] = Nothing
-  go (_:ys) = stripUntil f ys
-
+  go (_ : ys) = stripUntil f ys
 
 isFunction :: DynNode -> Bool
 isFunction = isJust . cast @Haskell.Function
@@ -160,7 +159,7 @@ isBind = isJust . cast @Haskell.Bind
 isLet :: DynNode -> Bool
 isLet = isJust . cast @Haskell.Let
 
-isLam :: DynNode -> Bool 
+isLam :: DynNode -> Bool
 isLam = isJust . cast @Haskell.Lambda
 
 isVar :: DynNode -> Bool
@@ -168,20 +167,16 @@ isVar = isJust . cast @Haskell.Variable
 
 isNonTopLevel :: [DynNode] -> Bool
 isNonTopLevel parents = do
-  let stripped = drop 1 $ dropWhile (\x -> not (isLet x || isBind x || isLam x)) parents 
+  let stripped = drop 1 $ dropWhile (\x -> not (isLet x || isBind x || isLam x)) parents
   any (\x -> isFunction x || isBind x) stripped
-
 
 selectNodesToType :: DynNode -> [DynNode]
 selectNodesToType root = do
-  let tree = nodeToIndexedTree root 
-  let nodePaths = indexedTreeTraversalGeneric (:) [] tree 
-  let filteredNodePaths = filter (\x -> nodeIsVarAtBinding x) nodePaths 
+  let tree = nodeToIndexedTree root
+  let nodePaths = indexedTreeTraversalGeneric (:) [] tree
+  let filteredNodePaths = filter (\x -> nodeIsVarAtBinding x) nodePaths
   let dynNodesToShow = snd . head <$> filteredNodePaths
   dynNodesToShow
 
-
 lastSafe :: [a] -> Maybe a
 lastSafe = listToMaybe . reverse
-
-

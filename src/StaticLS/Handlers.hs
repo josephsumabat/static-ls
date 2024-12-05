@@ -50,7 +50,6 @@ import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
 import UnliftIO.Exception qualified as Exception
 
-
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
 -----------------------------------------------------------------
@@ -95,8 +94,8 @@ handleImplementationRequest = LSP.requestHandler LSP.SMethod_TextDocumentImpleme
   let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
   resp $ Right . InR . InL $ locations
 
-handleInlayHintRequest :: (Maybe Int) ->  Handlers (LspT c StaticLsM)
-handleInlayHintRequest maxLen  = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
+handleInlayHintRequest :: (Maybe Int) -> Handlers (LspT c StaticLsM)
+handleInlayHintRequest maxLen = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
   lift $ logInfo "Received inlay hint request"
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
@@ -105,9 +104,8 @@ handleInlayHintRequest maxLen  = LSP.requestHandler LSP.SMethod_TextDocumentInla
   res $ Right $ InL resp
   pure ()
 
-
 handleResolveInlayHint :: Handlers (LspT c StaticLsM)
-handleResolveInlayHint = LSP.requestHandler LSP.SMethod_InlayHintResolve $ \_ _ -> do 
+handleResolveInlayHint = LSP.requestHandler LSP.SMethod_InlayHintResolve $ \_ _ -> do
   pure ()
 
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
@@ -241,7 +239,6 @@ handleResolveCodeAction = LSP.requestHandler LSP.SMethod_CodeActionResolve $ \re
       res $ Right newCodeAction
       pure ()
     Nothing -> res $ Right codeAction
-
 
 handleFormat :: Handlers (LspT c StaticLsM)
 handleFormat = LSP.requestHandler LSP.SMethod_TextDocumentFormatting $ \req res -> do

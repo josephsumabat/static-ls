@@ -106,15 +106,15 @@ isFileSaved absPath = do
     Just src -> src == contentsText
     Nothing -> False
 
-
 deletionsToAssist :: Text.Text -> [DeletionInfo] -> Maybe Assist
 deletionsToAssist message deletions = do
   let numFixes = length deletions
-  let fixCase = if numFixes == 1 then "fix" else "fixes"
-  let message' = message <> " (" <> (Text.pack . show) numFixes <> " " <> fixCase <> ")"
-  case deletions of 
-    [] -> Nothing
-    _ -> Just $ mkAssist message' $ actOnDeletions deletions
+  if numFixes == 0
+    then Nothing
+    else do
+      let fixCase = if numFixes == 1 then "fix" else "fixes"
+      let message' = message <> " (" <> (Text.pack . show) numFixes <> " " <> fixCase <> ")"
+      Just $ mkAssist message' $ actOnDeletions deletions
 
 actOnDeletions :: [DeletionInfo] -> SourceEdit
 actOnDeletions deletionInfos = do

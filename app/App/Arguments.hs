@@ -52,7 +52,6 @@ progParseInfo =
         <> header "static-ls - a lightweight language server for haskell"
     )
 
--- fjoeij
 argParser :: Parser PrgOptions
 argParser =
   PrgOptions

@@ -10,7 +10,6 @@ import Control.Monad.Trans.Maybe
 import Data.Change
 import Data.LineCol
 import Data.LineColRange qualified as LineColRange
-import Data.List as Shit
 import Data.Maybe
 import Data.Path
 import Data.Pos

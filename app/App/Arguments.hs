@@ -2,14 +2,12 @@ module App.Arguments (execArgParser) where
 
 import Control.Applicative
 import Data.Version (showVersion)
-import Data.Word
 import Options.Applicative
 import Paths_static_ls (version)
 import StaticLS.StaticEnv.Options
 import System.Environment
 import System.Exit
 import Text.Parsec hiding (many, option)
-import Text.Read
 
 currVersion :: String
 currVersion = showVersion version
@@ -54,6 +52,7 @@ progParseInfo =
         <> header "static-ls - a lightweight language server for haskell"
     )
 
+-- fjoeij
 argParser :: Parser PrgOptions
 argParser =
   PrgOptions

@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module StaticLS.ProtoLSP (
   lineColToProto,
@@ -22,6 +23,7 @@ module StaticLS.ProtoLSP (
   completionToProto,
   diagnosticToProto,
   diagnosticsToProto,
+  inlayHintToProto,
 )
 where
 
@@ -47,6 +49,7 @@ import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Diagnostics qualified as IDE.Diagnostics
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
+import StaticLS.IDE.InlayHints qualified as IDE.InlayHints
 import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
 import StaticLS.IDE.SymbolKind (SymbolKind)
@@ -244,6 +247,44 @@ diagnosticToProto IDE.Diagnostics.Diagnostic {range, severity, message, code, co
     , _relatedInformation = Nothing
     , _data_ = Nothing
     }
+
+inlayHintToProto :: IDE.InlayHints.InlayHint -> LSP.InlayHint
+inlayHintToProto IDE.InlayHints.InlayHint {..} =
+  LSP.InlayHint
+    { _position = lineColToProto position
+    , _label = eitherToProto id (fmap inlayHintLabelPartToProto) label
+    , _kind = inlayHintKindToProto <$> kind
+    , _textEdits = fmap convert textEdits
+    , _tooltip = Nothing
+    , _paddingLeft = paddingLeft
+    , _paddingRight = paddingRight
+    , _data_ = Nothing
+    }
+ where
+  convert (rope, changes) = fmap (changeToProto rope) changes
+
+inlayHintKindToProto :: IDE.InlayHints.InlayHintKind -> LSP.InlayHintKind
+inlayHintKindToProto = \case
+  IDE.InlayHints.InlayHintKind_Type -> LSP.InlayHintKind_Type
+  IDE.InlayHints.InlayHintKind_Parameter -> LSP.InlayHintKind_Parameter
+
+inlayHintLabelPartToProto :: IDE.InlayHints.InlayHintLabelPart -> LSP.InlayHintLabelPart
+inlayHintLabelPartToProto IDE.InlayHints.InlayHintLabelPart {..} =
+  LSP.InlayHintLabelPart
+    { _value = value
+    , _tooltip = eitherToProto id markupContentToProto <$> tooltip
+    , _location = fileLcRangeToLocation <$> location
+    , _command = commandToProto <$> command
+    }
+
+markupContentToProto :: IDE.InlayHints.MarkupContent -> LSP.MarkupContent
+markupContentToProto p = case p of {}
+
+commandToProto :: IDE.InlayHints.Command -> LSP.Command
+commandToProto cmd = case cmd of {}
+
+eitherToProto :: (a -> a') -> (b -> b') -> Either a b -> a' LSP.|? b'
+eitherToProto f g = either (LSP.InL . f) (LSP.InR . g)
 
 diagnosticsToProto :: [IDE.Diagnostics.Diagnostic] -> HashMap AbsPath [LSP.Diagnostic]
 diagnosticsToProto diags =

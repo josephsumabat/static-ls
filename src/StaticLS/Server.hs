@@ -200,30 +200,32 @@ serverDef argOptions logger = do
         staticHandlers = \_clientCapabilities ->
           mapHandlers goReq goNot $
             mconcat
-              [ handleInitialized
-              , handleChangeConfiguration
-              , handleTextDocumentHoverRequest
-              , handleDefinitionRequest
-              , handleTypeDefinitionRequest
-              , handleImplementationRequest
-              , handleReferencesRequest
-              , handleRenameRequest
-              , handlePrepareRenameRequest
-              , handleCancelNotification
-              , handleDidOpen
-              , handleDidChange
-              , handleDidSave
-              , handleDidClose
-              , handleWorkspaceSymbol
-              , handleSetTrace
-              , handleCodeAction
-              , handleResolveCodeAction
-              , handleDocumentSymbols
-              , handleCompletion
-              , -- Currently disabled until we support configuration for the formatter
-                -- , handleFormat
-                handleCompletionItemResolve
-              ]
+              ( [ handleInitialized
+                , handleChangeConfiguration
+                , handleTextDocumentHoverRequest
+                , handleDefinitionRequest
+                , handleTypeDefinitionRequest
+                , handleImplementationRequest
+                , handleReferencesRequest
+                , handleRenameRequest
+                , handlePrepareRenameRequest
+                , handleCancelNotification
+                , handleDidOpen
+                , handleDidChange
+                , handleDidSave
+                , handleDidClose
+                , handleWorkspaceSymbol
+                , handleSetTrace
+                , handleCodeAction
+                , handleResolveCodeAction
+                , handleDocumentSymbols
+                , handleCompletion
+                , -- Currently disabled until we support configuration for the formatter
+                  -- , handleFormat
+                  handleCompletionItemResolve
+                ]
+                  ++ if argOptions.provideInlays then [handleInlayHintRequest argOptions.inlayLengthCap, handleResolveInlayHint] else []
+              )
       , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO
       , options = lspOptions
       , defaultConfig = ()

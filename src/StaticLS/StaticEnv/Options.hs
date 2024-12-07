@@ -18,6 +18,8 @@ data StaticEnvOptions = StaticEnvOptions
   , optionHiFilesPath :: FilePath
   -- ^ Relative path to hi files directory
   , optionSrcDirs :: [FilePath]
+  , provideInlays :: Bool
+  , inlayLengthCap :: Maybe Int
   }
   deriving (Show, Eq)
 
@@ -40,4 +42,6 @@ defaultStaticEnvOptions =
     , optionHieFilesPath = defaultHieFiles
     , optionSrcDirs = defaultSrcDirs
     , optionHiFilesPath = defaultHiFiles
+    , provideInlays = True
+    , inlayLengthCap = Just 32
     }

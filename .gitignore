@@ -35,3 +35,4 @@ errors.txt
 .hiedb*
 .test_builds/
 result/
+ghc-out.json

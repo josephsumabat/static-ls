@@ -1,6 +1,15 @@
 {-# LANGUAGE LambdaCase #-}
 
-module StaticLS.IDE.InlayHints (getInlayHints, InlayHint (..), InlayHintKind (..), InlayHintLabelPart (..), MarkupContent (..), Command (..)) where
+{-# HLINT ignore "Use camelCase" #-}
+
+module StaticLS.IDE.InlayHints (
+  getInlayHints,
+  InlayHint (..),
+  InlayHintKind (..),
+  InlayHintLabelPart (..),
+  MarkupContent,
+  Command,
+) where
 
 import AST.Cast
 import AST.Haskell.Generated qualified as Haskell
@@ -70,6 +79,7 @@ formatInlayText = normalizeWhitespace
  where
   normalizeWhitespace = Text.unwords . Text.words
 
+truncateInlay :: Maybe Int -> Text -> Text
 truncateInlay Nothing text = text
 truncateInlay (Just maxLen) text
   | Text.length text <= maxLen = text
@@ -120,8 +130,8 @@ nodeIsVarAtBinding path = do
     guard $ isNonTopLevel (snd <$> d1)
     pure ()
 
-nodeIsVarBoundInLambda :: [(Int, DynNode)] -> Bool
-nodeIsVarBoundInLambda path = do
+_nodeIsVarBoundInLambda :: [(Int, DynNode)] -> Bool
+_nodeIsVarBoundInLambda path = do
   let headIsVar = maybe False (isVar . snd) (listToMaybe path)
 
   headIsVar && any (isJust . cast @Haskell.Patterns . snd) path

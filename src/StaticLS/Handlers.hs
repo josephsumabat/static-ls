@@ -12,7 +12,6 @@ import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
 import Data.Text.IO qualified as T.IO
-import Data.Text.Utf8.Rope qualified as Rope8
 import Language.LSP.Diagnostics qualified as LSP
 import Language.LSP.Protocol.Lens qualified as LSP hiding (publishDiagnostics)
 import Language.LSP.Protocol.Message qualified as LSP

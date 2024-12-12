@@ -34,7 +34,6 @@ import Data.Pos (Pos (..))
 import Data.Range (Range (..))
 import Data.String (IsString)
 import Data.Text (Text)
-import Data.Text.Lines qualified as RopeL (Position (..))
 import Data.Text.Utf16.Rope.Mixed qualified as Rope16
 import Data.Text.Utf8.Rope qualified as Rope8
 import Prelude hiding (getLine, length, splitAt)

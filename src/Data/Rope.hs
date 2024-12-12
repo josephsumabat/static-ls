@@ -30,6 +30,7 @@ import Data.Edit qualified as Edit
 import Data.Foldable qualified as Foldable
 import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
+import Data.Maybe
 import Data.Pos (Pos (..))
 import Data.Range (Range (..))
 import Data.String (IsString)
@@ -37,7 +38,6 @@ import Data.Text (Text)
 import Data.Text.Utf16.Rope.Mixed qualified as Rope16
 import Data.Text.Utf8.Rope qualified as Rope8
 import Prelude hiding (getLine, length, splitAt)
-import Data.Maybe 
 
 newtype Rope = Rope {rope :: Rope8.Rope}
   deriving (Show, Eq, Ord, Semigroup, Monoid, IsString)
@@ -94,8 +94,8 @@ change :: Change -> Rope -> Rope
 change Change {insert, delete} (Rope rope) =
   Rope (beforeStart <> Rope8.fromText insert <> afterEnd)
  where
-   (beforeStart, afterStart) = splitAtR8 (delete.start) rope
-   (_, afterEnd) = splitAtR8 (Pos (delete.end.pos - delete.start.pos)) afterStart
+  (beforeStart, afterStart) = splitAtR8 (delete.start) rope
+  (_, afterEnd) = splitAtR8 (Pos (delete.end.pos - delete.start.pos)) afterStart
 
 edit :: Edit -> Rope -> Rope
 -- apply changes in reverse order
@@ -110,8 +110,8 @@ splitAtR8 :: Pos -> Rope8.Rope -> (Rope8.Rope, Rope8.Rope)
 splitAtR8 (Pos pos) rope = do
   let initIdx = fromIntegral pos
   let try idx = Rope8.splitAt idx rope
-  let candidatePositions = [initIdx, initIdx-1 .. 0]
-  case catMaybes $ try <$> candidatePositions of 
+  let candidatePositions = [initIdx, initIdx - 1 .. 0]
+  case mapMaybe try candidatePositions of
     x : _ -> x
     [] -> error "splitAtR8 failed unexpectedly" -- should be unreachable, as one of the tried positions should split the string neatly
 
@@ -119,10 +119,9 @@ splitAtPositionR8 :: Rope8.Position -> Rope8.Rope -> (Rope8.Rope, Rope8.Rope)
 splitAtPositionR8 (Rope8.Position initPL initPC) rope = do
   let positions = [Rope8.Position initPL newPC | newPC <- [initPC, initPC - 1 .. 0]]
   let try position = Rope8.splitAtPosition position rope
-  case catMaybes $ try <$> positions of 
+  case mapMaybe try positions of
     x : _ -> x
     [] -> error "splitAtPositionR8 failed unexpectedly" -- should be unreachable, as one of the tried positions should split the string neatly
-
 
 -- TODO: return a maybe
 splitAtLineCol :: LineCol -> Rope -> (Rope, Rope)

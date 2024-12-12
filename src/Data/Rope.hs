@@ -37,6 +37,7 @@ import Data.Text (Text)
 import Data.Text.Utf16.Rope.Mixed qualified as Rope16
 import Data.Text.Utf8.Rope qualified as Rope8
 import Prelude hiding (getLine, length, splitAt)
+import Data.Maybe 
 
 newtype Rope = Rope {rope :: Rope8.Rope}
   deriving (Show, Eq, Ord, Semigroup, Monoid, IsString)
@@ -63,20 +64,20 @@ length :: Rope -> Int
 length = fromIntegral . Rope8.length . (.rope)
 
 posToLineCol :: Rope -> Pos -> LineCol
-posToLineCol r (Pos pos) =
+posToLineCol r pos =
   LineCol
     (Pos (fromIntegral (Rope8.posLine ropePos)))
     (Pos (fromIntegral (Rope8.posColumn ropePos)))
  where
   ropePos = Rope8.lengthAsPosition beforePos
   rope = r.rope
-  Just (beforePos, _afterPos) = Rope8.splitAt (fromIntegral pos) rope
+  (beforePos, _afterPos) = splitAtR8 pos rope
 
 lineColToPos :: Rope -> LineCol -> Pos
 lineColToPos r (LineCol (Pos line) (Pos col)) =
   Pos (fromIntegral (Rope8.length beforeLineCol))
  where
-  Just (beforeLineCol, _) = Rope8.splitAtPosition ropePos rope
+  (beforeLineCol, _) = splitAtPositionR8 ropePos rope
   rope = r.rope
   ropePos = Rope8.Position (fromIntegral line) (fromIntegral col)
 
@@ -93,8 +94,8 @@ change :: Change -> Rope -> Rope
 change Change {insert, delete} (Rope rope) =
   Rope (beforeStart <> Rope8.fromText insert <> afterEnd)
  where
-  Just (beforeStart, afterStart) = Rope8.splitAt (fromIntegral delete.start.pos) rope
-  Just (_, afterEnd) = Rope8.splitAt (fromIntegral (delete.end.pos - delete.start.pos)) afterStart
+   (beforeStart, afterStart) = splitAtR8 (delete.start) rope
+   (_, afterEnd) = splitAtR8 (Pos (delete.end.pos - delete.start.pos)) afterStart
 
 edit :: Edit -> Rope -> Rope
 -- apply changes in reverse order
@@ -103,14 +104,32 @@ edit (reverse . Edit.getChanges -> changes) rope = Foldable.foldl' (flip change)
 splitAt :: Pos -> Rope -> (Rope, Rope)
 splitAt (Pos pos) (Rope rope) = (Rope before, Rope after)
  where
-  Just (before, after) = Rope8.splitAt (fromIntegral pos) rope
+  (before, after) = splitAtR8 (Pos pos) rope
+
+splitAtR8 :: Pos -> Rope8.Rope -> (Rope8.Rope, Rope8.Rope)
+splitAtR8 (Pos pos) rope = do
+  let initIdx = fromIntegral pos
+  let try idx = Rope8.splitAt idx rope
+  let candidatePositions = [initIdx, initIdx-1 .. 0]
+  case catMaybes $ try <$> candidatePositions of 
+    x : _ -> x
+    [] -> error "splitAtR8 failed unexpectedly" -- should be unreachable, as one of the tried positions should split the string neatly
+
+splitAtPositionR8 :: Rope8.Position -> Rope8.Rope -> (Rope8.Rope, Rope8.Rope)
+splitAtPositionR8 (Rope8.Position initPL initPC) rope = do
+  let positions = [Rope8.Position initPL newPC | newPC <- [initPC, initPC - 1 .. 0]]
+  let try position = Rope8.splitAtPosition position rope
+  case catMaybes $ try <$> positions of 
+    x : _ -> x
+    [] -> error "splitAtPositionR8 failed unexpectedly" -- should be unreachable, as one of the tried positions should split the string neatly
+
 
 -- TODO: return a maybe
 splitAtLineCol :: LineCol -> Rope -> (Rope, Rope)
 splitAtLineCol (LineCol (Pos line) (Pos col)) (Rope rope) = (Rope before, Rope after)
  where
-  Just (before, after) =
-    Rope8.splitAtPosition
+  (before, after) =
+    splitAtPositionR8
       ( Rope8.Position
           { posLine = (fromIntegral line)
           , posColumn = (fromIntegral col)
@@ -133,8 +152,8 @@ indexRange (Rope r) (Range (Pos start) (Pos end))
       Just (Rope indexed)
   | otherwise = Nothing
  where
-  Just (_beforeStart, afterStart) = Rope8.splitAt (fromIntegral start) r
-  Just (indexed, _) = Rope8.splitAt (fromIntegral (end - start)) afterStart
+  (_beforeStart, afterStart) = splitAtR8 (Pos start) r
+  (indexed, _) = splitAtR8 (Pos (end - start)) afterStart
 
 isValidLineCol :: Rope -> LineCol -> Bool
 isValidLineCol r (LineCol (Pos line) (Pos col)) =

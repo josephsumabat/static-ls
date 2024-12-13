@@ -113,7 +113,7 @@ splitAtR8 (Pos pos) rope = do
   let candidatePositions = [initIdx, initIdx - 1 .. 0]
   case mapMaybe try candidatePositions of
     x : _ -> x
-    [] -> error "splitAtR8 failed unexpectedly" -- should be unreachable, as one of the tried positions should split the string neatly
+    [] -> (mempty, rope) -- should be unreachable, as one of the tried positions should split the string neatly
 
 splitAtPositionR8 :: Rope8.Position -> Rope8.Rope -> (Rope8.Rope, Rope8.Rope)
 splitAtPositionR8 (Rope8.Position initPL initPC) rope = do
@@ -121,7 +121,7 @@ splitAtPositionR8 (Rope8.Position initPL initPC) rope = do
   let try position = Rope8.splitAtPosition position rope
   case mapMaybe try positions of
     x : _ -> x
-    [] -> error "splitAtPositionR8 failed unexpectedly" -- should be unreachable, as one of the tried positions should split the string neatly
+    [] -> (mempty, rope) -- should be unreachable, as one of the tried positions should split the string neatly
 
 -- TODO: return a maybe
 splitAtLineCol :: LineCol -> Rope -> (Rope, Rope)

@@ -163,7 +163,7 @@ updateFileStateForUri uri = do
   virtualFile <- LSP.getVirtualFile normalizedUri
   virtualFile <- isJustOrThrowS "no virtual file" virtualFile
   path <- ProtoLSP.uriToAbsPath uri
-  lift $ IDE.onNewSource path (Rope.fromTextRope virtualFile._file_text)
+  lift $ IDE.onNewSource path (Rope.fromTextRopeL virtualFile._file_text)
   pure ()
 
 handleDidChange :: Handlers (LspT c StaticLsM)

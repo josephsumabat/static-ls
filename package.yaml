@@ -45,7 +45,7 @@ dependencies:
   - unliftio-core >= 0.2.1 && < 0.3
   - unliftio >= 0.2.1 && < 0.3
   - aeson >=2 && <2.3
-  - text-rope == 0.2
+  - text-rope == 0.3
   - co-log-core >= 0.3 && < 0.4
   - tree-sitter-simple
   - tree-sitter-haskell

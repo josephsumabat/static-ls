@@ -58,6 +58,8 @@ spec = do
             , optionHieFilesPath = ""
             , optionSrcDirs = []
             , optionHiFilesPath = ""
+            , provideInlays = True
+            , inlayLengthCap = Just 32
             }
 
     check

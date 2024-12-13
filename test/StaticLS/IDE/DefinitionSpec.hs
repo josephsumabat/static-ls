@@ -45,6 +45,8 @@ spec = do
           , optionHieFilesPath = "test/TestData/.hiefiles"
           , optionSrcDirs = defaultSrcDirs
           , optionHiFilesPath = "test/TestData/.hifiles"
+          , provideInlays = True
+          , inlayLengthCap = Just 32
           }
         Test.myFunRef1TdiAndPosition
         (pure @[] <$> Test.myFunDefLocation)
@@ -56,6 +58,8 @@ spec = do
           , optionHieFilesPath = ""
           , optionSrcDirs = []
           , optionHiFilesPath = ""
+          , provideInlays = True
+          , inlayLengthCap = Just 32
           }
         Test.myFunRef1TdiAndPosition
         (pure [])

@@ -14,8 +14,8 @@ in
     all-cabal-hashes =
         # Update revision to match required hackage
         super.fetchurl {
-          url = "https://github.com/commercialhaskell/all-cabal-hashes/archive/e5ab1dca27a34bbec5920863c18d8cd06b0c288d.tar.gz";
-          sha256 = "sha256-qJt8ZAG/Ilx0JMyd/FTuHB7k5SpYqkLJFUCi3uEBhvU=";
+          url = "https://github.com/commercialhaskell/all-cabal-hashes/archive/59b02844f778d7cc71d2a62ee05c37e17b396051.tar.gz";
+          sha256 = "sha256-NUuQW59vzpXufNpAq4qwx5R0/2TwgDgtapjDSdIybhQ=";
     };
 
     haskellPackages = super.haskell.packages.${self.ghcVersion}.override {
@@ -47,7 +47,7 @@ in
         }) {};
 
         hiedb = self.haskell.lib.dontCheck (haskellSuper.callHackage "hiedb" "0.6.0.1" {});
-        text-rope = haskellSuper.callHackage "text-rope" "0.2" {};
+        text-rope = haskellSuper.callHackage "text-rope" "0.3" {};
 
         lsp-types = haskellSuper.callHackage "lsp-types" "2.3.0.0" {};
         lsp = haskellSuper.callHackage "lsp" "2.7.0.0" {};

@@ -115,7 +115,6 @@ splitAtR8 (Pos pos) rope = do
     x : _ -> x
     [] -> (mempty, rope) -- should be unreachable, as one of the tried positions should split the string neatly
 
-
 splitAtPositionR8 :: Rope8.Position -> Rope8.Rope -> (Rope8.Rope, Rope8.Rope)
 splitAtPositionR8 (Rope8.Position initPL initPC) rope = do
   let positions = [Rope8.Position initPL newPC | newPC <- [initPC, initPC - 1 .. 0]]

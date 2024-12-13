@@ -54,6 +54,8 @@ defaultTestStaticEnvOptions =
     , optionHieFilesPath = testHieDir
     , optionSrcDirs = testSrcDirs
     , optionHiFilesPath = testHiDir
+    , provideInlays = True
+    , inlayLengthCap = Just 32
     }
 
 initStaticEnvOpts :: StaticEnvOptions -> IO StaticEnv

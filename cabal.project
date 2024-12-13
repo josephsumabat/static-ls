@@ -5,8 +5,6 @@ packages:
     -- ../tree-sitter-simple/tree-sitter-ast
     -- ../tree-sitter-simple/haskell-ast
 
-allow-newer: text-rope
-
 source-repository-package
     type: git
     location: https://github.com/josephsumabat/tree-sitter-simple.git

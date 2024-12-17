@@ -3,8 +3,8 @@
 module StaticLS.IDE.InlayHints.Types (
   InlayHint (..),
   InlayHintLabelPart (..),
-  Command (..),
-  MarkupContent (..),
+  Command,
+  MarkupContent,
   InlayHintKind (..),
 ) where
 

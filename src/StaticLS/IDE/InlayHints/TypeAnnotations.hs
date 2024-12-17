@@ -13,7 +13,7 @@ import Data.Maybe
 import Data.Path
 import Data.Pos
 import Data.Range
-import Data.Rope (Rope, posToLineCol)
+import Data.Rope (posToLineCol)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import StaticLS.HieView.Query qualified as HieView.Query

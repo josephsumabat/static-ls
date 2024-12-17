@@ -149,6 +149,8 @@ library
       StaticLS.IDE.Hover.Info
       StaticLS.IDE.Implementation
       StaticLS.IDE.InlayHints
+      StaticLS.IDE.InlayHints.Types
+      StaticLS.IDE.InlayHints.TypeAnnotations
       StaticLS.IDE.Monad
       StaticLS.IDE.References
       StaticLS.IDE.Rename

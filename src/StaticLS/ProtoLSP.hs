@@ -49,7 +49,7 @@ import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Diagnostics qualified as IDE.Diagnostics
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
-import StaticLS.IDE.InlayHints qualified as IDE.InlayHints
+import StaticLS.IDE.InlayHints.Types qualified as IDE.InlayHints
 import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit (..))
 import StaticLS.IDE.SymbolKind (SymbolKind)

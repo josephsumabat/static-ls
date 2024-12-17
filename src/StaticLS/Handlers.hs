@@ -45,6 +45,7 @@ import StaticLS.Monad
 import StaticLS.ProtoLSP (absPathToUri)
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv qualified as StaticEnv
+import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import StaticLS.Utils
 import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
@@ -94,12 +95,12 @@ handleImplementationRequest = LSP.requestHandler LSP.SMethod_TextDocumentImpleme
   let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
   resp $ Right . InR . InL $ locations
 
-handleInlayHintRequest :: (Maybe Int) -> Handlers (LspT c StaticLsM)
-handleInlayHintRequest maxLen = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
+handleInlayHintRequest :: StaticEnvOptions -> Handlers (LspT c StaticLsM)
+handleInlayHintRequest options = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
   lift $ logInfo "Received inlay hint request"
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
-  inlayHints <- lift $ getInlayHints path maxLen
+  inlayHints <- lift $ getInlayHints path options
   let resp = ProtoLSP.inlayHintToProto <$> inlayHints
   res $ Right $ InL resp
   pure ()

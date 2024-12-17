@@ -9,11 +9,8 @@ module StaticLS.IDE.InlayHints (
 import Data.Path
 import StaticLS.IDE.InlayHints.TypeAnnotations qualified as TypeAnnotations
 import StaticLS.IDE.InlayHints.Types
-import StaticLS.IDE.Monad
 import StaticLS.Monad
 import StaticLS.StaticEnv.Options
-
-type InlayHintOptions = ()
 
 getInlayHints :: AbsPath -> StaticEnvOptions -> StaticLsM [InlayHint]
 getInlayHints path options = do

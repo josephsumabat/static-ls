@@ -7,7 +7,6 @@ import AST.Haskell.Generated qualified as Haskell
 import AST.Node
 import Control.Monad
 import Control.Monad.Trans.Maybe
-import Data.Change
 import Data.LineCol
 import Data.LineColRange qualified as LineColRange
 import Data.Maybe
@@ -19,7 +18,6 @@ import Data.Text (Text)
 import Data.Text qualified as Text
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
-import StaticLS.IDE.FileWith
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad

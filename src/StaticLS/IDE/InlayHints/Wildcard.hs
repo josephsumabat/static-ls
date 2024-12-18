@@ -63,10 +63,14 @@ getWildcardAnns absPath = do
   inlayHints <- catMaybes <$> traverse (mkInlayHint absPath haskell rope) dynNodesToType
   pure inlayHints
 
+selectNodesToAnn :: Haskell.Haskell -> [(Haskell.Wildcard, ASTLoc)]
 selectNodesToAnn haskell = do
-  let nodes = indexedTreeTraversalGeneric (:) [] (nodeToIndexedTree $ getDynNode haskell)
-  let filteredNodePaths = [(wcn, rest) | ((_, node) : rest) <- nodes, Just wcn <- [cast @Haskell.Wildcard node]]
-  filteredNodePaths
+  let astLocs = leaves $ rootToASTLoc $ getDynNode haskell
+  [ (wc, par)
+    | astLoc <- astLocs
+    , Just wc <- [cast @Haskell.Wildcard (nodeAtLoc astLoc)]
+    , Just par <- [parent astLoc]
+    ]
 
 mkInlayHint absPath haskell rope (wcn, parents) = do
   let lcr = nodeToRange wcn
@@ -75,13 +79,13 @@ mkInlayHint absPath haskell rope (wcn, parents) = do
     Nothing -> pure Nothing
     Just x -> pure $ Just $ mkInlayText (posToLineCol rope lcr.end) x
 
-wcRecord :: AbsPath -> Rope.Rope -> [(Int, DynNode)] -> StaticLsM (Maybe [Text])
-wcRecord absPath rope parents = do
-  let mrecord = find isRecord $ fmap snd parents
+wcRecord :: AbsPath -> Rope.Rope -> ASTLoc -> StaticLsM (Maybe [Text])
+wcRecord absPath rope parent = do
+  let mrecord = findAncestor (isRecord . nodeAtLoc) parent
   case mrecord of
     Nothing -> pure $ Just ["James"]
     Just record -> do
-      impl <- getImplementation absPath $ posToLineCol rope (nodeToRange record).start
+      impl <- getImplementation absPath $ posToLineCol rope (nodeToRange $ nodeAtLoc record).start
       recordInfo <- case impl of
         [] -> pure ["Henry"]
         lcr : _ -> do
@@ -120,20 +124,6 @@ isWildcard = isJust . cast @Haskell.Wildcard
 
 isRecord :: DynNode -> Bool
 isRecord = isJust . cast @Haskell.Record
-
-data IndexedTree a = IndexedTree {root :: (Int, a), children :: [IndexedTree a]}
-
-nodeToIndexedTree :: DynNode -> IndexedTree DynNode
-nodeToIndexedTree t = go ((-1), t)
- where
-  go x@(_, node) = IndexedTree x $ go <$> zip [0 ..] node.nodeChildren
-
-indexedTreeTraversalGeneric :: ((Int, DynNode) -> st -> st) -> st -> IndexedTree DynNode -> [st]
-indexedTreeTraversalGeneric fn = go
- where
-  go st tree = do
-    let newSt = fn tree.root st
-    newSt : (go newSt =<< tree.children)
 
 -- | Retrieve hover information.
 retrieveHover ::

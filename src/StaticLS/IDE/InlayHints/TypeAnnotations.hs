@@ -19,14 +19,13 @@ import Data.Text qualified as Text
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
 import StaticLS.IDE.HiePos
+import StaticLS.IDE.InlayHints.Common
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad
 import StaticLS.Monad
-import StaticLS.IDE.InlayHints.Common
 
 getInlayHints :: AbsPath -> Maybe Int -> StaticLsM [InlayHint]
 getInlayHints path maxLen = getTypedefInlays_ path maxLen
-
 
 getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> Maybe Int -> StaticLsM [InlayHint]
 getTypedefInlays absPath getTypes maxLen = do

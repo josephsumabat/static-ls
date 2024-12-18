@@ -1,10 +1,10 @@
 module StaticLS.IDE.InlayHints.Common where
 
-import StaticLS.IDE.InlayHints.Types
 import Data.LineCol
 import Data.Pos
 import Data.Text (Text)
 import Data.Text qualified as Text
+import StaticLS.IDE.InlayHints.Types
 
 defaultInlayHint :: InlayHint
 defaultInlayHint = InlayHint {position = LineCol (Pos 0) (Pos 0), kind = Nothing, label = Left "", textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
@@ -25,4 +25,3 @@ truncateInlay Nothing text = text
 truncateInlay (Just maxLen) text
   | Text.length text <= maxLen = text
   | otherwise = Text.take maxLen text <> "\x2026"
-

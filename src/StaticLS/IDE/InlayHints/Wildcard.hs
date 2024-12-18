@@ -3,39 +3,39 @@ module StaticLS.IDE.InlayHints.Wildcard (getInlayHints) where
 import AST.Cast
 import AST.Haskell.Generated qualified as Haskell
 import AST.Node
-import Control.Monad.Trans.Maybe
-import Data.LineCol
-import Data.LineColRange qualified as LineColRange
-import Data.Maybe
-import Data.Path
-import Data.Pos as Pos
-import Data.Range as Range
-import Data.Rope as Rope (posToLineCol, lineColToPos)
-import Data.Rope qualified as Rope
-import Data.Text (Text)
-import StaticLS.HieView.Query qualified as HieView.Query
-import StaticLS.IDE.HiePos
-import StaticLS.IDE.InlayHints.Types
-import StaticLS.IDE.Monad hiding (lineColToPos)
-import StaticLS.IDE.Monad qualified as IDE.Monad
-import StaticLS.Monad
-import Data.List (find, nub)
-import StaticLS.IDE.Implementation
-import StaticLS.IDE.FileWith
-import StaticLS.IDE.InlayHints.Common
 import AST.Traversal
-import Data.Text qualified as Text
-import Data.Char
 import Control.Monad.IO.Class
 import Control.Monad.RWS
+import Control.Monad.Trans.Maybe
+import Data.Char
+import Data.LineCol
 import Data.LineColRange
+import Data.LineColRange qualified as LineColRange
+import Data.List (find, nub)
+import Data.Maybe
+import Data.Path
 import Data.Path qualified as Path
+import Data.Pos as Pos
+import Data.Range as Range
+import Data.Rope as Rope (lineColToPos, posToLineCol)
+import Data.Rope qualified as Rope
+import Data.Text (Text)
 import Data.Text qualified as T
+import Data.Text qualified as Text
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins as GHC hiding ((<>))
 import HieDb (pointCommand)
 import StaticLS.HI
 import StaticLS.HI.File
+import StaticLS.HieView.Query qualified as HieView.Query
+import StaticLS.IDE.FileWith
+import StaticLS.IDE.HiePos
+import StaticLS.IDE.Implementation
+import StaticLS.IDE.InlayHints.Common
+import StaticLS.IDE.InlayHints.Types
+import StaticLS.IDE.Monad hiding (lineColToPos)
+import StaticLS.IDE.Monad qualified as IDE.Monad
+import StaticLS.Monad
 
 import AST qualified
 import AST.Haskell qualified as H
@@ -51,85 +51,75 @@ import StaticLS.Logger (logInfo)
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
 
-
-getInlayHints :: AbsPath -> StaticLsM [InlayHint] 
-getInlayHints absPath = do 
+getInlayHints :: AbsPath -> StaticLsM [InlayHint]
+getInlayHints absPath = do
   getWildcardAnns absPath
-      
 
 getWildcardAnns :: AbsPath -> StaticLsM [InlayHint]
 getWildcardAnns absPath = do
   haskell <- getHaskell absPath
   rope <- getSourceRope absPath
   let dynNodesToType = selectNodesToAnn haskell
-  inlayHints <- catMaybes <$> traverse (mkInlayHint absPath haskell rope) dynNodesToType 
+  inlayHints <- catMaybes <$> traverse (mkInlayHint absPath haskell rope) dynNodesToType
   pure inlayHints
 
-
-selectNodesToAnn haskell = do 
+selectNodesToAnn haskell = do
   let nodes = indexedTreeTraversalGeneric (:) [] (nodeToIndexedTree $ getDynNode haskell)
-  let filteredNodePaths = [(wcn, rest)| ((_, node): rest) <- nodes, Just wcn <- [cast @Haskell.Wildcard node]]
+  let filteredNodePaths = [(wcn, rest) | ((_, node) : rest) <- nodes, Just wcn <- [cast @Haskell.Wildcard node]]
   filteredNodePaths
-
 
 mkInlayHint absPath haskell rope (wcn, parents) = do
   let lcr = nodeToRange wcn
   h <- retrieveHover absPath $ posToLineCol rope lcr.start
-  case h of 
-    Nothing -> pure Nothing 
+  case h of
+    Nothing -> pure Nothing
     Just x -> pure $ Just $ mkInlayText (posToLineCol rope lcr.end) x
-
 
 wcRecord :: AbsPath -> Rope.Rope -> [(Int, DynNode)] -> StaticLsM (Maybe [Text])
 wcRecord absPath rope parents = do
   let mrecord = find isRecord $ fmap snd parents
-  case mrecord of 
+  case mrecord of
     Nothing -> pure $ Just ["James"]
-    Just record -> do 
-      impl <- getImplementation absPath $ posToLineCol rope (nodeToRange record).start 
-      recordInfo <- case impl of 
+    Just record -> do
+      impl <- getImplementation absPath $ posToLineCol rope (nodeToRange record).start
+      recordInfo <- case impl of
         [] -> pure ["Henry"]
-        lcr : _ -> do 
+        lcr : _ -> do
           let file = lcr.path
           let lineCol = lcr.loc.start
           getRecordInfo file lineCol
       pure $ Just recordInfo
 
-
-
 getRecordInfo :: AbsPath -> LineCol -> StaticLsM [Text]
 getRecordInfo absPath lineCol = do
-  haskell <- getHaskell absPath 
-  rope <- getSourceRope absPath 
+  haskell <- getHaskell absPath
+  rope <- getSourceRope absPath
   let maybeRecord = getDeepestContaining @Haskell.Record (Range.point $ Rope.lineColToPos rope lineCol) (getDynNode haskell)
-  case maybeRecord of 
+  case maybeRecord of
     Nothing -> pure []
-    Just record -> do 
-       let nameNodes = analyzeRecord record
-       let names = fromMaybe [] $ (fmap . fmap) (Rope.toText . fromMaybe Rope.empty . Rope.indexRange rope . nodeRange) nameNodes 
-       pure names
+    Just record -> do
+      let nameNodes = analyzeRecord record
+      let names = fromMaybe [] $ (fmap . fmap) (Rope.toText . fromMaybe Rope.empty . Rope.indexRange rope . nodeRange) nameNodes
+      pure names
 
 analyzeRecord :: Haskell.Record -> Maybe [DynNode]
-analyzeRecord record = do 
-  _:fields:_ <- pure (getDynNode record).nodeChildren
+analyzeRecord record = do
+  _ : fields : _ <- pure (getDynNode record).nodeChildren
   _ <- cast @Haskell.Fields fields
-  let fieldInfos = concat $ mapMaybe toFieldInfo (getDynNode fields).nodeChildren 
+  let fieldInfos = concat $ mapMaybe toFieldInfo (getDynNode fields).nodeChildren
   pure fieldInfos
-
 
 toFieldInfo :: DynNode -> Maybe [DynNode]
 toFieldInfo node = do
   _ <- cast @Haskell.Field node
-  ty: names <- pure node.nodeChildren
+  ty : names <- pure node.nodeChildren
   Just names --  [(name, ty) | name <- names] -- feoij
- 
 
 isWildcard :: DynNode -> Bool
 isWildcard = isJust . cast @Haskell.Wildcard
 
 isRecord :: DynNode -> Bool
 isRecord = isJust . cast @Haskell.Record
-
 
 data IndexedTree a = IndexedTree {root :: (Int, a), children :: [IndexedTree a]}
 
@@ -144,8 +134,6 @@ indexedTreeTraversalGeneric fn = go
   go st tree = do
     let newSt = fn tree.root st
     newSt : (go newSt =<< tree.children)
-
-
 
 -- | Retrieve hover information.
 retrieveHover ::
@@ -186,7 +174,7 @@ retrieveHover path lineCol = do
               pure $ Just (mSrcRange, contents)
           )
           mHieInfo
-    pure . Text.intercalate ", " . filter (/=mempty) . nub .  fmap clean $ snd srcInfo
+    pure . Text.intercalate ", " . filter (/= mempty) . nub . fmap clean $ snd srcInfo
  where
   clean = Text.takeWhile (not . isSpace) . Text.drop 7 . Text.filter (\x -> isAlphaNum x || elem x (" :." :: String))
 
@@ -202,8 +190,6 @@ isInHoverName path range = do
   hs <- getHaskell path
   let node = AST.getDeepestContaining @(H.Module AST.:+ Hir.ParseQualifiedTypes) range hs.dynNode
   pure $ Maybe.isJust node
-
-
 
 docsAtPoint :: (MonadIde m) => AbsPath -> HieView.File -> Pos -> LineCol -> m [NameDocs]
 docsAtPoint path hieView pos position = do

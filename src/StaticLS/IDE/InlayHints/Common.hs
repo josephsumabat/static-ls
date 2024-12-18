@@ -47,7 +47,7 @@ nodeAtLoc ASTLoc {root, path} = case path of
   (_, x) : _ -> x
 
 parent :: ASTLoc -> Maybe ASTLoc
-parent ASTLoc {..} = case path of
+parent ASTLoc {root, ..} = case path of
   [] -> Nothing
   _ : xs -> Just ASTLoc {root, path = xs}
 

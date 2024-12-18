@@ -22,6 +22,8 @@ import StaticLS.IDE.HiePos
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad
 import StaticLS.Monad
+import AST.Traversal
+
 
 getInlayHints :: AbsPath -> Maybe Int -> StaticLsM [InlayHint]
 getInlayHints path maxLen = getTypedefInlays_ path maxLen

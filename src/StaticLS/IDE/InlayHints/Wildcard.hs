@@ -10,7 +10,6 @@ import Control.Monad qualified as Monad
 import Control.Monad.IO.Class
 import Control.Monad.RWS
 import Control.Monad.Trans.Maybe
-import Data.Char
 import Data.Function
 import Data.LineCol
 import Data.LineColRange
@@ -25,12 +24,10 @@ import Data.Range as Range
 import Data.Rope as Rope (lineColToPos, posToLineCol)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
-import Data.Text qualified as T
 import Data.Text qualified as Text
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins as GHC hiding ((<>))
 import HieDb (pointCommand)
-import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.HI
 import StaticLS.HI.File
 import StaticLS.HIE.Position
@@ -46,10 +43,7 @@ import StaticLS.IDE.InlayHints.Common
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad hiding (lineColToPos)
 import StaticLS.IDE.Monad qualified as IDE.Monad
-import StaticLS.Logger (logInfo)
-import StaticLS.Maybe
 import StaticLS.Monad
-import StaticLS.ProtoLSP qualified as ProtoLSP
 
 getInlayHints :: AbsPath -> StaticLsM [InlayHint]
 getInlayHints absPath = do
@@ -157,6 +151,7 @@ retrieveHover path lineCol = do
     pure . Text.intercalate ", " . filter (/= mempty) . dedup . fmap extractFields $ fieldText
 
 -- pick lines which correspond to record fields, but not record selectors (starting with $) or blanks
+extractFields :: Text -> Text
 extractFields text = do
   let textLines = Text.lines text
   let goodLines = filter (\t -> Text.isInfixOf "::" t && not (Text.isPrefixOf "$" t) && not (Text.isInfixOf "_ ::" t)) textLines
@@ -167,6 +162,7 @@ extractFields text = do
 --   foo :: Field
 -- This function chooses one and ensures that the `right` one wins
 -- minimumBy is safe to use because all lists contained in the output of groupBy are non-empty
+dedup :: [Text] -> [Text]
 dedup lines = do
   let groupedLines = groupBy ((==) `on` listToMaybe . Text.words) $ sortBy (compare `on` listToMaybe . Text.words) lines
   let chosenLines = minimumBy (compare `on` Text.length) <$> groupedLines

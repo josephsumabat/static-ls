@@ -57,19 +57,49 @@ getTypedefInlays_ absPath maxLen = do
       getTypedefInlays absPath getTypes maxLen
 
 nodeIsVarAtBinding astLoc = isJust $ do
-  let headNode = nodeAtLoc astLoc
-  let nameCorrect = maybe False (`elem` ["name", "pattern", "element", "left_operand", "right_operand"]) headNode.nodeFieldName
-  let typeCorrect = isJust (cast @Haskell.Variable headNode) || isJust (cast @Haskell.Function headNode)
+  let curNode = nodeAtLoc astLoc
+  let nameCorrect = maybe False (`elem` ["name", "pattern", "element", "left_operand", "right_operand"]) curNode.nodeFieldName
+  let typeCorrect = isJust (cast @Haskell.Variable curNode) || isJust (cast @Haskell.Function curNode)
   let headNodeGood = nameCorrect && typeCorrect
-  let criterion = nthChildOf 0 (\y -> isJust (cast @Haskell.Bind y) || isJust (cast @Haskell.Alternative y) || isJust (cast @Haskell.Function y))
+  let criterion = nthChildOf 0 (\y -> isBind y || isAlt y || isFunction y)
   guard headNodeGood
   bindSite <- findAncestor criterion astLoc
   bindSiteP <- parent =<< parent bindSite
-  outerBindSite <- findAncestor ((\p -> isLet p || isBind p) . nodeAtLoc) bindSiteP
+  outerBindSite <- findAncestor ((\p -> isLet p || isBind p || isFunction p) . nodeAtLoc) bindSiteP
   pure True
+
+nodeIsRecordVar astLoc = isJust $ do
+  let curNode = nodeAtLoc astLoc
+  _ <- cast @Haskell.Variable curNode
+  let name = curNode.nodeFieldName
+  let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
+  let isPun = isNothing name
+  fpParent <- findAncestor (isJust . cast @Haskell.FieldPattern . nodeAtLoc) astLoc
+  let fpChildren = children fpParent
+  case length fpChildren of
+    1 -> guard isPun
+    _ -> guard isBound
+
+nodeIsUpdatedField astLoc = isJust $ do
+  let curNode = nodeAtLoc astLoc
+  _ <- cast @Haskell.Variable curNode
+  -- let name = curNode.nodeFieldName
+  -- let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
+  -- let isPun = name == Nothing
+  fnParent <- findAncestor (isJust . cast @Haskell.FieldName . nodeAtLoc) astLoc
+  fuParent <- findAncestor (isJust . cast @Haskell.FieldUpdate . nodeAtLoc) fnParent
+  pure ()
+
+-- let fpChildren = children fpParent
+-- case length fpChildren of
+--   1 -> guard $ isPun
+--   _ -> guard $ isBound
 
 nodeIsVarBoundInLambda :: ASTLoc -> Bool
 nodeIsVarBoundInLambda astLoc = isVar (nodeAtLoc astLoc) && isJust (findAncestor (isJust . cast @Haskell.Patterns . nodeAtLoc) astLoc)
+
+isAlt :: DynNode -> Bool
+isAlt = isJust . cast @Haskell.Alternative
 
 isFunction :: DynNode -> Bool
 isFunction = isJust . cast @Haskell.Function
@@ -89,7 +119,7 @@ isVar = isJust . cast @Haskell.Variable
 selectNodesToType :: DynNode -> [DynNode]
 selectNodesToType root = do
   let leafNodes = leaves (rootToASTLoc root)
-  let selectedLeafNodes = filter nodeIsVarAtBinding leafNodes
+  let selectedLeafNodes = filter (\x -> nodeIsVarAtBinding x || nodeIsRecordVar x || nodeIsUpdatedField x) leafNodes
   fmap nodeAtLoc selectedLeafNodes
 
 lastSafe :: [a] -> Maybe a

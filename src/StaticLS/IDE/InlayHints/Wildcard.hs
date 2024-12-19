@@ -45,7 +45,6 @@ import StaticLS.IDE.Monad hiding (lineColToPos)
 import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.Monad
 
-
 getInlayHints :: AbsPath -> StaticLsM [InlayHint]
 getInlayHints absPath = do
   haskell <- getHaskell absPath

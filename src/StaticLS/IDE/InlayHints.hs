@@ -18,5 +18,5 @@ getInlayHints path options =
   concat
     <$> sequenceA
       [ TypeAnnotations.getInlayHints path options.inlayLengthCap
-      , Wildcard.getInlayHints path
+      -- , Wildcard.getInlayHints path
       ]

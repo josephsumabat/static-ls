@@ -45,79 +45,31 @@ import StaticLS.IDE.Monad hiding (lineColToPos)
 import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.Monad
 
+
 getInlayHints :: AbsPath -> StaticLsM [InlayHint]
 getInlayHints absPath = do
-  getWildcardAnns absPath
-
-getWildcardAnns :: AbsPath -> StaticLsM [InlayHint]
-getWildcardAnns absPath = do
   haskell <- getHaskell absPath
   rope <- getSourceRope absPath
   let dynNodesToType = selectNodesToAnn haskell
-  inlayHints <- catMaybes <$> traverse (mkInlayHint absPath haskell rope) dynNodesToType
+  inlayHints <- catMaybes <$> traverse (mkInlayHint absPath rope) dynNodesToType
   pure inlayHints
 
-selectNodesToAnn :: Haskell.Haskell -> [(Haskell.Wildcard, ASTLoc)]
+selectNodesToAnn :: Haskell.Haskell -> [Haskell.Wildcard]
 selectNodesToAnn haskell = do
   let astLocs = leaves $ rootToASTLoc $ getDynNode haskell
-  [ (wc, par)
+  [ wildcard
     | astLoc <- astLocs
-    , Just wc <- [cast @Haskell.Wildcard (nodeAtLoc astLoc)]
-    , Just par <- [parent astLoc]
+    , Just wildcard <- [cast @Haskell.Wildcard (nodeAtLoc astLoc)]
+    , Just _ <- [parent astLoc]
     ]
 
-mkInlayHint absPath haskell rope (wcn, parents) = do
-  let lcr = nodeToRange wcn
+mkInlayHint :: AbsPath -> Rope.Rope -> Haskell.Wildcard -> StaticLsM (Maybe InlayHint)
+mkInlayHint absPath rope wildcard = do
+  let lcr = nodeToRange wildcard
   h <- retrieveHover absPath $ posToLineCol rope lcr.start
   case h of
     Nothing -> pure Nothing
     Just x -> pure $ Just $ mkInlayText (posToLineCol rope lcr.end) x
-
-wcRecord :: AbsPath -> Rope.Rope -> ASTLoc -> StaticLsM (Maybe [Text])
-wcRecord absPath rope parent = do
-  let mrecord = findAncestor (isRecord . nodeAtLoc) parent
-  case mrecord of
-    Nothing -> pure $ Just []
-    Just record -> do
-      impl <- getImplementation absPath $ posToLineCol rope (nodeToRange $ nodeAtLoc record).start
-      recordInfo <- case impl of
-        [] -> pure []
-        lcr : _ -> do
-          let file = lcr.path
-          let lineCol = lcr.loc.start
-          getRecordInfo file lineCol
-      pure $ Just recordInfo
-
-getRecordInfo :: AbsPath -> LineCol -> StaticLsM [Text]
-getRecordInfo absPath lineCol = do
-  haskell <- getHaskell absPath
-  rope <- getSourceRope absPath
-  let maybeRecord = getDeepestContaining @Haskell.Record (Range.point $ Rope.lineColToPos rope lineCol) (getDynNode haskell)
-  case maybeRecord of
-    Nothing -> pure []
-    Just record -> do
-      let nameNodes = analyzeRecord record
-      let names = fromMaybe [] $ (fmap . fmap) (Rope.toText . fromMaybe Rope.empty . Rope.indexRange rope . nodeRange) nameNodes
-      pure names
-
-analyzeRecord :: Haskell.Record -> Maybe [DynNode]
-analyzeRecord record = do
-  _ : fields : _ <- pure (getDynNode record).nodeChildren
-  _ <- cast @Haskell.Fields fields
-  let fieldInfos = concat $ mapMaybe toFieldInfo (getDynNode fields).nodeChildren
-  pure fieldInfos
-
-toFieldInfo :: DynNode -> Maybe [DynNode]
-toFieldInfo node = do
-  _ <- cast @Haskell.Field node
-  ty : names <- pure node.nodeChildren
-  Just names
-
-isWildcard :: DynNode -> Bool
-isWildcard = isJust . cast @Haskell.Wildcard
-
-isRecord :: DynNode -> Bool
-isRecord = isJust . cast @Haskell.Record
 
 -- | Retrieve type information
 retrieveHover ::

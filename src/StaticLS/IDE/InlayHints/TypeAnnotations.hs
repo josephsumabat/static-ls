@@ -11,40 +11,19 @@ import Data.LineCol
 import Data.LineColRange qualified as LineColRange
 import Data.Maybe
 import Data.Path
-import Data.Pos
 import Data.Range
 import Data.Rope (posToLineCol)
 import Data.Text (Text)
-import Data.Text qualified as Text
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
 import StaticLS.IDE.HiePos
+import StaticLS.IDE.InlayHints.Common
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad
 import StaticLS.Monad
 
 getInlayHints :: AbsPath -> Maybe Int -> StaticLsM [InlayHint]
 getInlayHints path maxLen = getTypedefInlays_ path maxLen
-
-defaultInlayHint :: InlayHint
-defaultInlayHint = InlayHint {position = LineCol (Pos 0) (Pos 0), kind = Nothing, label = Left "", textEdits = Nothing, paddingLeft = Nothing, paddingRight = Nothing}
-
-mkInlayText :: LineCol -> Text -> InlayHint
-mkInlayText lineCol text = defaultInlayHint {position = lineCol, label = Left text}
-
-mkTypedefInlay :: Maybe Int -> LineCol -> Text -> InlayHint
-mkTypedefInlay maxLen lineCol text = (mkInlayText lineCol (truncateInlay maxLen (formatInlayText text))) {kind = Just InlayHintKind_Type, paddingLeft = Just True}
-
-formatInlayText :: Text -> Text
-formatInlayText = normalizeWhitespace
- where
-  normalizeWhitespace = Text.unwords . Text.words
-
-truncateInlay :: Maybe Int -> Text -> Text
-truncateInlay Nothing text = text
-truncateInlay (Just maxLen) text
-  | Text.length text <= maxLen = text
-  | otherwise = Text.take maxLen text <> "\x2026"
 
 getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> Maybe Int -> StaticLsM [InlayHint]
 getTypedefInlays absPath getTypes maxLen = do
@@ -77,48 +56,46 @@ getTypedefInlays_ absPath maxLen = do
             fmap HieView.Type.printType tys
       getTypedefInlays absPath getTypes maxLen
 
-nodeIsVarAtBinding :: [(Int, DynNode)] -> Bool
-nodeIsVarAtBinding path = do
-  let checkHeadNode n =
-        (isJust (cast @Haskell.Variable n) || isJust (cast @Haskell.Function n))
-          && (maybe False (`elem` ["name", "pattern", "element", "left_operand", "right_operand"]) n.nodeFieldName)
-  let headNodeGood = maybe False (checkHeadNode . snd) (listToMaybe path)
-  let bindLhsP ((0, _) : (_, y) : _) = isJust (cast @Haskell.Bind y) || isJust (cast @Haskell.Alternative y) || isJust (cast @Haskell.Function y)
-      bindLhsP _ = False
-  (&&) headNodeGood $ isJust $ do
-    bindLhs <- stripUntil bindLhsP path
-    let d1 = drop 1 bindLhs
-    guard $ isNonTopLevel (snd <$> d1)
-    pure ()
+nodeIsVarAtBinding :: ASTLoc -> Bool
+nodeIsVarAtBinding astLoc = isJust $ do
+  let curNode = nodeAtLoc astLoc
+  let nameCorrect = maybe False (`elem` ["name", "pattern", "element", "left_operand", "right_operand"]) curNode.nodeFieldName
+  let typeCorrect = isJust (cast @Haskell.Variable curNode) || isJust (cast @Haskell.Function curNode)
+  let headNodeGood = nameCorrect && typeCorrect
+  let criterion = nthChildOf 0 (\y -> isBind y || isAlt y || isFunction y)
+  guard headNodeGood
+  bindSite <- parent =<< findAncestor criterion astLoc
+  bindSiteP <- parent bindSite
+  _ <- findAncestor ((\p -> isLet p || isBind p || isFunction p) . nodeAtLoc) bindSiteP
+  pure True
 
-_nodeIsVarBoundInLambda :: [(Int, DynNode)] -> Bool
-_nodeIsVarBoundInLambda path = do
-  let headIsVar = maybe False (isVar . snd) (listToMaybe path)
+nodeIsRecordVar :: ASTLoc -> Bool
+nodeIsRecordVar astLoc = isJust $ do
+  let curNode = nodeAtLoc astLoc
+  _ <- cast @Haskell.Variable curNode
+  let name = curNode.nodeFieldName
+  let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
+  let isPun = isNothing name
+  fpParent <- findAncestor (isJust . cast @Haskell.FieldPattern . nodeAtLoc) astLoc
+  let fpChildren = children fpParent
+  case length fpChildren of
+    1 -> guard isPun
+    _ -> guard isBound
 
-  headIsVar && any (isJust . cast @Haskell.Patterns . snd) path
+nodeIsUpdatedField :: ASTLoc -> Bool
+nodeIsUpdatedField astLoc = isJust $ do
+  let curNode = nodeAtLoc astLoc
+  _ <- cast @Haskell.Variable curNode
+  -- let name = curNode.nodeFieldName
+  -- let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
+  -- let isPun = name == Nothing
+  fieldNode <- findAncestor (isJust . cast @Haskell.FieldName . nodeAtLoc) astLoc
+  guard $ childIndex fieldNode == Just 0
+  _ <- findAncestor (isJust . cast @Haskell.FieldUpdate . nodeAtLoc) fieldNode
+  pure ()
 
--- logic for manipulating AST to find where to show inlay hints
-
-data IndexedTree a = IndexedTree {root :: (Int, a), children :: [IndexedTree a]}
-
-nodeToIndexedTree :: DynNode -> IndexedTree DynNode
-nodeToIndexedTree t = go ((-1), t)
- where
-  go x@(_, node) = IndexedTree x $ go <$> zip [0 ..] node.nodeChildren
-
-indexedTreeTraversalGeneric :: ((Int, DynNode) -> st -> st) -> st -> IndexedTree DynNode -> [st]
-indexedTreeTraversalGeneric fn = go
- where
-  go st tree = do
-    let newSt = fn tree.root st
-    newSt : (go newSt =<< tree.children)
-
-stripUntil :: ([a] -> Bool) -> [a] -> Maybe [a]
-stripUntil f = go
- where
-  go xs | f xs = Just xs
-  go [] = Nothing
-  go (_ : ys) = stripUntil f ys
+isAlt :: DynNode -> Bool
+isAlt = isJust . cast @Haskell.Alternative
 
 isFunction :: DynNode -> Bool
 isFunction = isJust . cast @Haskell.Function
@@ -129,24 +106,11 @@ isBind = isJust . cast @Haskell.Bind
 isLet :: DynNode -> Bool
 isLet = isJust . cast @Haskell.Let
 
-isLam :: DynNode -> Bool
-isLam = isJust . cast @Haskell.Lambda
-
-isVar :: DynNode -> Bool
-isVar = isJust . cast @Haskell.Variable
-
-isNonTopLevel :: [DynNode] -> Bool
-isNonTopLevel parents = do
-  let stripped = drop 1 $ dropWhile (\x -> not (isLet x || isBind x || isLam x)) parents
-  any (\x -> isFunction x || isBind x) stripped
-
 selectNodesToType :: DynNode -> [DynNode]
 selectNodesToType root = do
-  let tree = nodeToIndexedTree root
-  let nodePaths = indexedTreeTraversalGeneric (:) [] tree
-  let filteredNodePaths = filter (\x -> nodeIsVarAtBinding x) nodePaths
-  let dynNodesToShow = snd . head <$> filteredNodePaths
-  dynNodesToShow
+  let leafNodes = leaves (rootToASTLoc root)
+  let selectedLeafNodes = filter (\x -> nodeIsVarAtBinding x || nodeIsRecordVar x || nodeIsUpdatedField x) leafNodes
+  fmap nodeAtLoc selectedLeafNodes
 
 lastSafe :: [a] -> Maybe a
 lastSafe = listToMaybe . reverse

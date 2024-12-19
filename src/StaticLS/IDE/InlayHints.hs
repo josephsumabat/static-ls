@@ -13,6 +13,9 @@ import StaticLS.Monad
 import StaticLS.StaticEnv.Options
 
 getInlayHints :: AbsPath -> StaticEnvOptions -> StaticLsM [InlayHint]
-getInlayHints path options = do
-  typeAnnotations <- TypeAnnotations.getInlayHints path options.inlayLengthCap
-  pure typeAnnotations
+getInlayHints path options =
+  concat
+    <$> sequenceA
+      [ TypeAnnotations.getInlayHints path options.inlayLengthCap
+      -- , Wildcard.getInlayHints path
+      ]

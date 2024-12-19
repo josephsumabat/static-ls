@@ -87,6 +87,7 @@ nodeIsUpdatedField astLoc = isJust $ do
   -- let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
   -- let isPun = name == Nothing
   fnParent <- findAncestor (isJust . cast @Haskell.FieldName . nodeAtLoc) astLoc
+  guard $ childIndex fnParent == Just 0
   fuParent <- findAncestor (isJust . cast @Haskell.FieldUpdate . nodeAtLoc) fnParent
   pure ()
 

@@ -9,7 +9,6 @@ module StaticLS.IDE.InlayHints (
 import Data.Path
 import StaticLS.IDE.InlayHints.TypeAnnotations qualified as TypeAnnotations
 import StaticLS.IDE.InlayHints.Types
-import StaticLS.IDE.InlayHints.Wildcard qualified as Wildcard
 import StaticLS.Monad
 import StaticLS.StaticEnv.Options
 

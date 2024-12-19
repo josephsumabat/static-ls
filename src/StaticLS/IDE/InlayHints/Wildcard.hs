@@ -5,23 +5,21 @@ import AST.Cast
 import AST.Haskell qualified as H
 import AST.Haskell.Generated qualified as Haskell
 import AST.Node
-import AST.Traversal
 import Control.Monad qualified as Monad
 import Control.Monad.IO.Class
 import Control.Monad.RWS
 import Control.Monad.Trans.Maybe
 import Data.Function
 import Data.LineCol
-import Data.LineColRange
 import Data.LineColRange qualified as LineColRange
-import Data.List (find, groupBy, minimumBy, nub, sortBy)
+import Data.List (groupBy, minimumBy, sortBy)
 import Data.Maybe
 import Data.Maybe qualified as Maybe
 import Data.Path
 import Data.Path qualified as Path
 import Data.Pos as Pos
 import Data.Range as Range
-import Data.Rope as Rope (lineColToPos, posToLineCol)
+import Data.Rope as Rope (posToLineCol)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -35,10 +33,8 @@ import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.View qualified as HieView
 import StaticLS.Hir qualified as Hir
-import StaticLS.IDE.FileWith
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
-import StaticLS.IDE.Implementation
 import StaticLS.IDE.InlayHints.Common
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad hiding (lineColToPos)

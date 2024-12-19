@@ -1,7 +1,6 @@
 module App.Arguments (execArgParser) where
 
 import Control.Applicative
-import Data.Maybe
 import Data.Version (showVersion)
 import Options.Applicative
 import Paths_static_ls (version)

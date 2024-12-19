@@ -5,7 +5,6 @@
 module StaticLS.IDE.InlayHints.Common where
 
 import AST.Cast
-import AST.Haskell.Generated qualified as Haskell
 import AST.Node
 import Data.LineCol
 import Data.List

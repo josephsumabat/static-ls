@@ -104,6 +104,7 @@ staticEnvOptParser =
       )
     <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag False defaultStaticEnvOptions.provideInlays (long "disableInlays" <> help "Explicitly disable inlay hints."))
     <*> (maybe defaultStaticEnvOptions.inlayLengthCap id <$> Control.Applicative.optional readInlayLen)
+    <*> switch (long "experimentalFeatures" <> help "Enable experimental features.")
  where
   -- Parse a list of comma delimited strings
   listOption = option $ eitherReader (either (Left . show) Right . runParser (sepEndBy (many alphaNum) (char ',')) () "")

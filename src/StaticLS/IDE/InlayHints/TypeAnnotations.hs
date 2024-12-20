@@ -5,6 +5,7 @@ module StaticLS.IDE.InlayHints.TypeAnnotations (getInlayHints) where
 import AST.Cast
 import AST.Haskell.Generated qualified as Haskell
 import AST.Node
+import Control.Applicative as Applicative
 import Control.Monad
 import Control.Monad.Trans.Maybe
 import Data.LineCol
@@ -22,15 +23,20 @@ import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad
 import StaticLS.Monad
 import StaticLS.StaticEnv.Options
-import Control.Applicative as Applicative
 
 getInlayHints :: StaticEnvOptions -> AbsPath -> StaticLsM [InlayHint]
-getInlayHints options path = getTypedefInlays_ options path
-
+getInlayHints options absPath = do
+  hieView' <- runMaybeT $ getHieView absPath
+  case hieView' of
+    Nothing -> pure []
+    Just hieView -> do
+      let getTypes lineCol = do
+            let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.point lineCol)
+            fmap HieView.Type.printType tys
+      getTypedefInlays options absPath getTypes
 
 getTypedefInlays :: StaticEnvOptions -> AbsPath -> (LineCol -> [Text]) -> StaticLsM [InlayHint]
 getTypedefInlays options absPath getTypes = do
-
   haskell <- getHaskell absPath
   rope <- getSourceRope absPath
   let maxLen = options.inlayLengthCap
@@ -49,17 +55,6 @@ fmtTypeStr :: Text -> Text
 fmtTypeStr text
   | text == "" = ""
   | otherwise = ":: " <> text
-
-getTypedefInlays_ :: StaticEnvOptions -> AbsPath -> StaticLsM [InlayHint]
-getTypedefInlays_ options absPath = do
-  hieView' <- runMaybeT $ getHieView absPath
-  case hieView' of
-    Nothing -> pure []
-    Just hieView -> do
-      let getTypes lineCol = do
-            let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.point lineCol)
-            fmap HieView.Type.printType tys
-      getTypedefInlays options absPath getTypes
 
 nodeIsVarAtBinding :: ASTLoc -> Bool
 nodeIsVarAtBinding astLoc = isJust $ do

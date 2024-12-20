@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-{- HLINT ignore "Use camelCase" -}
+{- HLINT ignore "Use :" -}
 
 module StaticLS.IDE.InlayHints (
   getInlayHints,

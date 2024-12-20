@@ -22,6 +22,7 @@ import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad
 import StaticLS.Monad
 import StaticLS.StaticEnv.Options
+import Control.Applicative as Applicative
 
 getInlayHints :: StaticEnvOptions -> AbsPath -> StaticLsM [InlayHint]
 getInlayHints options path = getTypedefInlays_ options path
@@ -77,11 +78,10 @@ nodeIsRecordVar astLoc = isJust $ do
   _ <- cast @Haskell.Variable curNode
   let name = curNode.nodeFieldName
   let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
-  let isPun = isNothing name
   fpParent <- findAncestor (isJust . cast @Haskell.FieldPattern . nodeAtLoc) astLoc
   let fpChildren = children fpParent
   case length fpChildren of
-    1 -> guard isPun
+    1 -> Applicative.empty
     _ -> guard isBound
 
 nodeIsUpdatedField :: ASTLoc -> Bool

@@ -17,6 +17,6 @@ getInlayHints :: AbsPath -> StaticEnvOptions -> StaticLsM [InlayHint]
 getInlayHints path options = concat <$> sequenceA hints
  where
   hints =
-    ( [TypeAnnotations.getInlayHints path options.inlayLengthCap]
+    ( [TypeAnnotations.getInlayHints options path]
         ++ [Wildcard.getInlayHints path | options.experimentalFeatures]
     )

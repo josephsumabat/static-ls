@@ -27,8 +27,10 @@ import Control.Applicative as Applicative
 getInlayHints :: StaticEnvOptions -> AbsPath -> StaticLsM [InlayHint]
 getInlayHints options path = getTypedefInlays_ options path
 
+
 getTypedefInlays :: StaticEnvOptions -> AbsPath -> (LineCol -> [Text]) -> StaticLsM [InlayHint]
 getTypedefInlays options absPath getTypes = do
+
   haskell <- getHaskell absPath
   rope <- getSourceRope absPath
   let maxLen = options.inlayLengthCap

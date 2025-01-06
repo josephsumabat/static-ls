@@ -60,6 +60,7 @@ spec = do
             , optionHiFilesPath = ""
             , provideInlays = True
             , inlayLengthCap = Just 32
+            , experimentalFeatures = False
             }
 
     check

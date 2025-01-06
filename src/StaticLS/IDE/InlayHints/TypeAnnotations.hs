@@ -5,6 +5,7 @@ module StaticLS.IDE.InlayHints.TypeAnnotations (getInlayHints) where
 import AST.Cast
 import AST.Haskell.Generated qualified as Haskell
 import AST.Node
+import Control.Applicative as Applicative
 import Control.Monad
 import Control.Monad.Trans.Maybe
 import Data.LineCol
@@ -21,15 +22,25 @@ import StaticLS.IDE.InlayHints.Common
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad
 import StaticLS.Monad
+import StaticLS.StaticEnv.Options
 
-getInlayHints :: AbsPath -> Maybe Int -> StaticLsM [InlayHint]
-getInlayHints path maxLen = getTypedefInlays_ path maxLen
+getInlayHints :: StaticEnvOptions -> AbsPath -> StaticLsM [InlayHint]
+getInlayHints options absPath = do
+  hieView' <- runMaybeT $ getHieView absPath
+  case hieView' of
+    Nothing -> pure []
+    Just hieView -> do
+      let getTypes lineCol = do
+            let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.point lineCol)
+            fmap HieView.Type.printType tys
+      getTypedefInlays options absPath getTypes
 
-getTypedefInlays :: AbsPath -> (LineCol -> [Text]) -> Maybe Int -> StaticLsM [InlayHint]
-getTypedefInlays absPath getTypes maxLen = do
+getTypedefInlays :: StaticEnvOptions -> AbsPath -> (LineCol -> [Text]) -> StaticLsM [InlayHint]
+getTypedefInlays options absPath getTypes = do
   haskell <- getHaskell absPath
   rope <- getSourceRope absPath
-  let targetNodes = selectNodesToType (getDynNode haskell)
+  let maxLen = options.inlayLengthCap
+  let targetNodes = selectNodesToType options (getDynNode haskell)
   let ranges = nodeToRange <$> targetNodes
   let srcLineCols' = posToLineCol rope . (.start) <$> ranges
   hieLineCols' <- traverse (runMaybeT . lineColToHieLineCol absPath) srcLineCols'
@@ -44,17 +55,6 @@ fmtTypeStr :: Text -> Text
 fmtTypeStr text
   | text == "" = ""
   | otherwise = ":: " <> text
-
-getTypedefInlays_ :: AbsPath -> Maybe Int -> StaticLsM [InlayHint]
-getTypedefInlays_ absPath maxLen = do
-  hieView' <- runMaybeT $ getHieView absPath
-  case hieView' of
-    Nothing -> pure []
-    Just hieView -> do
-      let getTypes lineCol = do
-            let tys = HieView.Query.fileTysAtRangeList hieView (LineColRange.point lineCol)
-            fmap HieView.Type.printType tys
-      getTypedefInlays absPath getTypes maxLen
 
 nodeIsVarAtBinding :: ASTLoc -> Bool
 nodeIsVarAtBinding astLoc = isJust $ do
@@ -75,11 +75,10 @@ nodeIsRecordVar astLoc = isJust $ do
   _ <- cast @Haskell.Variable curNode
   let name = curNode.nodeFieldName
   let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
-  let isPun = isNothing name
   fpParent <- findAncestor (isJust . cast @Haskell.FieldPattern . nodeAtLoc) astLoc
   let fpChildren = children fpParent
   case length fpChildren of
-    1 -> guard isPun
+    1 -> Applicative.empty
     _ -> guard isBound
 
 nodeIsUpdatedField :: ASTLoc -> Bool
@@ -106,10 +105,11 @@ isBind = isJust . cast @Haskell.Bind
 isLet :: DynNode -> Bool
 isLet = isJust . cast @Haskell.Let
 
-selectNodesToType :: DynNode -> [DynNode]
-selectNodesToType root = do
+selectNodesToType :: StaticEnvOptions -> DynNode -> [DynNode]
+selectNodesToType options root = do
   let leafNodes = leaves (rootToASTLoc root)
-  let selectedLeafNodes = filter (\x -> nodeIsVarAtBinding x || nodeIsRecordVar x || nodeIsUpdatedField x) leafNodes
+  let checks = [nodeIsVarAtBinding, nodeIsUpdatedField] <> [nodeIsRecordVar | options.experimentalFeatures]
+  let selectedLeafNodes = filter (or . sequenceA checks) leafNodes
   fmap nodeAtLoc selectedLeafNodes
 
 lastSafe :: [a] -> Maybe a

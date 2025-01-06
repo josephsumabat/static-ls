@@ -224,7 +224,7 @@ serverDef argOptions logger = do
                   -- , handleFormat
                   handleCompletionItemResolve
                 ]
-                  ++ if argOptions.provideInlays then [handleInlayHintRequest argOptions, handleResolveInlayHint] else []
+                  <> (Monad.guard argOptions.provideInlays *> [handleInlayHintRequest argOptions, handleResolveInlayHint])
               )
       , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO
       , options = lspOptions

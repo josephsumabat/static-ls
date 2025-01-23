@@ -102,7 +102,13 @@ staticEnvOptParser =
           <> help "Path to directories containing source code. Comma delimited strings"
           <> showDefault
       )
-    <*> (flag' True (long "enableInlays" <> help "Explicitly enable inlay hints.") Options.Applicative.<|> flag False defaultStaticEnvOptions.provideInlays (long "disableInlays" <> help "Explicitly disable inlay hints."))
+    <*> ( flag
+            defaultStaticEnvOptions.provideInlays
+            False
+            ( long "disableInlays"
+                <> help "Explicitly disable inlay hints. (Inlays enabled by default)"
+            )
+        )
     <*> (maybe defaultStaticEnvOptions.inlayLengthCap id <$> Control.Applicative.optional readInlayLen)
     <*> switch (long "experimentalFeatures" <> help "Enable experimental features.")
  where

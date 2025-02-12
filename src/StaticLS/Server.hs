@@ -70,15 +70,20 @@ reactor chan lspEnv _logger = do
 fileWatcher :: Conc.Chan ReactorMsg -> StaticEnv -> LoggerM IO -> IO ()
 fileWatcher chan staticEnv _logger = do
   mgr <- FSNotify.startManager
-  _stop <-
-    FSNotify.watchTree
-      mgr
-      (Path.toFilePath staticEnv.hieFilesPath)
-      (\e -> FilePath.takeExtension e.eventPath == ".hie")
-      ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
-          logInfo $ "File changed: " <> T.pack (show e)
-          Handlers.handleHieFileChangeEvent e
-      )
+  Foldable.for_ staticEnv.hieDirs \hieDir -> do
+    hieDir <- pure $ Path.toFilePath hieDir
+    exists <- Dir.doesDirectoryExist hieDir
+    Monad.when exists do
+      _stop <-
+        FSNotify.watchTree
+          mgr
+          hieDir
+          (\e -> FilePath.takeExtension e.eventPath == ".hie")
+          ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
+              logInfo $ "File changed: " <> T.pack (show e)
+              Handlers.handleHieFileChangeEvent e
+          )
+      pure ()
 
   Foldable.for_ staticEnv.srcDirs \srcDir -> do
     srcDir <- pure $ Path.toFilePath srcDir

@@ -45,7 +45,6 @@
           sqlite
           ghcid
           cabal-install
-          hpack
           alejandra
         ];
         inputsFrom = [self.packages.${system}.${packageName}.env];

@@ -97,7 +97,7 @@ library
     , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
-    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
   exposed-modules:
       Data.Change
       Data.ConcurrentCache
@@ -150,8 +150,8 @@ library
       StaticLS.IDE.Implementation
       StaticLS.IDE.InlayHints
       StaticLS.IDE.InlayHints.Common
-      StaticLS.IDE.InlayHints.Types
       StaticLS.IDE.InlayHints.TypeAnnotations
+      StaticLS.IDE.InlayHints.Types
       StaticLS.IDE.InlayHints.Wildcard
       StaticLS.IDE.Monad
       StaticLS.IDE.References
@@ -251,7 +251,7 @@ executable print-hie
     , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
-    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
 
 executable static-ls
   hs-source-dirs:
@@ -320,10 +320,11 @@ executable static-ls
     , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
-    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
   main-is: Main.hs
   other-modules:
       App.Arguments
+      App.Configuration
       Paths_static_ls
   autogen-modules:
       Paths_static_ls
@@ -406,7 +407,7 @@ test-suite expect_tests
     , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
-    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
 
 test-suite static-ls-test
   type: exitcode-stdio-1.0
@@ -478,7 +479,7 @@ test-suite static-ls-test
     , unordered-containers ==0.2.*
   default-language: GHC2021
   if flag(dev)
-    ghc-options: -fwrite-ide-info -hiedir .hiefiles -hidir .hifiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
+    ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
   main-is: Main.hs
   other-modules:
       Data.ConcurrentCacheSpec

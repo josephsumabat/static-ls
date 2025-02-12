@@ -97,7 +97,6 @@ handleImplementationRequest = LSP.requestHandler LSP.SMethod_TextDocumentImpleme
 
 handleInlayHintRequest :: StaticEnvOptions -> Handlers (LspT c StaticLsM)
 handleInlayHintRequest options = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do
-  lift $ logInfo "Received inlay hint request"
   let params = req._params
   path <- ProtoLSP.tdiToAbsPath params._textDocument
   inlayHints <- lift $ getInlayHints path options

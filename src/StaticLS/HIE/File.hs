@@ -18,11 +18,11 @@ module StaticLS.HIE.File (
 where
 
 import Control.Applicative ((<|>))
+import Control.Error
 import Control.Exception (SomeException, catch)
 import Control.Monad ((<=<))
 import Control.Monad.IO.Unlift (MonadIO, liftIO)
-import Control.Monad.Trans.Except (ExceptT (..))
-import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT, runMaybeT)
+import Control.Monad.Trans.Maybe
 import Data.Bifunctor (first, second)
 import Data.Map qualified as Map
 import Data.Path (AbsPath)
@@ -37,6 +37,7 @@ import StaticLS.FilePath
 import StaticLS.HIE.File.Except
 import StaticLS.HieDb qualified as HieDb
 import StaticLS.HieView.Name qualified as HieView.Name
+import StaticLS.Logger
 import StaticLS.Maybe (flatMaybeT, toAlt)
 import StaticLS.SrcFiles
 import StaticLS.StaticEnv
@@ -52,7 +53,7 @@ getHieSource hieFile = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
 -- Returns a Maybe instead of throwing because we want to handle
 -- the case when there is no hie file and do something reasonable
 -- Most functions that get the file text will throw if the file text is not found
-getHieFileFromPath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m HieFile
+getHieFileFromPath :: (HasStaticEnv m, MonadIO m, HasLogger m) => AbsPath -> MaybeT m HieFile
 getHieFileFromPath = ((exceptToMaybeT . getHieFileFromHiePath) <=< srcFilePathToHieFilePath)
 
 -- | Retrieve an hie file from a module name
@@ -141,8 +142,7 @@ hieFilePathToSrcFilePathFromFile hiePath = do
 srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 srcFilePathToHieFilePathFromFile srcPath = do
   staticEnv <- getStaticEnv
-  -- let hieDir = staticEnv.wsRoot </> staticEnv.hieFilesPath
-  subRootExtensionFilepath staticEnv.wsRoot staticEnv.hieFilesPath ".hie" srcPath
+  subRootExtensionFilepathCandidates staticEnv.srcDirs staticEnv.hieDirs ".hie" (Path.absToRel srcPath)
 
 -----------------------------------------------------------------------------------
 -- Map index method for getting hie files - too slow in practice on startup but makes

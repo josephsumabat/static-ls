@@ -9,6 +9,7 @@ module StaticLS.Logger (
   CallStack,
   callStack,
   logWith,
+  logWithLogger,
   logInfo,
   logError,
   logWarn,
@@ -42,6 +43,10 @@ instance (Monad m) => HasLogger (ReaderT Logger m) where
 logWith :: (HasCallStack, HasLogger m, MonadIO m) => Colog.Severity -> Text -> CallStack -> m ()
 logWith severity text stack = do
   logger <- getLogger
+  logWithLogger logger severity text stack
+
+logWithLogger :: (MonadIO m) => Colog.LogAction IO Msg -> Colog.Severity -> Text -> CallStack -> m ()
+logWithLogger logger severity text stack =
   liftIO $ logger Colog.<& Msg {severity, text, stack}
 
 logInfo :: (HasCallStack, HasLogger m, MonadIO m) => Text -> m ()

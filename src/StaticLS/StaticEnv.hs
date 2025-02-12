@@ -51,7 +51,7 @@ instance Exception HieDbException
 data StaticEnv = StaticEnv
   { hieDbPath :: AbsPath
   -- ^ Path to the hiedb file
-  , hieFilesPath :: AbsPath
+  , hieDirs :: [AbsPath]
   , hiFilesPath :: AbsPath
   , wsRoot :: AbsPath
   , modelsFilesDir :: AbsPath
@@ -78,13 +78,13 @@ runStaticEnv = flip runReaderT
 initStaticEnv :: AbsPath -> StaticEnvOptions -> IO StaticEnv
 initStaticEnv wsRoot staticEnvOptions = do
   let databasePath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieDbPath)
-      hieFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieFilesPath)
+      hieDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionHieDirs)
       srcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionSrcDirs)
       hiFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHiFilesPath)
   let serverStaticEnv =
         StaticEnv
           { hieDbPath = databasePath
-          , hieFilesPath = hieFilesPath
+          , hieDirs = hieDirs
           , hiFilesPath = hiFilesPath
           , wsRoot = wsRoot
           , modelsFilesDir = wsRoot Path.</> "config" Path.</> "modelsFiles"

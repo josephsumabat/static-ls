@@ -35,8 +35,8 @@ initStaticEnv = do
   wsRoot <- Path.filePathToAbs "."
   StaticEnv.initStaticEnv wsRoot defaultTestStaticEnvOptions
 
-testHieDir :: FilePath
-testHieDir = "test/TestData/.hiefiles"
+testHieDirs :: [FilePath]
+testHieDirs = ["test/TestData/.hiefiles"]
 
 testHiDir :: FilePath
 testHiDir = "test/TestData/.hifiles"
@@ -45,13 +45,13 @@ testHieDbDir :: FilePath
 testHieDbDir = "test/TestData/.hiedb"
 
 testSrcDirs :: [FilePath]
-testSrcDirs = Options.defaultSrcDirs
+testSrcDirs = Options.defaultStaticEnvOptions.optionSrcDirs
 
 defaultTestStaticEnvOptions :: StaticEnvOptions
 defaultTestStaticEnvOptions =
   StaticEnvOptions
     { optionHieDbPath = testHieDbDir
-    , optionHieFilesPath = testHieDir
+    , optionHieDirs = testHieDirs
     , optionSrcDirs = testSrcDirs
     , optionHiFilesPath = testHiDir
     , provideInlays = True

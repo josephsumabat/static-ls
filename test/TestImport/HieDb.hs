@@ -12,7 +12,7 @@ indexHieFiles :: IO ()
 indexHieFiles =
   withHieDbAndFlags (LibDir GHC.libdir) (database testOpts) $ \_ conn -> do
     initConn conn
-    files <- concat <$> mapM getHieFilesIn [testHieDir]
+    files <- concat <$> mapM getHieFilesIn testHieDirs
     doIndex conn testOpts stderr files
     pure ()
 

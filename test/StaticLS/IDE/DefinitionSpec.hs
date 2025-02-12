@@ -42,8 +42,8 @@ spec = do
         "empty hiedb"
         StaticEnvOptions
           { optionHieDbPath = "./TestData/not-a-real-hiedb-file"
-          , optionHieFilesPath = "test/TestData/.hiefiles"
-          , optionSrcDirs = defaultSrcDirs
+          , optionHieDirs = ["test/TestData/.hiefiles"]
+          , optionSrcDirs = defaultStaticEnvOptions.optionSrcDirs
           , optionHiFilesPath = "test/TestData/.hifiles"
           , provideInlays = True
           , inlayLengthCap = Just 32
@@ -56,7 +56,7 @@ spec = do
         "it does not crash when missing all sources"
         StaticEnvOptions
           { optionHieDbPath = ""
-          , optionHieFilesPath = ""
+          , optionHieDirs = []
           , optionSrcDirs = []
           , optionHiFilesPath = ""
           , provideInlays = True

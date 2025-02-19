@@ -13,10 +13,10 @@ import System.Directory
 import System.Directory.Internal.Prelude
 
 data StaticEnvJson = StaticEnvJson
-  { hiedbPath :: Maybe FilePath
-  , hieFilePath :: Maybe [FilePath]
-  , hiFilePath :: Maybe FilePath
-  , srcFilePath :: Maybe [FilePath]
+  { hiedb :: Maybe FilePath
+  , hiefiles :: Maybe [FilePath]
+  , hifiles :: Maybe FilePath
+  , srcDirs :: Maybe [FilePath]
   }
 
 $(deriveJSON defaultOptions ''StaticEnvJson)
@@ -63,8 +63,8 @@ readConfig fileName = do
 toOptions :: StaticEnvJson -> StaticEnvOptions
 toOptions jsonOptions =
   defaultStaticEnvOptions
-    { optionHieDbPath = fromMaybe defaultStaticEnvOptions.optionHieDbPath jsonOptions.hiedbPath
-    , optionHieDirs = fromMaybe defaultStaticEnvOptions.optionHieDirs jsonOptions.hieFilePath
-    , optionHiFilesPath = fromMaybe defaultStaticEnvOptions.optionHiFilesPath jsonOptions.hiFilePath
-    , optionSrcDirs = fromMaybe defaultStaticEnvOptions.optionSrcDirs jsonOptions.srcFilePath
+    { optionHieDbPath = fromMaybe defaultStaticEnvOptions.optionHieDbPath jsonOptions.hiedb
+    , optionHieDirs = fromMaybe defaultStaticEnvOptions.optionHieDirs jsonOptions.hiefiles
+    , optionHiFilesPath = fromMaybe defaultStaticEnvOptions.optionHiFilesPath jsonOptions.hifiles
+    , optionSrcDirs = fromMaybe defaultStaticEnvOptions.optionSrcDirs jsonOptions.srcDirs
     }

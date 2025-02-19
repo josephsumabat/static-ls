@@ -24,13 +24,13 @@ data PrgOptions = PrgOptions
 -- unsupported arguments to static-ls
 execArgParser :: StaticEnvOptions -> IO StaticEnvOptions
 execArgParser defaultOpts =
-  getArgs >>= handleParseResultWithSuppression . execParserPure defaultPrefs progParseInfo
+  getArgs >>= handleParseResultWithSuppression . execParserPure defaultPrefs (progParseInfo defaultOpts)
  where
   handleParseResultWithSuppression :: ParserResult PrgOptions -> IO StaticEnvOptions
   handleParseResultWithSuppression (Success (PrgOptions {showHelp = True})) =
     -- Get the help text (optparse-applicative usually shows the help text on error)
     handleParseResult . Failure $
-      parserFailure defaultPrefs progParseInfo (ShowHelpText Nothing) mempty
+      parserFailure defaultPrefs (progParseInfo defaultOpts) (ShowHelpText Nothing) mempty
   handleParseResultWithSuppression (Success (PrgOptions {showVer = True})) = do
     -- Show version info
     putStrLn $ "static-ls, version " <> currVersion
@@ -44,19 +44,19 @@ execArgParser defaultOpts =
     putStr msg
     exitSuccess
 
-progParseInfo :: ParserInfo PrgOptions
-progParseInfo =
+progParseInfo :: StaticEnvOptions -> ParserInfo PrgOptions
+progParseInfo defaultOpts =
   info
-    (argParser <**> helper)
+    (argParser defaultOpts <**> helper)
     ( fullDesc
         <> progDesc "Run static-ls as a language server for a client to talk to"
         <> header "static-ls - a lightweight language server for haskell"
     )
 
-argParser :: Parser PrgOptions
-argParser =
+argParser :: StaticEnvOptions -> Parser PrgOptions
+argParser defaultOpts =
   PrgOptions
-    <$> staticEnvOptParser defaultStaticEnvOptions
+    <$> staticEnvOptParser defaultOpts
     <*> flag
       False
       True

@@ -6,15 +6,14 @@ module StaticLS.IDE.Definition (
 ) where
 
 import AST qualified
+import Control.Error
 import Control.Monad qualified as Monad
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.Reader
-import Control.Monad.Trans.Maybe
 import Data.LineCol (LineCol (..))
 import Data.LineColRange
 import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
-import Data.Maybe (fromMaybe, maybeToList)
 import Data.Maybe qualified as Maybe
 import Data.Path (AbsPath)
 import Data.Path qualified as FilePath
@@ -25,8 +24,11 @@ import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple qualified as SQL
+import GHC qualified
+import GHC.Types.Name qualified as GHC
 import HieDb (HieDb)
 import HieDb qualified
+import StaticLS.FilePath
 import StaticLS.HIE.File
 import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
@@ -127,23 +129,36 @@ getTypeDefinition path lineCol = do
 nameToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => HieView.Name.Name -> m [FileLcRange]
 nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
   case HieView.Name.getFileRange name of
-    Just range
-      | let path = (Path.toFilePath range.path)
-      , not $ "boot" `isSuffixOf` path -> do
+    Just hieRange
+      | let pathFromHie = (Path.toFilePath hieRange.path)
+      , not $ "boot" `isSuffixOf` pathFromHie -> do
           staticEnv <- getStaticEnv
-          let absRange = FileWith.mapPath (staticEnv.wsRoot Path.</>) range
-          itExists <- liftIO $ doesFileExist path
-          if itExists
-            then do
+          pathFromMod <- modSrcFile name
+          let mModRange = (\f -> FileWith f hieRange.loc) <$> pathFromMod
+          mRange <- liftIO (checkFileRange hieRange) >>= maybe (pure mModRange) (pure . Just)
+          logInfo (T.pack $ show mRange)
+          case mRange of
+            Just range -> do
+              let absRange = FileWith.mapPath (staticEnv.wsRoot Path.</>) range
               pure [absRange]
-            else do
-              -- When reusing .hie files from a cloud cache,
-              -- the paths may not match the local file system.
-              -- Let's fall back to the hiedb in case it contains local paths
+            Nothing ->
               fallbackToDb
       | otherwise -> fallbackToDb
     Nothing -> fallbackToDb
  where
+  modSrcFile name = do
+    staticEnv <- getStaticEnv
+    existingCandidates <-
+      runMaybeT $ do
+        modName <- MaybeT $ pure $ GHC.moduleName <$> GHC.nameModule_maybe (HieView.Name.toGHCName name)
+        let modFilePath = modToFilePath modName ".hs"
+        subRootExtensionFilepathCandidates [] staticEnv.srcDirs ".hs" modFilePath
+    pure $ Path.absToRel <$> existingCandidates
+
+  checkFileRange fileRange = do
+    exists <- doesFileExist (Path.toFilePath fileRange.path)
+    return $ if exists then Just fileRange else Nothing
+
   fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => MaybeT m [FileLcRange]
   fallbackToDb = do
     -- This case usually arises when the definition is in an external package.

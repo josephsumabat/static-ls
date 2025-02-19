@@ -169,7 +169,7 @@ when:
     ghc-options:
     - -fwrite-ide-info
     - -hiedir .hiefiles
-    - -hidir .hifiles
+      # - -hidir .hifiles
     - -fdefer-type-errors
     - -fno-defer-typed-holes
     - -Werror=deferred-type-errors

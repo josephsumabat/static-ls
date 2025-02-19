@@ -259,7 +259,7 @@ forceCachedHieFile
       , modifiedAt
       }
 
-getHieCacheWithMap :: (MonadIO m, HasStaticEnv m) => AbsPath -> HieCacheMap -> MaybeT m CachedHieFile
+getHieCacheWithMap :: (MonadIO m, HasStaticEnv m, HasLogger m) => AbsPath -> HieCacheMap -> MaybeT m CachedHieFile
 getHieCacheWithMap path hieCacheMap =
   case HashMap.lookup path hieCacheMap of
     Just hieFile -> do

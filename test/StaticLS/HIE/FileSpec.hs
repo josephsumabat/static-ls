@@ -55,7 +55,7 @@ spec = do
     let emptyOpts =
           StaticEnvOptions
             { optionHieDbPath = ""
-            , optionHieFilesPath = ""
+            , optionHieDirs = []
             , optionSrcDirs = []
             , optionHiFilesPath = ""
             , provideInlays = True

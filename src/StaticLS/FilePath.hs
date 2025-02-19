@@ -1,13 +1,14 @@
-module StaticLS.FilePath (modToFilePath, subRootExtensionFilepath, getFileModifiedAt) where
+module StaticLS.FilePath (modToFilePath, subRootExtensionFilepathCandidates, subRootExtensionFilepath, getFileModifiedAt) where
 
+import Control.Error
+import Control.Monad
 import Control.Monad.IO.Class
-import Control.Monad.Trans.Maybe
 import Data.List qualified as List
 import Data.Path (AbsPath, Path (..), RelPath)
 import Data.Path qualified as Path
 import Data.Time
 import GHC.Plugins qualified as GHC
-import StaticLS.SrcFiles
+import StaticLS.Maybe
 import System.Directory qualified as Dir
 import System.FilePath ((-<.>))
 import System.IO.Error
@@ -23,14 +24,26 @@ modToFilePath :: GHC.ModuleName -> String -> RelPath
 modToFilePath modName ext =
   Path.filePathToRel (GHC.moduleNameSlashes modName -<.> ext)
 
+subRootExtensionFilepathCandidates :: (MonadIO m) => [AbsPath] -> [AbsPath] -> String -> RelPath -> MaybeT m AbsPath
+subRootExtensionFilepathCandidates removeParents candidateParents extension targetPath = do
+  candidates <- catMaybes <$> mapM (\candidateParent -> runMaybeT $ subRootExtensionFilepath removeParents candidateParent extension targetPath) candidateParents
+  existingCandidates <- filterM (liftIO . Dir.doesFileExist . Path.toFilePath) candidates
+  toAlt $ headMay existingCandidates
+
 -- | Substitute a filepath extension and parent directory starting from some root
-subRootExtensionFilepath :: (MonadIO m) => AbsPath -> AbsPath -> String -> AbsPath -> MaybeT m AbsPath
-subRootExtensionFilepath wsRoot parent extension srcPath = do
-  let absoluteSrcDirs = (wsRoot Path.</>) <$> srcDirs
-  -- Normalize to absolute paths to drop the prefix
-  let noPrefixSrcPath =
-        List.foldl' (\path absSrcDir -> Path.makeRelative absSrcDir path) (Path.absToRel srcPath) absoluteSrcDirs
-      -- Set the directory path and substitute the file extension
-      newPath = parent Path.</> noPrefixSrcPath Path.-<.> extension
+subRootExtensionFilepath :: (MonadIO m) => [AbsPath] -> AbsPath -> String -> RelPath -> MaybeT m AbsPath
+subRootExtensionFilepath removeParents addParent extension targetPath = do
+  let newPath = subRootExtensionFilepathUnchecked removeParents addParent extension targetPath
   True <- liftIO $ Dir.doesFileExist newPath.path
   pure newPath
+
+subRootExtensionFilepathUnchecked :: [AbsPath] -> AbsPath -> String -> RelPath -> AbsPath
+subRootExtensionFilepathUnchecked removeParents addParent extension targetPath = do
+  let
+    -- Normalize to absolute paths to drop the prefix
+    noPrefixSrcPath =
+      List.foldl' (\path parent -> Path.makeRelative parent path) targetPath removeParents
+    -- Set the directory path and substitute the file extension
+    newPath = addParent Path.</> noPrefixSrcPath Path.-<.> extension
+   in
+    newPath

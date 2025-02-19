@@ -1,0 +1,22 @@
+cradle:
+  cabal:
+    - path: "./src"
+      component: "lib:static-ls"
+
+    - path: "./print/Main.hs"
+      component: "static-ls:exe:print-hie"
+
+    - path: "./app/Main.hs"
+      component: "static-ls:exe:static-ls"
+
+    - path: "./app/App/Arguments.hs"
+      component: "static-ls:exe:static-ls"
+
+    - path: "./app/App/Configuration.hs"
+      component: "static-ls:exe:static-ls"
+
+    - path: "./expect_tests"
+      component: "static-ls:test:expect_tests"
+
+    - path: "./test"
+      component: "static-ls:test:static-ls-test"

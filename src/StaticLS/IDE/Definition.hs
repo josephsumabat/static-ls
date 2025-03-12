@@ -93,7 +93,7 @@ getDefinition path lineCol = do
         nameToLocation name
     hieFileLcToFileLcParallel hieLcRanges
 
-  modToLocation :: (HasStaticEnv m, MonadIO m) => HieView.ModuleName -> m (Maybe FileLcRange)
+  modToLocation :: (HasStaticEnv m, HasLogger m, MonadIO m) => HieView.ModuleName -> m (Maybe FileLcRange)
   modToLocation modName = runMaybeT $ do
     srcFile <- modToSrcFile modName
     pure $ FileWith srcFile (LineColRange.point (LineCol (Pos 0) (Pos 0)))
@@ -218,7 +218,7 @@ hieDbFindDefString name mod = do
           ]
     )
 
-defRowToLocation :: (HasCallStack, HasStaticEnv m, MonadIO m) => HieDb.DefRow -> MaybeT m FileLcRange
+defRowToLocation :: (HasCallStack, HasLogger m, HasStaticEnv m, MonadIO m) => HieDb.DefRow -> MaybeT m FileLcRange
 defRowToLocation defRow = do
   let start = hiedbCoordsToLineCol (defRow.defSLine, defRow.defSCol)
       end = hiedbCoordsToLineCol (defRow.defELine, defRow.defECol)

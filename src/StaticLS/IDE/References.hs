@@ -79,7 +79,7 @@ findRefs path lineCol = do
       newRes <- hieFileLcToFileLcParallel res
       pure newRes
 
-refRowToLocation :: (HasStaticEnv m, MonadIO m) => HieDb.RefRow -> MaybeT m FileLcRange
+refRowToLocation :: (HasStaticEnv m, HasLogger m, MonadIO m) => HieDb.RefRow -> MaybeT m FileLcRange
 refRowToLocation refRow = do
   let start = hiedbCoordsToLineCol (refRow.refSLine, refRow.refSCol)
       end = hiedbCoordsToLineCol (refRow.refELine, refRow.refECol)

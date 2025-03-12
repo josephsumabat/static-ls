@@ -21,6 +21,7 @@ import StaticLS.HIE.Position
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.SymbolKind (SymbolKind (..))
 import StaticLS.IDE.SymbolKind qualified as SymbolKind
+import StaticLS.Logger (HasLogger)
 import StaticLS.Maybe
 import StaticLS.StaticEnv (HasStaticEnv, runHieDbMaybeT)
 
@@ -31,7 +32,7 @@ data Symbol = Symbol
   }
   deriving (Show, Eq)
 
-symbolInfo :: (HasCallStack, HasStaticEnv m, MonadIO m) => T.Text -> m [Symbol]
+symbolInfo :: (HasCallStack, HasStaticEnv m, HasLogger m, MonadIO m) => T.Text -> m [Symbol]
 symbolInfo query = do
   mHiedbDefs <- runMaybeT . runHieDbMaybeT $ \hieDb -> HieDb.searchDef hieDb (T.unpack query)
   let hiedbDefs = fromMaybe [] mHiedbDefs
@@ -42,7 +43,7 @@ symbolInfo query = do
 -- With following modification
 -- a. instead of replying on `modInfoSrcFile` (which is only present when hiedb index with `--src-base-dir`)
 --    we could find src file path from `hieFilePathToSrcFilePath`
-defRowToSymbolInfo :: (HasStaticEnv m, MonadIO m) => HieDb.Res HieDb.DefRow -> m (Maybe Symbol)
+defRowToSymbolInfo :: (HasStaticEnv m, HasLogger m, MonadIO m) => HieDb.Res HieDb.DefRow -> m (Maybe Symbol)
 defRowToSymbolInfo (HieDb.DefRow {..} HieDb.:. _) = runMaybeT $ do
   do
     defSrc <- Path.filePathToAbs defSrc

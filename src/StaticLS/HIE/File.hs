@@ -53,15 +53,15 @@ getHieSource hieFile = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
 -- Returns a Maybe instead of throwing because we want to handle
 -- the case when there is no hie file and do something reasonable
 -- Most functions that get the file text will throw if the file text is not found
-getHieFileFromPath :: (HasStaticEnv m, MonadIO m, HasLogger m) => AbsPath -> MaybeT m HieFile
+getHieFileFromPath :: (HasStaticEnv m, HasLogger m, MonadIO m, HasLogger m) => AbsPath -> MaybeT m HieFile
 getHieFileFromPath = ((exceptToMaybeT . getHieFileFromHiePath) <=< srcFilePathToHieFilePath)
 
 -- | Retrieve an hie file from a module name
-modToHieFile :: (HasStaticEnv m, MonadIO m) => HieView.Name.ModuleName -> MaybeT m GHC.HieFile
+modToHieFile :: (HasStaticEnv m, HasLogger m, MonadIO m) => HieView.Name.ModuleName -> MaybeT m GHC.HieFile
 modToHieFile = exceptToMaybeT . getHieFileFromHiePath <=< modToHieFilePath
 
 -- | Retrieve a src file from a module name
-modToSrcFile :: (HasStaticEnv m, MonadIO m) => HieView.Name.ModuleName -> MaybeT m AbsPath
+modToSrcFile :: (HasStaticEnv m, HasLogger m, MonadIO m) => HieView.Name.ModuleName -> MaybeT m AbsPath
 modToSrcFile = hieFilePathToSrcFilePath <=< modToHieFilePath
 
 -- | Fetch a src file from an hie file, checking hiedb but falling back on a file manipulation method
@@ -72,7 +72,7 @@ srcFilePathToHieFilePath srcPath =
     <|> srcFilePathToHieFilePathHieDb srcPath
 
 -- | Fetch an hie file from a src file
-hieFilePathToSrcFilePath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
+hieFilePathToSrcFilePath :: (HasStaticEnv m, HasLogger m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 hieFilePathToSrcFilePath hiePath = do
   hieFilePathToSrcFilePathHieDb hiePath
     <|> hieFilePathToSrcFilePathFromFile hiePath
@@ -82,8 +82,16 @@ hieFilePathToSrcFilePath hiePath = do
 -----------------------------------------------------------------------------------
 
 -- | Retrieve an hie file from a hie filepath
-getHieFileFromHiePath :: (HasCallStack, MonadIO m) => AbsPath -> ExceptT HieFileReadException m GHC.HieFile
-getHieFileFromHiePath hieFilePath = readHieFile (Path.toFilePath hieFilePath)
+getHieFileFromHiePath :: (HasCallStack, HasLogger m, MonadIO m) => AbsPath -> ExceptT HieFileReadException m GHC.HieFile
+getHieFileFromHiePath hieFilePath = do
+  let readResult = readHieFile (Path.toFilePath hieFilePath)
+  _ <-
+    pure $
+      runExceptT readResult >>= \result -> do
+        case result of
+          Left e -> logError $ "Failed to read hiefile with error: " <> T.pack (show e)
+          Right _ -> pure ()
+  readResult
 
 readHieFile :: (HasCallStack, MonadIO m) => FilePath -> ExceptT HieFileReadException m GHC.HieFile
 readHieFile hieFilePath = do
@@ -127,7 +135,7 @@ modToHieFilePath modName =
 -- Useful as a fallback
 -----------------------------------------------------------------------------------
 
-hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
+hieFilePathToSrcFilePathFromFile :: (HasStaticEnv m, HasLogger m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 hieFilePathToSrcFilePathFromFile hiePath = do
   hieFile <- exceptToMaybeT $ getHieFileFromHiePath hiePath
   liftIO $ Path.filePathToAbs hieFile.hie_hs_file

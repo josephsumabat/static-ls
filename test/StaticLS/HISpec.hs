@@ -22,7 +22,7 @@ spec = do
     it "Returns expected docs" $ do
       hiFile <- runMaybeT $ readHiFile "test/TestData/.hifiles/TestData/Mod2.hi"
       hiePath <- Path.filePathToAbs "test/TestData/.hiefiles/TestData/Mod2.hie"
-      eHieFile <- runExceptT $ getHieFileFromHiePath hiePath
+      eHieFile <- runExceptT $ readHieFile (Path.toFilePath hiePath)
       hieFile <- Test.assertRight "expected hie file" eHieFile
       modiface <- Test.assertJust "expected succesful read" hiFile
       fnLocation <- myFunDefLocation

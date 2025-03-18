@@ -45,7 +45,7 @@ getImplementation path lineCol = do
     logInfo $ T.pack $ "EvidenceUses: " <> show evidenceUses
     let evidenceClosure = getEvidenceClosure evidenceBinds evidenceUses
     logInfo $ T.pack $ "EvidenceClosure: " <> show evidenceClosure
-    hieLocations <- traverse IDE.Definition.nameToLocation evidenceClosure
+    hieLocations <- traverse (\name -> lift $ IDE.Definition.nameToLocation name path lineCol) evidenceClosure
     logInfo $ T.pack $ "locations: " <> show hieLocations
     hieLocations <- pure $ concat hieLocations
     locations <- mapMaybeM (runMaybeT . lift . hieFileLcToFileLc) hieLocations

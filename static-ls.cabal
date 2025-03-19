@@ -174,6 +174,7 @@ library
       StaticLS.StaticEnv.Options
       StaticLS.Tree
       StaticLS.Utils
+      StaticLS.GhcidSession
   other-modules:
       Paths_static_ls
   autogen-modules:

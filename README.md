@@ -146,6 +146,8 @@ Other potential sources of static information include haddock files as an altern
 to definition.
 Future features using existing static sources include auto import resolution code actions, autocomplete based on hiedb, and call heiarchy
 
+static-ls includes a `ghcid` subcommand which passes the appropriate flags to use ghcid as a source for diagnostics `static-ls ghcid -- -c 'cabal repl foo'`
+
 ## Limitations
 - Must be compiled on the same version of ghc as the project
 - You will need to re-index your hie files once you edit your project

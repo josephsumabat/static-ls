@@ -326,6 +326,7 @@ executable static-ls
   other-modules:
       App.Arguments
       App.Configuration
+      App.Ghcid
       Paths_static_ls
   autogen-modules:
       Paths_static_ls

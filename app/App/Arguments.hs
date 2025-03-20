@@ -18,7 +18,7 @@ currVersion :: String
 currVersion = showVersion version
 
 data PrgOptions =
-  PrgOptions
+  StaticLsOptions
     { staticEnvOpts :: StaticEnvOptions
     , showVer :: Bool
     , showHelp :: Bool
@@ -35,19 +35,19 @@ execArgParser defaultOpts =
   execParserPure defaultPrefs (progParseInfo defaultOpts) <$> getArgs
 
 handleParseResultWithSuppression :: StaticEnvOptions -> ParserResult PrgOptions -> IO StaticEnvOptions
-handleParseResultWithSuppression defaultOpts res =  case res of
-  (Success (PrgOptions {showHelp = True})) -> do
+handleParseResultWithSuppression defaultOpts res = case res of
+  Success (StaticLsOptions {showHelp = True}) -> do
     -- Get the help text (optparse-applicative usually shows the help text on error)
     handleParseResult . Failure $
       parserFailure defaultPrefs (progParseInfo defaultOpts) (ShowHelpText Nothing) mempty
-  (Success (PrgOptions {showVer = True})) -> do
+  Success (StaticLsOptions {showVer = True}) -> do
     -- Show version info
     putStrLn $ "static-ls, version " <> currVersion
     exitSuccess
-  (Success a) -> return a.staticEnvOpts
+  Success a -> return a.staticEnvOpts
   -- Ignore if invalid arguments are input
-  (Failure _) -> return defaultOpts
-  (CompletionInvoked compl) -> do
+  Failure _ -> return defaultOpts
+  CompletionInvoked compl -> do
     progn <- getProgName
     msg <- execCompletion compl progn
     putStr msg
@@ -64,23 +64,31 @@ progParseInfo defaultOpts =
 
 argParser :: StaticEnvOptions -> Parser PrgOptions
 argParser defaultOpts =
-  ( PrgOptions
-    <$> staticEnvOptParser defaultOpts
-    <*> flag
-      False
-      True
-      ( long "version"
-          <> short 'v'
-          <> help "Show the program version"
+      staticLsParser
+  <|> subparser ghcidParser
+  where
+  ghcidParser =  command "ghcid" $
+    info
+      (GHCIDOptions <$> many (strArgument mempty))
+      (  progDesc "ghcid wrapper that gives static-ls extra information"
+      <> footer "example: static-ls ghcid -- -c 'cabal repl foo'"
       )
-    <*> flag
-      False
-      True
-      ( long "help"
-          <> short 'h'
-      )
-  )
-  <|> subparser (command "ghcid" (info (GHCIDOptions <$> many (strArgument mempty)) (progDesc "ghcid wrapper that gives static-ls extra information")))
+  staticLsParser =
+    StaticLsOptions
+      <$> staticEnvOptParser defaultOpts
+      <*> flag
+        False
+        True
+        ( long "version"
+            <> short 'v'
+            <> help "Show the program version"
+        )
+      <*> flag
+        False
+        True
+        ( long "help"
+            <> short 'h'
+        )
 
 staticEnvOptParser :: StaticEnvOptions -> Parser StaticEnvOptions
 staticEnvOptParser defaultStaticEnvOptions =

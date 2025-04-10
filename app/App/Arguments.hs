@@ -1,8 +1,8 @@
-module App.Arguments
-  ( execArgParser
-  , handleParseResultWithSuppression
-  , PrgOptions(..)
-  ) where
+module App.Arguments (
+  execArgParser,
+  handleParseResultWithSuppression,
+  PrgOptions (..),
+) where
 
 import Control.Applicative
 import Data.Version (showVersion)
@@ -11,21 +11,21 @@ import Paths_static_ls (version)
 import StaticLS.StaticEnv.Options
 import System.Environment
 import System.Exit
-import Text.Parsec (runParser, sepEndBy, alphaNum, char)
+import Text.Parsec (alphaNum, char, runParser, sepEndBy)
 import Text.Read
 
 currVersion :: String
 currVersion = showVersion version
 
-data PrgOptions =
-  StaticLsOptions
-    { staticEnvOpts :: StaticEnvOptions
-    , showVer :: Bool
-    , showHelp :: Bool
-    }
+data PrgOptions
+  = StaticLsOptions
+      { staticEnvOpts :: StaticEnvOptions
+      , showVer :: Bool
+      , showHelp :: Bool
+      }
   | GHCIDOptions
-    { args :: [String]
-    }
+      { args :: [String]
+      }
 
 -- | Run an argument parser but suppress invalid arguments (simply running the server instead)
 -- Helpful for people on emacs or whose default configurations from HLS pass in
@@ -64,15 +64,16 @@ progParseInfo defaultOpts =
 
 argParser :: StaticEnvOptions -> Parser PrgOptions
 argParser defaultOpts =
-      staticLsParser
-  <|> subparser ghcidParser
-  where
-  ghcidParser =  command "ghcid" $
-    info
-      (GHCIDOptions <$> many (strArgument mempty))
-      (  progDesc "ghcid wrapper that gives static-ls extra information"
-      <> footer "example: static-ls ghcid -- -c 'cabal repl foo'"
-      )
+  staticLsParser
+    <|> subparser ghcidParser
+ where
+  ghcidParser =
+    command "ghcid" $
+      info
+        (GHCIDOptions <$> many (strArgument mempty))
+        ( progDesc "ghcid wrapper that gives static-ls extra information"
+            <> footer "example: static-ls ghcid -- -c 'cabal repl foo'"
+        )
   staticLsParser =
     StaticLsOptions
       <$> staticEnvOptParser defaultOpts

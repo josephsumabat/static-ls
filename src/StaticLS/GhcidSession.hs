@@ -2,10 +2,10 @@
 
 module StaticLS.GhcidSession where
 
+import Control.Exception (displayException)
 import Data.Path
 import Text.Parsec
 import Text.Parsec.Text (Parser)
-import Control.Exception (displayException)
 
 data GhcidSession = GhcidSession
   { workingDirectory :: AbsPath
@@ -18,4 +18,4 @@ parseGhcidSession = do
     Left e -> fail $ displayException e
     Right x -> pure x
 
-  eof *> pure GhcidSession{..}
+  eof *> pure GhcidSession {..}

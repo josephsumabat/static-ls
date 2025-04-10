@@ -74,8 +74,10 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
     - You may instead add the following to your `cabal.project.local` file:
       ```
       ignore-project: False
-      program-options:
+      program-options
         ghc-options:
+          -fwrite-ide-info
+          -hiedir .hiefiles
           -fdefer-type-errors
           -Werror=deferred-type-errors
           -Werror=deferred-out-of-scope-variables
@@ -88,11 +90,11 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
       ```
 
     from your workspace root. If you're on an older version of `hiedb` where the `--src-base-dir` argument is not available use:
-    
+
       ```
         hiedb -D .hiedb index .hiefiles
       ```
-    
+
     if you want to let ghc handle this automatically on recompilation you can
     use the [ghc hiedb plugin](https://github.com/josephsumabat/hiedb-plugin).
     Using it alongside ghciwatch is generally recommended for a better UX.

@@ -315,7 +315,7 @@ handleGhcidFileChange = do
     staticEnv <- lift StaticEnv.getStaticEnv
     pathPrefix <- case eghcid_session of
       Left e -> do
-        lift $ logInfo $ T.unwords ["could not parse ghcid_session", T.pack . Exception.displayException $ e]
+        lift $ logInfo $ T.unwords ["could not parse ghcid_session", T.pack . show $ e]
         pure (staticEnv.wsRoot Path.</>)
       Right ghcid_session -> pure (ghcid_session.workingDirectory Path.</>)
     let diags = IDE.Diagnostics.ParseGHC.parse pathPrefix contents

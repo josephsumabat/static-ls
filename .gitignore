@@ -36,3 +36,4 @@ errors.txt
 .test_builds/
 result/
 ghc-out.json
+.ghcid_session

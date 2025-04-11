@@ -157,9 +157,9 @@ data NodeOrigin
 type SourcedNodeInfo a = Map NodeOrigin (NodeInfo a)
 
 $( fold
-     [ makePrisms ''ContextInfo
-     , makePrisms ''Identifier
-     ]
+    [ makePrisms ''ContextInfo
+    , makePrisms ''Identifier
+    ]
  )
 
 readFile :: (MonadIO m) => FilePath -> MaybeT m File

@@ -35,7 +35,8 @@ import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
 import StaticLS.HieView.View qualified as HieView
-import StaticLS.Hir qualified as Hir
+import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.FileWith qualified as FileWith
 import StaticLS.IDE.HiePos

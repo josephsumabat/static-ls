@@ -25,7 +25,8 @@ import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
-import StaticLS.Hir qualified as Hir
+import Hir.Types qualified as Hir
+import Hir.Parse qualified as Hir
 import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith' (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad

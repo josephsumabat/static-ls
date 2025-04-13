@@ -43,7 +43,7 @@ import HieDb (HieDb)
 import HieDb qualified
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
-import StaticLS.Hir qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.IDE.AllExtensions (allExtensions)
 import StaticLS.IDE.CodeActions.AutoImport qualified as IDE.CodeActions.AutoImport
 import StaticLS.IDE.Monad
@@ -161,12 +161,12 @@ getModulePrefix cx sourceRope = do
     | firstIsUpper, Just (mod, match) <- TextUtils.splitOnceEnd "." prefix -> Just (mod, match)
     | otherwise -> Nothing
 
-getImportPrefix :: Context -> Rope -> H.Haskell -> Maybe (Maybe Text)
+getImportPrefix :: Context -> Rope -> H.HaskellP -> Maybe (Maybe Text)
 getImportPrefix cx sourceRope hs = do
   let lineCol = cx.lineCol
   let pos = cx.pos
   let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
-  let imports = AST.getDeepestContaining @Haskell.Imports (Range.point pos) (AST.getDynNode hs)
+  let imports = AST.getDeepestContaining @Haskell.ImportsP (Range.point pos) (AST.getDynNode hs)
   case "import" `T.stripPrefix` line of
     Just rest | Maybe.isJust imports -> do
       let mod = T.dropWhile Char.isSpace rest
@@ -175,7 +175,7 @@ getImportPrefix cx sourceRope hs = do
     _ -> Nothing
 
 -- TODO: recognize headers properly
-getLangextPrefix :: Context -> Rope -> H.Haskell -> Maybe Text
+getLangextPrefix :: Context -> Rope -> H.HaskellP -> Maybe Text
 getLangextPrefix cx sourceRope hs = do
   let lineCol = cx.lineCol
   let pos = cx.pos
@@ -183,7 +183,7 @@ getLangextPrefix cx sourceRope hs = do
   let line = Rope.toText $ Maybe.fromMaybe "" $ Rope.getLine sourceRope lineCol.line
   let (_rest, extPrefix) = Maybe.fromMaybe ("", "") $ TextUtils.splitOnceEnd " " line
   let dyn = AST.getDynNode hs
-  let pragma = AST.getDeepestContaining @Haskell.Pragma posRange dyn
+  let pragma = AST.getDeepestContaining @Haskell.PragmaP posRange dyn
   let isInPragma = Maybe.isJust pragma
   if isInPragma && extPrefix /= "" then Just extPrefix else Nothing
 

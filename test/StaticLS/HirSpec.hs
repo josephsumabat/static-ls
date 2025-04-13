@@ -9,7 +9,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Read qualified as T.Read
 import NeatInterpolation (trimming)
-import StaticLS.Hir qualified as Hir
+import Hir.Parse qualified as Hir
 import StaticLS.Utils (isJustOrThrowS, isRightOrThrowS)
 import Test.Hspec
 import TestImport.Annotation qualified as Annotation

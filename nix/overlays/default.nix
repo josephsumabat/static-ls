@@ -2,8 +2,15 @@
 let
   tree-sitter-simple-repo = {
     url = "https://github.com/josephsumabat/tree-sitter-simple";
-    sha256 = "sha256-Taje8q2fYZzA68sSt8f9/oCDdYjTWegfoYusQtmrz8A=";
-    rev = "64f8a19b7e65a4a572770a92085f872caf212833";
+    sha256 = "sha256-X4SM6v9CMs3DeX7thhV+8bEmVxDNdMGaqHr9t0dDdYw=";
+    rev = "03085cb9e6f1c7850e0c3bcd227ba0c730c7013e";
+    fetchSubmodules = true;
+  };
+
+  haskell-arborist-repo = {
+    url = "https://github.com/josephsumabat/haskell-arborist";
+    sha256 = "sha256-7KhlcDsrdxHwEl3FCa6WHneP7En6Luqfd9mUQw+BrP4=";
+    rev = "d69de64fcf2cd729816b18f1a0a410c198de62af";
     fetchSubmodules = true;
   };
 
@@ -20,6 +27,10 @@ in
 
     haskellPackages = super.haskell.packages.${self.ghcVersion}.override {
       overrides = haskellSelf: haskellSuper: {
+        haskell-arborist =
+          haskellSuper.callCabal2nix
+          "haskell-arborist" "${(super.fetchgit haskell-arborist-repo)}" {};
+
         tree-sitter-haskell =
           haskellSuper.callCabal2nix
           "tree-sitter-haskell" "${(super.fetchgit tree-sitter-simple-repo)}/tree-sitter-haskell" {};

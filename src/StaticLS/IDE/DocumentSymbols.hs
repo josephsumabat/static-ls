@@ -26,7 +26,7 @@ data SymbolTree = SymbolTree
   }
   deriving (Show)
 
-queryDeclarations :: Haskell.Haskell -> AST.Err [Haskell.Declaration]
+queryDeclarations :: Haskell.HaskellP -> AST.Err [Haskell.DeclarationP]
 queryDeclarations hs = do
   decls <- AST.collapseErr hs.declarations
   decls <- AST.maybeToErr "No declarations found" decls
@@ -34,24 +34,24 @@ queryDeclarations hs = do
   let declarations =
         Maybe.mapMaybe
           ( \decl -> case decl of
-              Inj @Haskell.Declaration decl -> Just decl
+              Inj @Haskell.DeclarationP decl -> Just decl
               _ -> Nothing
           )
           (NE.toList decls)
   pure declarations
 
-declarationToSymbol :: Haskell.Declaration -> AST.Err [SymbolTree]
+declarationToSymbol :: Haskell.DeclarationP -> AST.Err [SymbolTree]
 declarationToSymbol decl =
   case decl.getDeclaration of
-    Inj @Haskell.Decl decl -> declToSymbol decl
-    Inj @Haskell.DataType dataType -> dataTypeToSymbol dataType
-    Inj @Haskell.Newtype newtype_ -> newtypeToSymbol newtype_
-    Inj @Haskell.Class class_ -> classToSymbol class_
-    Inj @Haskell.TypeSynomym typeSynonym -> typeSynonymToSymbol typeSynonym
-    Inj @Haskell.TypeFamily typeFamily -> typeFamilyToSymbol typeFamily
+    Inj @Haskell.DeclP decl -> declToSymbol decl
+    Inj @Haskell.DataTypeP dataType -> dataTypeToSymbol dataType
+    Inj @Haskell.NewtypeP newtype_ -> newtypeToSymbol newtype_
+    Inj @Haskell.ClassP class_ -> classToSymbol class_
+    Inj @Haskell.TypeSynomymP typeSynonym -> typeSynonymToSymbol typeSynonym
+    Inj @Haskell.TypeFamilyP typeFamily -> typeFamilyToSymbol typeFamily
     _ -> pure []
 
-typeFamilyToSymbol :: Haskell.TypeFamily -> AST.Err [SymbolTree]
+typeFamilyToSymbol :: Haskell.TypeFamilyP -> AST.Err [SymbolTree]
 typeFamilyToSymbol typeFamily = do
   name <- AST.collapseErr typeFamily.name
   pure $ Foldable.toList $ do
@@ -63,7 +63,7 @@ typeFamilyToSymbol typeFamily = do
         (AST.nodeToRange typeFamily)
         (AST.nodeToRange name)
 
-typeSynonymToSymbol :: Haskell.TypeSynomym -> AST.Err [SymbolTree]
+typeSynonymToSymbol :: Haskell.TypeSynomymP -> AST.Err [SymbolTree]
 typeSynonymToSymbol typeSynonym = do
   name <- AST.collapseErr typeSynonym.name
   pure $ Foldable.toList $ do
@@ -75,7 +75,7 @@ typeSynonymToSymbol typeSynonym = do
         (AST.nodeToRange typeSynonym)
         (AST.nodeToRange name)
 
-newtypeToSymbol :: Haskell.Newtype -> AST.Err [SymbolTree]
+newtypeToSymbol :: Haskell.NewtypeP -> AST.Err [SymbolTree]
 newtypeToSymbol newtype_ = do
   name <- AST.collapseErr newtype_.name
   pure $ Foldable.toList $ do
@@ -87,7 +87,7 @@ newtypeToSymbol newtype_ = do
         (AST.nodeToRange newtype_)
         (AST.nodeToRange name)
 
-classToSymbol :: Haskell.Class -> AST.Err [SymbolTree]
+classToSymbol :: Haskell.ClassP -> AST.Err [SymbolTree]
 classToSymbol class_ = do
   name <- AST.collapseErr class_.name
   pure $ Foldable.toList $ do
@@ -99,7 +99,7 @@ classToSymbol class_ = do
         (AST.nodeToRange class_)
         (AST.nodeToRange name)
 
-dataTypeToSymbol :: Haskell.DataType -> AST.Err [SymbolTree]
+dataTypeToSymbol :: Haskell.DataTypeP -> AST.Err [SymbolTree]
 dataTypeToSymbol dataType = do
   name <- AST.collapseErr dataType.name
   pure $ Foldable.toList $ do
@@ -111,10 +111,10 @@ dataTypeToSymbol dataType = do
         (AST.nodeToRange dataType)
         (AST.nodeToRange name)
 
-declToSymbol :: Haskell.Decl -> AST.Err [SymbolTree]
+declToSymbol :: Haskell.DeclP -> AST.Err [SymbolTree]
 declToSymbol decl =
   case decl.getDecl of
-    Inj @Haskell.Bind bind -> do
+    Inj @Haskell.BindP bind -> do
       name <- AST.collapseErr bind.name
       pure $ Foldable.toList $ do
         name <- name
@@ -124,7 +124,7 @@ declToSymbol decl =
             SymbolKind.Function
             (AST.nodeToRange decl)
             (AST.nodeToRange name)
-    Inj @Haskell.Function fun -> do
+    Inj @Haskell.FunctionP fun -> do
       name <- AST.collapseErr fun.name
       pure $ Foldable.toList $ do
         name <- name

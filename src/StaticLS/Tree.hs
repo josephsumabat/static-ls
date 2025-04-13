@@ -22,7 +22,7 @@ import Data.Rope (Rope)
 byteToPos :: Rope -> Int -> Pos
 byteToPos _rope byte = Pos byte
 
-getHeader :: Haskell.Haskell -> AST.Err (Maybe Haskell.Header)
+getHeader :: Haskell.HaskellP -> AST.Err (Maybe Haskell.HeaderP)
 getHeader haskell = do
   header <- AST.collapseErr haskell.children
   pure header
@@ -31,13 +31,13 @@ getHeader haskell = do
 
 data Imports = Imports
   { dynNode :: AST.DynNode
-  , imports :: [Haskell.Import]
+  , imports :: [Haskell.ImportP]
   }
 
 filterErr :: (Foldable f) => f (AST.Err a) -> [a]
 filterErr = Maybe.mapMaybe Either.Extra.eitherToMaybe . Foldable.toList
 
-getImports :: Haskell.Haskell -> AST.Err (Maybe Imports)
+getImports :: Haskell.HaskellP -> AST.Err (Maybe Imports)
 getImports hs = do
   imports <- AST.collapseErr hs.imports
   case imports of
@@ -57,7 +57,7 @@ data Qualified = Qualified
   , id :: AST.DynNode
   }
 
-parseQualified :: Haskell.Qualified -> AST.Err Qualified
+parseQualified :: Haskell.QualifiedP -> AST.Err Qualified
 parseQualified qualified = do
   module' <- qualified.module'
   modIds <- AST.collapseErr module'.children
@@ -66,9 +66,9 @@ parseQualified qualified = do
   id <- pure $ AST.getDynNode id
   pure Qualified {modIds, id}
 
-getQualifiedAtPoint :: Haskell.Haskell -> Range -> AST.Err (Maybe Qualified)
+getQualifiedAtPoint :: Haskell.HaskellP -> Range -> AST.Err (Maybe Qualified)
 getQualifiedAtPoint hs pos = do
-  let node = AST.getDeepestContaining @Haskell.Qualified pos (AST.getDynNode hs)
+  let node = AST.getDeepestContaining @Haskell.QualifiedP pos (AST.getDynNode hs)
   case node of
     Nothing -> pure Nothing
     Just node -> do

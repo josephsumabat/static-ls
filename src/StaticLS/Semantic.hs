@@ -8,14 +8,15 @@ import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
-import StaticLS.Hir qualified as Hir
+import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.PositionDiff qualified as PositionDiff
 
 -- keep these fields lazy
 data FileState = FileState
   { contentsRope :: Rope
   , contentsText :: Text
-  , tree :: Haskell.Haskell
+  , tree :: Haskell.HaskellP
   , hir :: Hir.Program
   , hirParseErrors :: [Text]
   , tokens :: [PositionDiff.Token]

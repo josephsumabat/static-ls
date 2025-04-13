@@ -22,8 +22,9 @@ import Data.Text.IO qualified as T
 import Data.Time
 import StaticLS.FilePath
 import StaticLS.HIE.File qualified as HIE.File
-import StaticLS.HieView.View qualified as HieView
-import StaticLS.Hir.Types qualified as Hir
+import StaticLS.HieView qualified as HieView
+import Hir qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic
@@ -117,7 +118,7 @@ getFileState path = do
           liftIO $ MVar.modifyMVar_ cache.fileState (\_ -> pure (Just fileState))
           pure fileState
 
-getHaskell :: (MonadIde m) => AbsPath -> m Haskell.Haskell
+getHaskell :: (MonadIde m) => AbsPath -> m Haskell.HaskellP
 getHaskell path = do
   fileState <- getFileState path
   pure fileState.tree

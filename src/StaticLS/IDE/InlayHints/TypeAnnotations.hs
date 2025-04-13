@@ -60,7 +60,7 @@ nodeIsVarAtBinding :: ASTLoc -> Bool
 nodeIsVarAtBinding astLoc = isJust $ do
   let curNode = nodeAtLoc astLoc
   let nameCorrect = maybe False (`elem` ["name", "pattern", "element", "left_operand", "right_operand"]) curNode.nodeFieldName
-  let typeCorrect = isJust (cast @Haskell.Variable curNode) || isJust (cast @Haskell.Function curNode)
+  let typeCorrect = isJust (cast @Haskell.VariableP curNode) || isJust (cast @Haskell.FunctionP curNode)
   let headNodeGood = nameCorrect && typeCorrect
   let criterion = nthChildOf 0 (\y -> isBind y || isAlt y || isFunction y)
   guard headNodeGood
@@ -72,10 +72,10 @@ nodeIsVarAtBinding astLoc = isJust $ do
 nodeIsRecordVar :: ASTLoc -> Bool
 nodeIsRecordVar astLoc = isJust $ do
   let curNode = nodeAtLoc astLoc
-  _ <- cast @Haskell.Variable curNode
+  _ <- cast @Haskell.VariableP curNode
   let name = curNode.nodeFieldName
   let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
-  fpParent <- findAncestor (isJust . cast @Haskell.FieldPattern . nodeAtLoc) astLoc
+  fpParent <- findAncestor (isJust . cast @Haskell.FieldPatternP . nodeAtLoc) astLoc
   let fpChildren = children fpParent
   case length fpChildren of
     1 -> Applicative.empty
@@ -84,26 +84,26 @@ nodeIsRecordVar astLoc = isJust $ do
 nodeIsUpdatedField :: ASTLoc -> Bool
 nodeIsUpdatedField astLoc = isJust $ do
   let curNode = nodeAtLoc astLoc
-  _ <- cast @Haskell.Variable curNode
+  _ <- cast @Haskell.VariableP curNode
   -- let name = curNode.nodeFieldName
   -- let isBound = maybe False (`elem` ["pattern", "element", "left_operand", "right_operand"]) name
   -- let isPun = name == Nothing
-  fieldNode <- findAncestor (isJust . cast @Haskell.FieldName . nodeAtLoc) astLoc
+  fieldNode <- findAncestor (isJust . cast @Haskell.FieldNameP . nodeAtLoc) astLoc
   guard $ childIndex fieldNode == Just 0
-  _ <- findAncestor (isJust . cast @Haskell.FieldUpdate . nodeAtLoc) fieldNode
+  _ <- findAncestor (isJust . cast @Haskell.FieldUpdateP . nodeAtLoc) fieldNode
   pure ()
 
 isAlt :: DynNode -> Bool
-isAlt = isJust . cast @Haskell.Alternative
+isAlt = isJust . cast @Haskell.AlternativeP
 
 isFunction :: DynNode -> Bool
-isFunction = isJust . cast @Haskell.Function
+isFunction = isJust . cast @Haskell.FunctionP
 
 isBind :: DynNode -> Bool
-isBind = isJust . cast @Haskell.Bind
+isBind = isJust . cast @Haskell.BindP
 
 isLet :: DynNode -> Bool
-isLet = isJust . cast @Haskell.Let
+isLet = isJust . cast @Haskell.LetP
 
 selectNodesToType :: StaticEnvOptions -> DynNode -> [DynNode]
 selectNodesToType options root = do

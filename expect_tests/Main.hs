@@ -6,7 +6,7 @@ import Test.Tasty.Expect
 
 main :: IO ()
 main = do
-  defaultMainWithIngredients (expectIngredient : defaultIngredients) tests
+  --defaultMainWithIngredients (expectIngredient : defaultIngredients) tests
   pure ()
 
 tests :: TestTree

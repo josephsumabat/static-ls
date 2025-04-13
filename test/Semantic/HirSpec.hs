@@ -4,7 +4,7 @@ module Semantic.HirSpec where
 
 import AST.Haskell qualified
 import NeatInterpolation
-import StaticLS.Hir qualified as Hir
+import Hir.Parse qualified as Hir
 import Test.Hspec
 
 spec :: Spec

@@ -1,27 +1,13 @@
 module StaticLS.IDE.CodeActions.AutoExport where
 
 import AST qualified
-import AST.Haskell qualified
 import Data.Range (Range)
 import Data.Range qualified as Range
-import StaticLS.Hir
-import StaticLS.Hir qualified as Hir
+import Hir
+import Hir.Types qualified as Hir
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.Monad
-
-getDeclNode :: Hir.Decl -> AST.DynNode
-getDeclNode decl = case decl of
-  DeclData d -> d.node.dynNode
-  DeclNewtype n -> n.node.dynNode
-  DeclClass c -> c.node.dynNode
-  DeclSig s -> s.node.dynNode
-  DeclBind b -> AST.getDynNode b.node
-  DeclDataFamily d -> d.node.dynNode
-  DeclPatternSig p -> p.node.dynNode
-  DeclPattern p -> p.node.dynNode
-  DeclTypeFamily t -> t.node.dynNode
-  DeclTypeSynonym t -> t.node.dynNode
 
 -- declToExportItem :: Hir.Decl -> ExportItem
 -- declToExportItem decl = case decl of
@@ -38,7 +24,7 @@ getDeclNode decl = case decl of
 
 getDeclarationsAtPoint :: Range -> [Hir.Decl] -> [Hir.Decl]
 getDeclarationsAtPoint range decls =
-  filter (\decl -> (getDeclNode decl).nodeRange `Range.containsRange` range) decls
+  filter (\decl -> (declDynNode decl).nodeRange `Range.containsRange` range) decls
 
 codeAction :: CodeActionContext -> StaticLsM [Assist]
 codeAction cx = do

@@ -24,7 +24,8 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
-import StaticLS.Hir qualified as Hir
+import Hir.Types qualified as Hir
+import Hir.Parse qualified as Hir
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
@@ -134,7 +135,7 @@ data ImportInsertPoint
   = HeaderInsertPoint !Pos
   | AfterImportInsertPoint !Pos
 
-getImportsInsertPoint :: Rope -> Haskell.Haskell -> AST.Err ImportInsertPoint
+getImportsInsertPoint :: Rope -> Haskell.HaskellP -> AST.Err ImportInsertPoint
 getImportsInsertPoint _rope hs = do
   imports <- Tree.getImports hs
   header <- Tree.getHeader hs
@@ -161,7 +162,7 @@ shouldAddNewline rope pos = do
     Just lineAfter -> not (T.all Char.isSpace lineAfter && T.elem '\n' lineAfter)
     Nothing -> True
 
-insertImportChange :: H.Haskell -> Rope -> Text -> AST.Err Change
+insertImportChange :: H.HaskellP -> Rope -> Text -> AST.Err Change
 insertImportChange tree rope toImport = do
   insertPoint <- getImportsInsertPoint rope tree
   pure $ case insertPoint of

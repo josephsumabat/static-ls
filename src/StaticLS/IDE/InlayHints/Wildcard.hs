@@ -32,7 +32,7 @@ import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.View qualified as HieView
-import StaticLS.Hir qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
 import StaticLS.IDE.InlayHints.Common
@@ -49,16 +49,16 @@ getInlayHints absPath = do
   inlayHints <- catMaybes <$> traverse (mkInlayHint absPath rope) dynNodesToType
   pure inlayHints
 
-selectNodesToAnn :: Haskell.Haskell -> [Haskell.Wildcard]
+selectNodesToAnn :: Haskell.HaskellP -> [Haskell.WildcardP]
 selectNodesToAnn haskell = do
   let astLocs = leaves $ rootToASTLoc $ getDynNode haskell
   [ wildcard
     | astLoc <- astLocs
-    , Just wildcard <- [cast @Haskell.Wildcard (nodeAtLoc astLoc)]
+    , Just wildcard <- [cast @Haskell.WildcardP (nodeAtLoc astLoc)]
     , Just _ <- [parent astLoc]
     ]
 
-mkInlayHint :: AbsPath -> Rope.Rope -> Haskell.Wildcard -> StaticLsM (Maybe InlayHint)
+mkInlayHint :: AbsPath -> Rope.Rope -> Haskell.WildcardP -> StaticLsM (Maybe InlayHint)
 mkInlayHint absPath rope wildcard = do
   let lcr = nodeToRange wildcard
   h <- retrieveHover absPath $ posToLineCol rope lcr.start
@@ -118,7 +118,7 @@ dedup lines = do
 isInHoverName :: (MonadIde m) => AbsPath -> Range -> m Bool
 isInHoverName path range = do
   hs <- getHaskell path
-  let node = AST.getDeepestContaining @(H.Module AST.:+ Hir.ParseQualifiedTypes) range hs.dynNode
+  let node = AST.getDeepestContaining @(H.ModuleP AST.:+ Hir.ParseQualifiedTypes) range hs.dynNode
   pure $ Maybe.isJust node
 
 docsAtPoint :: (MonadIde m) => AbsPath -> HieView.File -> Pos -> LineCol -> m [NameDocs]

@@ -22,7 +22,8 @@ import Data.Range qualified as Range
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Traversable (for)
-import StaticLS.Hir qualified as Hir
+import Hir.Types qualified as Hir
+import Hir.Parse qualified as Hir
 import StaticLS.IDE.FileWith (FileWith' (..))
 import StaticLS.IDE.Monad
 import StaticLS.IDE.References qualified as References
@@ -33,16 +34,16 @@ import StaticLS.Monad
 
 data RenameContext
   = RenameQualified Hir.Qualified
-  | RenameTopSplice H.TopSplice
-  | RenameSplice H.Splice
+  | RenameTopSplice H.TopSpliceP
+  | RenameSplice H.SpliceP
   | RenameOther
   deriving (Show)
 
-getRenameContext :: H.Haskell -> Range -> AST.Err RenameContext
+getRenameContext :: H.HaskellP -> Range -> AST.Err RenameContext
 getRenameContext hs range = do
   let nameTypes = Hir.getNameTypes range hs
-  let topSplice = AST.getDeepestContaining @H.TopSplice range hs.dynNode
-  let splice = AST.getDeepestContaining @H.Splice range hs.dynNode
+  let topSplice = AST.getDeepestContaining @H.TopSpliceP range hs.dynNode
+  let splice = AST.getDeepestContaining @H.SpliceP range hs.dynNode
   qualified <- Hir.getQualifiedAtPoint range hs
   let res =
         (RenameOther <$ nameTypes)
@@ -62,7 +63,7 @@ getEverything node = case AST.cast node of
 
 renameSplice :: DynNode -> Text -> Text -> [Change]
 renameSplice node old new = do
-  let everything = traverse Hir.parseThQuotedName (getEverything @H.ThQuotedName node)
+  let everything = traverse Hir.parseThQuotedName (getEverything @H.ThQuotedNameP node)
   case everything of
     Left _e -> do
       []

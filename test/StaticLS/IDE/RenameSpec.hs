@@ -19,7 +19,7 @@ spec :: Spec
 spec = do
   let check name source oldName newName expected = it name do
         let hs = Haskell.parse source
-        let splice = head $ getEverything @Haskell.TopSplice hs.dynNode
+        let splice = head $ getEverything @Haskell.TopSpliceP hs.dynNode
         let changes = renameSplice splice.dynNode oldName newName
         let sourceRope = Rope.fromText source
         let newSourceRope = Rope.edit (Edit.changesToEdit changes) sourceRope

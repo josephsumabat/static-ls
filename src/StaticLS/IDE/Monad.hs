@@ -63,7 +63,8 @@ import Data.Time
 import StaticLS.FilePath
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView qualified as HieView
-import StaticLS.Hir qualified as Hir
+import Hir qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic
@@ -133,7 +134,7 @@ getFileState path = do
     )
     env.fileStateCache
 
-getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
+getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.HaskellP
 getHaskell path = do
   fileState <- getFileState path
   pure fileState.tree

@@ -68,9 +68,9 @@ data PartialDeletionInfo = PartialDeletionInfo {}
 data FullDeletionInfo = FullDeletionInfo
   { path :: AbsPath
   , sourceRope :: Rope
-  , haskell :: Haskell.Haskell
+  , haskell :: Haskell.HaskellP
   , loc :: Range
-  , node :: Maybe Haskell.Import
+  , node :: Maybe Haskell.ImportP
   }
 
 mkDeletionInfo :: Diagnostic -> StaticLsM DeletionInfo
@@ -87,7 +87,7 @@ mkFullDeletionInfo diagnostic = do
   node <- getImportAtLoc path loc
   pure FullDeletionInfo {..}
 
-getImportAtLoc :: AbsPath -> Range -> StaticLsM (Maybe Haskell.Import)
+getImportAtLoc :: AbsPath -> Range -> StaticLsM (Maybe Haskell.ImportP)
 getImportAtLoc path loc = do
   haskell <- getHaskell path
   let imports = getImports haskell
@@ -154,7 +154,7 @@ createPartialDeletion :: DeletionInfo -> SourceEdit
 createPartialDeletion _diagnostic = do
   SourceEdit.empty
 
-extend :: Rope -> Haskell.Haskell -> Range -> Range
+extend :: Rope -> Haskell.HaskellP -> Range -> Range
 extend rope haskell _range@(Range start end) = do
   let newEnd = fromMaybe end $ lastPosOnLine rope end
   let nodePred node = if (AST.nodeRange node).start.pos > start.pos then Just node else Nothing

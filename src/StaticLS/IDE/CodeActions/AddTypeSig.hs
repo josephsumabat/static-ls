@@ -26,25 +26,25 @@ import StaticLS.Logger
 import StaticLS.Monad
 import StaticLS.Utils (isRightOrThrowT)
 
-type AddTypeContext = Haskell.Bind :+ Haskell.Function :+ Nil
+type AddTypeContext = Haskell.BindP :+ Haskell.FunctionP :+ Nil
 
-type BindName = Haskell.PrefixId :+ Haskell.Variable :+ Nil
+type BindName = Haskell.PrefixIdP :+ Haskell.VariableP :+ Nil
 
 -- For now, it only works with top level declarations
-getDeclarationNameAtPos :: Haskell.Haskell -> Pos -> LineCol -> AST.Err (Maybe BindName)
+getDeclarationNameAtPos :: Haskell.HaskellP -> Pos -> LineCol -> AST.Err (Maybe BindName)
 getDeclarationNameAtPos haskell pos _lineCol = do
   let node = AST.getDeepestContaining @AddTypeContext (Range.point pos) haskell.dynNode
   case node of
     Just bind
       | let dynNode = AST.getDynNode bind
       , (Just parent) <- dynNode.nodeParent
-      , Nothing <- AST.cast @Haskell.LocalBinds parent
+      , Nothing <- AST.cast @Haskell.LocalBindsP parent
       , let bindName = Monad.join $ Either.Extra.eitherToMaybe do
               case bind of
-                Inj (function :: Haskell.Function) -> do
+                Inj (function :: Haskell.FunctionP) -> do
                   name <- AST.collapseErr function.name
                   pure name
-                Inj @Haskell.Bind bind -> do
+                Inj @Haskell.BindP bind -> do
                   name <- AST.collapseErr bind.name
                   pure name
                 _ -> Left "No Name found"

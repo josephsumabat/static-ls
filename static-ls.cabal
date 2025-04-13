@@ -67,6 +67,7 @@ library
     , ghc >=9.4.3 && <9.13
     , ghc-paths >=0.1.0 && <0.2
     , hashable
+    , haskell-arborist
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
@@ -105,7 +106,6 @@ library
       Data.Diff
       Data.Edit
       Data.ListUtils
-      Data.Path
       Data.RangeMap
       Data.Rope
       Data.TextUtils
@@ -125,12 +125,6 @@ library
       StaticLS.HieView.Type
       StaticLS.HieView.Utils
       StaticLS.HieView.View
-      StaticLS.Hir
-      StaticLS.Hir.Make
-      StaticLS.Hir.Name
-      StaticLS.Hir.Parse
-      StaticLS.Hir.Print
-      StaticLS.Hir.Types
       StaticLS.IDE.AllExtensions
       StaticLS.IDE.CodeActions
       StaticLS.IDE.CodeActions.AddTypeSig
@@ -221,6 +215,7 @@ executable print-hie
     , ghc >=9.4.3 && <9.13
     , ghc-paths >=0.1.0 && <0.2
     , hashable
+    , haskell-arborist
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
@@ -290,6 +285,7 @@ executable static-ls
     , ghc >=9.4.3 && <9.13
     , ghc-paths >=0.1.0 && <0.2
     , hashable
+    , haskell-arborist
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
@@ -375,6 +371,7 @@ test-suite expect_tests
     , ghc >=9.4.3 && <9.13
     , ghc-paths >=0.1.0 && <0.2
     , hashable
+    , haskell-arborist
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
@@ -449,6 +446,7 @@ test-suite static-ls-test
     , ghc >=9.4.3 && <9.13
     , ghc-paths >=0.1.0 && <0.2
     , hashable
+    , haskell-arborist
     , haskell-ast
     , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*

@@ -90,3 +90,5 @@
 - ignore: {name: Use maybe}
 - ignore: {name: Replace case with maybe}
 - ignore: {name: Unused LANGUAGE pragma}
+- ignore: {name: Move brackets to avoid $}
+- ignore: {name: Use $>}

@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 module StaticLS.Handlers where
 
 import Control.Lens.Operators
@@ -244,12 +246,14 @@ handleResolveCodeAction = LSP.requestHandler LSP.SMethod_CodeActionResolve $ \re
 
 handleFormat :: Handlers (LspT c StaticLsM)
 handleFormat = LSP.requestHandler LSP.SMethod_TextDocumentFormatting $ \req res -> do
+  _ <- lift $ logInfo "handleFormat"
   let params = req._params
   let tdi = params._textDocument
   path <- ProtoLSP.tdiToAbsPath tdi
   sourceRope <- lift $ IDE.getSourceRope path
   source <- lift $ IDE.getSource path
   staticEnv <- lift StaticEnv.getStaticEnv
+  _ <- lift $ logInfo ("Using format command: " <> (T.pack $ show staticEnv.fourmoluCommand))
   case staticEnv.fourmoluCommand of
     Just fourmoluCommand -> do
       edit <- IDE.Format.format path source fourmoluCommand

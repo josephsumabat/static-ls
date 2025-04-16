@@ -1,3 +1,5 @@
+{-# LANGUAGE ApplicativeDo #-}
+
 module App.Arguments (
   execArgParser,
   handleParseResultWithSuppression,
@@ -131,16 +133,21 @@ staticEnvOptParser defaultStaticEnvOptions =
             )
         )
     <*> (fromMaybe defaultStaticEnvOptions.inlayLengthCap <$> Control.Applicative.optional readInlayLen)
-    <*> Options.Applicative.optional
-      ( strOption
-          ( long "fourmoluCommand"
-              <> metavar "TARGET"
-              <> help "Path to fourmolu binary"
-              <> showDefault
-          )
-      )
+    <*> ( optionalWithDefault
+            ( strOption
+                ( long "fourmoluCommand"
+                    <> metavar "TARGET"
+                    <> help "Path to fourmolu binary"
+                )
+            )
+            defaultStaticEnvOptions.fourmoluCommand
+        )
     <*> switch (long "experimentalFeatures" <> help "Enable experimental features.")
  where
   -- Parse a list of comma delimited strings
   listOption = option $ eitherReader (either (Left . show) Right . runParser (sepEndBy (many alphaNum) (char ',')) () "")
   readInlayLen = (option ((readMaybe :: String -> Maybe Int) <$> str) $ long "maxInlayLength" <> help "Length to which inlay hints will be truncated.")
+  optionalWithDefault :: Parser a -> Maybe a -> Parser (Maybe a)
+  optionalWithDefault option def = do
+    mOpt <- Options.Applicative.optional option
+    pure (mOpt <|> def)

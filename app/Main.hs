@@ -13,9 +13,10 @@ main :: IO ()
 main = do
   logger <- StaticLS.Logger.setupLogger
   mFileConfig <- getFileConfig logger
-  App.execArgParser (fromMaybe defaultStaticEnvOptions mFileConfig) >>= \case
+  let jsonOrDefaultOpts = (fromMaybe defaultStaticEnvOptions mFileConfig)
+  App.execArgParser jsonOrDefaultOpts >>= \case
     Success (App.GHCIDOptions {args}) -> ghcid args
     argsRes -> do
-      staticEnvOpts <- App.handleParseResultWithSuppression defaultStaticEnvOptions argsRes
+      staticEnvOpts <- App.handleParseResultWithSuppression jsonOrDefaultOpts argsRes
       _ <- StaticLS.runServer staticEnvOpts logger
       pure ()

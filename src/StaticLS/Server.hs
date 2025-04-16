@@ -225,9 +225,8 @@ serverDef argOptions logger = do
                 , handleResolveCodeAction
                 , handleDocumentSymbols
                 , handleCompletion
-                , -- Currently disabled until we support configuration for the formatter
-                  -- , handleFormat
-                  handleCompletionItemResolve
+                , handleFormat
+                , handleCompletionItemResolve
                 ]
                   <> (if argOptions.provideInlays then [handleInlayHintRequest argOptions, handleResolveInlayHint] else [])
               )

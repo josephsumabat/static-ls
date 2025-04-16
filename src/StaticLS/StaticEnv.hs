@@ -58,6 +58,8 @@ data StaticEnv = StaticEnv
   -- ^ workspace root
   , srcDirs :: [AbsPath]
   -- ^ directories to search for source code in order of priority
+  , fourmoluCommand :: Maybe FilePath
+  -- ^ path to fourmolu binary
   }
 
 class (Monad m) => HasStaticEnv m where
@@ -89,6 +91,7 @@ initStaticEnv wsRoot staticEnvOptions = do
           , wsRoot = wsRoot
           , modelsFilesDir = wsRoot Path.</> "config" Path.</> "modelsFiles"
           , srcDirs = srcDirs
+          , fourmoluCommand = staticEnvOptions.fourmoluCommand
           }
   pure serverStaticEnv
 

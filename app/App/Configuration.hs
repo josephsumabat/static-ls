@@ -17,6 +17,7 @@ data StaticEnvJson = StaticEnvJson
   , hiefiles :: Maybe [FilePath]
   , hifiles :: Maybe FilePath
   , srcDirs :: Maybe [FilePath]
+  , fourmoluCommand :: Maybe FilePath
   }
 
 $(deriveJSON defaultOptions ''StaticEnvJson)
@@ -67,4 +68,8 @@ toOptions jsonOptions =
     , optionHieDirs = fromMaybe defaultStaticEnvOptions.optionHieDirs jsonOptions.hiefiles
     , optionHiFilesPath = fromMaybe defaultStaticEnvOptions.optionHiFilesPath jsonOptions.hifiles
     , optionSrcDirs = fromMaybe defaultStaticEnvOptions.optionSrcDirs jsonOptions.srcDirs
+    , fourmoluCommand =
+        if null jsonOptions.fourmoluCommand
+          then defaultStaticEnvOptions.fourmoluCommand
+          else jsonOptions.fourmoluCommand
     }

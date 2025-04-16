@@ -56,6 +56,7 @@ defaultTestStaticEnvOptions =
     , optionHiFilesPath = testHiDir
     , provideInlays = True
     , inlayLengthCap = Just 32
+    , fourmoluCommand = Nothing
     , experimentalFeatures = False
     }
 

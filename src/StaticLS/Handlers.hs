@@ -244,6 +244,7 @@ handleResolveCodeAction = LSP.requestHandler LSP.SMethod_CodeActionResolve $ \re
 
 handleFormat :: Handlers (LspT c StaticLsM)
 handleFormat = LSP.requestHandler LSP.SMethod_TextDocumentFormatting $ \req res -> do
+  _ <- lift $ logInfo "handleResolveCodeAction"
   let params = req._params
   let tdi = params._textDocument
   path <- ProtoLSP.tdiToAbsPath tdi
@@ -252,6 +253,7 @@ handleFormat = LSP.requestHandler LSP.SMethod_TextDocumentFormatting $ \req res 
   staticEnv <- lift StaticEnv.getStaticEnv
   case staticEnv.fourmoluCommand of
     Just fourmoluCommand -> do
+      _ <- lift $ logInfo ("Using format command: " <> T.pack fourmoluCommand)
       edit <- IDE.Format.format path source fourmoluCommand
       let textEdits = ProtoLSP.editToProto sourceRope edit
       res $ Right $ InL textEdits

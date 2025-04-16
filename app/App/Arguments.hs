@@ -5,6 +5,7 @@ module App.Arguments (
 ) where
 
 import Control.Applicative
+import Data.Maybe
 import Data.Version (showVersion)
 import Options.Applicative
 import Paths_static_ls (version)
@@ -129,7 +130,15 @@ staticEnvOptParser defaultStaticEnvOptions =
                 <> help "Explicitly disable inlay hints. (Inlays enabled by default)"
             )
         )
-    <*> (maybe defaultStaticEnvOptions.inlayLengthCap id <$> Control.Applicative.optional readInlayLen)
+    <*> (fromMaybe defaultStaticEnvOptions.inlayLengthCap <$> Control.Applicative.optional readInlayLen)
+    <*> Options.Applicative.optional
+      ( strOption
+          ( long "fourmoluCommand"
+              <> metavar "TARGET"
+              <> help "Path to fourmolu binary"
+              <> showDefault
+          )
+      )
     <*> switch (long "experimentalFeatures" <> help "Enable experimental features.")
  where
   -- Parse a list of comma delimited strings

@@ -249,9 +249,14 @@ handleFormat = LSP.requestHandler LSP.SMethod_TextDocumentFormatting $ \req res 
   path <- ProtoLSP.tdiToAbsPath tdi
   sourceRope <- lift $ IDE.getSourceRope path
   source <- lift $ IDE.getSource path
-  edit <- IDE.Format.format path source
-  let textEdits = ProtoLSP.editToProto sourceRope edit
-  res $ Right $ InL textEdits
+  staticEnv <- lift StaticEnv.getStaticEnv
+  case staticEnv.fourmoluCommand of
+    Just fourmoluCommand -> do
+      edit <- IDE.Format.format path source fourmoluCommand
+      let textEdits = ProtoLSP.editToProto sourceRope edit
+      res $ Right $ InL textEdits
+    Nothing ->
+      res $ Right $ InL []
   pure ()
 
 handleCompletion :: Handlers (LspT c StaticLsM)

@@ -16,6 +16,8 @@ data StaticEnvOptions = StaticEnvOptions
   , optionSrcDirs :: [FilePath]
   , provideInlays :: Bool
   , inlayLengthCap :: Maybe Int
+  , fourmoluCommand :: Maybe FilePath
+  -- ^ path to fourmolu
   , -- Include experimental features?
     experimentalFeatures :: Bool
   }
@@ -42,5 +44,6 @@ defaultStaticEnvOptions =
     , optionHiFilesPath = defaultHiFiles
     , provideInlays = True
     , inlayLengthCap = Just 32
+    , fourmoluCommand = Nothing
     , experimentalFeatures = False
     }

@@ -23,6 +23,7 @@ import Language.LSP.Server (
  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
+import StaticLS.GhcidSession
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.CodeActions (getCodeActions)
 import StaticLS.IDE.CodeActions qualified as IDE.CodeActions
@@ -49,6 +50,7 @@ import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import StaticLS.Utils
 import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
+import Text.Parsec.Text qualified as Parsec
 import UnliftIO.Exception qualified as Exception
 
 -----------------------------------------------------------------
@@ -316,8 +318,14 @@ handleGhcidFileChange = do
   exists <- liftIO $ doesFileExist "ghcid.txt"
   Monad.when exists do
     contents <- liftIO $ T.IO.readFile "ghcid.txt"
+    eghcid_session <- liftIO $ Parsec.parseFromFile parseGhcidSession ".ghcid_session"
     staticEnv <- lift StaticEnv.getStaticEnv
-    let diags = IDE.Diagnostics.ParseGHC.parse (staticEnv.wsRoot Path.</>) contents
+    pathPrefix <- case eghcid_session of
+      Left e -> do
+        lift $ logInfo $ T.unwords ["could not parse ghcid_session", T.pack . show $ e]
+        pure (staticEnv.wsRoot Path.</>)
+      Right ghcid_session -> pure (ghcid_session.workingDirectory Path.</>)
+    let diags = IDE.Diagnostics.ParseGHC.parse pathPrefix contents
     lift $ logInfo $ "diags: " <> T.pack (show diags)
     clearDiagnostics
     sendDiagnostics Nothing diags

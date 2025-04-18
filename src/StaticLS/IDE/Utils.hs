@@ -5,8 +5,8 @@ import Control.Monad
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Text qualified as T
-import Hir.Types qualified as Hir
 import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.Monad
 import StaticLS.StaticEnv
 import System.FilePath

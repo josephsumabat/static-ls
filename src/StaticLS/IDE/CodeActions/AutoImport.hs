@@ -24,8 +24,8 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple
 import HieDb
-import Hir.Types qualified as Hir
 import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)

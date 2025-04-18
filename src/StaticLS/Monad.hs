@@ -1,8 +1,10 @@
 module StaticLS.Monad where
 
+import Arborist.Files
 import Colog.Core.IO qualified as Colog
 import Control.Monad.Reader
 import Data.Path (AbsPath)
+import Data.Path qualified as Path
 import StaticLS.IDE.Monad
 import StaticLS.IDE.Monad qualified as IDE.Monad
 import StaticLS.Logger
@@ -40,7 +42,7 @@ instance HasStaticEnv StaticLsM where
 initEnv :: AbsPath -> StaticEnvOptions -> Logger -> IO Env
 initEnv wsRoot staticEnvOptions loggerToUse = do
   staticEnv <- initStaticEnv wsRoot staticEnvOptions
-  ideEnv <- IDE.Monad.newIdeEnv
+  ideEnv <- IDE.Monad.newIdeEnv staticEnv.srcDirs
   let logger = Colog.liftLogIO loggerToUse
   pure $
     Env

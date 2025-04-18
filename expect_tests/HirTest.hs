@@ -5,9 +5,9 @@ module HirTest where
 import AST.Haskell qualified as H
 import Data.Text qualified as T
 import Data.Text.Lazy qualified as TL
-import NeatInterpolation
-import Hir.Types qualified as Hir
 import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
+import NeatInterpolation
 import Test.Tasty
 import Test.Tasty.Expect
 import Text.Pretty.Simple qualified as Pretty

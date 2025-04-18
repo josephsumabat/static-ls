@@ -21,12 +21,12 @@ import Data.Range qualified as Range
 import Data.Text qualified as T
 import Database.SQLite.Simple qualified as SQL
 import HieDb qualified
+import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.HIE.File hiding (getHieSource)
 import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
-import Hir.Types qualified as Hir
-import Hir.Parse qualified as Hir
 import StaticLS.IDE.FileWith (FileLcRange, FileRange, FileWith' (..))
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad

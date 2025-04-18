@@ -1,5 +1,7 @@
 module StaticLS.IDE.Hover.Info (hoverInfo) where
 
+import AST.Haskell qualified as H
+import Arborist.Renamer
 import Data.Array
 import Data.LineColRange (LineColRange)
 import Data.List.Extra (dropEnd1, nubOrd)

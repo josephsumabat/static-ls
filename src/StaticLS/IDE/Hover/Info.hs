@@ -12,14 +12,16 @@ import GHC.Plugins hiding ((<>))
 import StaticLS.HI
 import StaticLS.HieView.Utils qualified as HieView.Utils
 import StaticLS.SDoc
+import Arborist.Renamer
+import qualified AST.Haskell as H
 
 -------------------------------------------------------------------
 -- The following code is taken partially from halfsp
 -- See: https://github.com/masaeedu/halfsp/blob/master/lib/GhcideSteal.hs
 -- for the original source
 -------------------------------------------------------------------
-hoverInfo :: Array TypeIndex HieTypeFlat -> [NameDocs] -> HieAST TypeIndex -> (Maybe LineColRange, [T.Text])
-hoverInfo typeLookup docs ast = (Just spanRange, map prettyIdent idents ++ pTypes ++ prettyDocumentation docs)
+hoverInfo :: Maybe (H.Variable RenamePhase) -> Array TypeIndex HieTypeFlat -> [NameDocs] -> HieAST TypeIndex -> (Maybe LineColRange, [T.Text])
+hoverInfo varNode typeLookup docs ast = (Just spanRange, map prettyIdent idents ++ pTypes ++ prettyDocumentation docs)
  where
   pTypes
     | [_] <- idents = dropEnd1 $ map wrapHaskell prettyTypes

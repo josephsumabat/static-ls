@@ -1,8 +1,10 @@
 module StaticLS.IDE.Hover (
   retrieveHover,
+  time,
 )
 where
 
+import TreeSitter.Api
 import Control.Monad.IO.Class
 import Control.Monad.RWS
 import Control.Monad.Trans.Maybe (MaybeT (..), runMaybeT)
@@ -28,6 +30,7 @@ import StaticLS.HI.File
 
 import AST qualified
 import AST.Haskell qualified as H
+import AST.Haskell.Generated qualified as H
 import Control.Monad qualified as Monad
 import Data.LineColRange qualified as LineColRange
 import Data.Maybe qualified as Maybe
@@ -47,6 +50,57 @@ import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
+import Arborist.Renamer
+import Arborist.ModGraph
+import Arborist.Scope.Types
+import StaticLS.StaticEnv
+import Control.Applicative
+import Data.Time
+import Debug.Trace
+
+time :: MonadIO m => [Char] -> m a -> m a
+time label fn = do
+  start <- liftIO getCurrentTime
+  res <- fn
+  end <- liftIO getCurrentTime
+  liftIO $ traceShowM $ "Time to run " <> label <> ": " ++ show (diffUTCTime end start)
+  pure res
+
+getResolvedVar :: MonadIO m => Hir.Program -> LineCol -> [FilePath] -> m (Maybe (H.Variable RenamePhase))
+getResolvedVar target lc srcFiles = do
+  time "resolvedVar" $ do
+    (requiredPrograms, exportIdx) <- liftIO $ time "gather" $ gatherScopeDeps target srcFiles
+    let renameTree = renamePrg requiredPrograms exportIdx target
+    pure $ (AST.getDeepestContainingLineCol @(H.Variable RenamePhase) (point lc)) . (.dynNode) =<< renameTree
+
+varToHover :: (H.Variable RenamePhase) -> Hover
+varToHover varNode =
+  let mResolvedVar = varNode.ext
+      range = ProtoLSP.lineColRangeToProto varNode.dynNode.nodeLineColRange
+      contents = fromMaybe "" (resolvedVarToContents =<< mResolvedVar)
+    in
+    Hover
+      { _range = Just range
+      , _contents = InL $ MarkupContent MarkupKind_Markdown contents
+      }
+
+resolvedVarToContents :: ResolvedVariable -> Maybe Text
+resolvedVarToContents resolvedVar =
+  case resolvedVar of
+    ResolvedVariable (ResolvedGlobal glblVarInfo) ->
+      Just $ renderGlblVarInfo glblVarInfo
+    _ -> Nothing
+
+renderGlblVarInfo :: GlblVarInfo -> Text
+renderGlblVarInfo glblVarInfo =
+  wrapHaskell tySig <>
+  "\nimported from: " <> glblVarInfo.importedFrom.text
+  <> "\noriginates from: " <> glblVarInfo.originatingMod.text
+    where
+      tySig =
+          maybe "" (.node.dynNode.nodeText) glblVarInfo.sig
+      wrapHaskell x = "\n```haskell\n" <> x <> "\n```\n"
+
 
 -- | Retrieve hover information.
 retrieveHover ::
@@ -57,8 +111,12 @@ retrieveHover ::
   m (Maybe Hover)
 retrieveHover path lineCol = do
   pos <- lineColToPos path lineCol
-  throwIfInThSplice "retriveHover" path pos
-  runMaybeT $ do
+  throwIfInThSplice "retrieveHover" path pos
+  prg <- getHir path
+  srcFiles <- (.srcDirs) <$> getStaticEnv
+  mVarNode <- getResolvedVar prg lineCol (Path.toFilePath <$> srcFiles)
+  let astResult = varToHover <$> mVarNode
+  hieResult <- runMaybeT $ do
     hieFile <- getHieFile path
     hieView <- getHieView path
     lineCol' <- lineColToHieLineCol path lineCol
@@ -76,7 +134,7 @@ retrieveHover path lineCol = do
               hieFile
               (lineColToHieDbCoords lineCol')
               Nothing
-              (hoverInfo (GHC.hie_types hieFile) docs)
+              (hoverInfo mVarNode (GHC.hie_types hieFile) docs)
     -- Convert the location from the hie file back to an original src location
     srcInfo <-
       MaybeT $
@@ -88,6 +146,7 @@ retrieveHover path lineCol = do
           )
           mHieInfo
     pure $ hoverInfoToHover srcInfo
+  pure $ hieResult <|> astResult
  where
   hoverInfoToHover :: (Maybe LSP.Range, [Text]) -> Hover
   hoverInfoToHover (mRange, contents) =

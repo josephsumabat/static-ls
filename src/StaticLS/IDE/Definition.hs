@@ -45,6 +45,16 @@ import StaticLS.Logger
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.Directory qualified as Directory
+import qualified AST.Haskell as H
+import Arborist.Renamer
+
+modLocToFileLcRange :: [AbsPath] -> (Hir.ModuleText, LineColRange) -> FileLcRange
+modLocToFileLcRange srcPaths (modText, lcRange) =
+  undefined
+
+varToFileLcRange :: (H.Variable RenamePhase) -> [FileLcRange]
+varToFileLcRange varNode =
+  undefined
 
 getDefinition ::
   (MonadIde m, MonadIO m) =>

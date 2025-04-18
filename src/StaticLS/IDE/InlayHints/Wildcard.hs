@@ -92,7 +92,7 @@ retrieveHover path lineCol = do
               hieFile
               (lineColToHieDbCoords lineCol')
               Nothing
-              (hoverInfo (GHC.hie_types hieFile) docs)
+              (hoverInfo Nothing (GHC.hie_types hieFile) docs)
 
     let fieldText = maybe [] snd mHieInfo
     pure . Text.intercalate ", " . filter (/= mempty) . dedup . fmap extractFields $ fieldText

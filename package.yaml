@@ -70,6 +70,8 @@ dependencies:
   - stm
   - filemanip
   - haskell-arborist
+  - nonempty-containers
+
 language: GHC2021
 default-extensions:
 - LambdaCase

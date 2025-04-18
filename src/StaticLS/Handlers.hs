@@ -25,6 +25,7 @@ import Language.LSP.Server (
  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
+import StaticLS.Arborist
 import StaticLS.GhcidSession
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.CodeActions (getCodeActions)
@@ -69,7 +70,7 @@ handleTextDocumentHoverRequest :: Handlers (LspT c StaticLsM)
 handleTextDocumentHoverRequest = LSP.requestHandler LSP.SMethod_TextDocumentHover $ \req resp -> do
   let hoverParams = req._params
   path <- ProtoLSP.tdiToAbsPath hoverParams._textDocument
-  hover <- lift $ retrieveHover path (ProtoLSP.lineColFromProto hoverParams._position)
+  hover <- lift $ time "hover" $ retrieveHover path (ProtoLSP.lineColFromProto hoverParams._position)
   resp $ Right $ maybeToNull hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLsM)

@@ -3,8 +3,8 @@
 module Semantic.HirSpec where
 
 import AST.Haskell qualified
-import NeatInterpolation
 import Hir.Parse qualified as Hir
+import NeatInterpolation
 import Test.Hspec
 
 spec :: Spec

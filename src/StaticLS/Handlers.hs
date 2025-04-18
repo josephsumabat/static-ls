@@ -25,6 +25,7 @@ import Language.LSP.Server (
  )
 import Language.LSP.Server qualified as LSP
 import Language.LSP.VFS (VirtualFile (..))
+import StaticLS.Arborist
 import StaticLS.GhcidSession
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.IDE.CodeActions (getCodeActions)
@@ -54,6 +55,12 @@ import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
 import Text.Parsec.Text qualified as Parsec
 import UnliftIO.Exception qualified as Exception
+import Data.Ord (comparing)
+import Data.List (maximumBy)
+import Data.Time.Clock (UTCTime)
+import Data.IORef (readIORef)
+import qualified Data.Map.Strict as Map
+import qualified Data.Text.Mixed.Rope as MixedRope
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -69,7 +76,7 @@ handleTextDocumentHoverRequest :: Handlers (LspT c StaticLsM)
 handleTextDocumentHoverRequest = LSP.requestHandler LSP.SMethod_TextDocumentHover $ \req resp -> do
   let hoverParams = req._params
   path <- ProtoLSP.tdiToAbsPath hoverParams._textDocument
-  hover <- lift $ retrieveHover path (ProtoLSP.lineColFromProto hoverParams._position)
+  hover <- lift $ time "hover" $ retrieveHover path (ProtoLSP.lineColFromProto hoverParams._position)
   resp $ Right $ maybeToNull hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLsM)

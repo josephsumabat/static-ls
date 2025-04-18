@@ -1,12 +1,16 @@
 module StaticLS.IDE.Monad
 where
 
+import Control.Concurrent.MVar
 import AST.Haskell qualified as Haskell
 import AST.Traversal qualified as AST
+import Arborist.Files
+import Arborist.ProgramIndex
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.HashMap.Strict qualified as HashMap
+import Data.IORef
 import Data.LineCol (LineCol)
 import Data.Maybe
 import Data.Path (AbsPath, toFilePath)
@@ -20,11 +24,11 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Time
+import Hir qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.FilePath
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView qualified as HieView
-import Hir qualified as Hir
-import Hir.Types qualified as Hir
 import StaticLS.Logger
 import StaticLS.PositionDiff qualified as PositionDiff
 import StaticLS.Semantic
@@ -45,18 +49,46 @@ data CurrentFileCache = CurrentFileCache
 
 data IdeEnv = IdeEnv
   { currentFile :: MVar (Maybe CurrentFileCache)
+  , modFileMap :: ModFileMap
+  , prgIndex :: MVar ProgramIndex
   }
 
-newIdeEnv :: IO IdeEnv
-newIdeEnv = do
+newIdeEnv :: [AbsPath] -> IO IdeEnv
+newIdeEnv srcDirs = do
   currentFile <- MVar.newMVar Nothing
-  pure $ IdeEnv {currentFile}
+  modFileMap <- buildModuleFileMap (Path.toFilePath <$> srcDirs)
+  prgIndex <- newMVar HashMap.empty
+  pure $ IdeEnv {currentFile, modFileMap, prgIndex}
 
 class HasIdeEnv m where
   getIdeEnv :: m IdeEnv
 
 instance (HasIdeEnv m, Monad m) => HasIdeEnv (MaybeT m) where
   getIdeEnv = lift getIdeEnv
+
+getModFileMap :: (MonadIde m) => m ModFileMap
+getModFileMap = do
+  ideEnv <- getIdeEnv
+  pure ideEnv.modFileMap
+
+getPrgIndex :: (MonadIde m, MonadIO m) => m ProgramIndex
+getPrgIndex = do
+  ideEnv <- getIdeEnv
+  liftIO $ readMVar ideEnv.prgIndex
+
+tryWritePrgIndex :: (MonadIde m, MonadIO m) => (ProgramIndex -> ProgramIndex) -> m ()
+tryWritePrgIndex modify = do
+  ideEnv <- getIdeEnv
+  mCurrPrgIndex <- liftIO $ tryTakeMVar ideEnv.prgIndex
+  case mCurrPrgIndex of
+    Nothing -> pure ()
+    Just old -> liftIO $ putMVar ideEnv.prgIndex (modify old)
+
+invalidatePrgIndexMod :: (MonadIde m, MonadIO m) => Hir.ModuleText -> m ()
+invalidatePrgIndexMod mod = do
+  ideEnv <- getIdeEnv
+  currPrgIndex <- liftIO $ takeMVar ideEnv.prgIndex
+  liftIO $ putMVar ideEnv.prgIndex (HashMap.delete mod currPrgIndex)
 
 type MonadIde m =
   ( HasIdeEnv m
@@ -74,6 +106,10 @@ removePath path = do
     Just cache | cache.path == path -> do
       liftIO $ MVar.modifyMVar_ env.currentFile (\_ -> pure Nothing)
     _ -> pure ()
+  prevHir <- getHir path
+  case prevHir.mod of
+    Nothing -> pure ()
+    Just m -> invalidatePrgIndexMod m
 
 -- when switching to a new file, create a cache
 switchToFile :: (MonadIde m) => AbsPath -> m ()

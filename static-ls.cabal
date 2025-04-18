@@ -75,6 +75,7 @@ library
     , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
+    , nonempty-containers
     , optics
     , parsec >=3.1.0 && <3.2
     , pretty-simple
@@ -107,6 +108,7 @@ library
       Data.RangeMap
       Data.Rope
       Data.TextUtils
+      StaticLS.Arborist
       StaticLS.Except
       StaticLS.FilePath
       StaticLS.Handlers
@@ -221,6 +223,7 @@ executable print-hie
     , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
+    , nonempty-containers
     , optics
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
@@ -291,6 +294,7 @@ executable static-ls
     , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
+    , nonempty-containers
     , optics
     , optparse-applicative >=0.17.0.0 && <0.19
     , parsec >=3.1.0 && <3.2
@@ -378,6 +382,7 @@ test-suite expect_tests
     , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
+    , nonempty-containers
     , optics
     , parsec >=3.1.0 && <3.2
     , pretty-simple
@@ -453,6 +458,7 @@ test-suite static-ls-test
     , lsp-types >=2.1.0.0 && <2.4.0.0
     , mtl >=2.2.2 && <2.4
     , neat-interpolation
+    , nonempty-containers
     , optics
     , parsec >=3.1.0 && <3.2
     , pretty-simple

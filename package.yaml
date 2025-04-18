@@ -69,6 +69,8 @@ dependencies:
   - regex-tdfa # why is the api for this library so bad
   - stm
   - haskell-arborist
+  - nonempty-containers
+
 language: GHC2021
 default-extensions:
 - LambdaCase

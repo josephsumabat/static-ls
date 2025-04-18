@@ -318,15 +318,21 @@ handleGhcidFileChange :: LspT c StaticLsM ()
 handleGhcidFileChange = do
   lift $ logInfo "handleGhcidFileChange"
   exists <- liftIO $ doesFileExist "ghcid.txt"
+  let ghcidSess = ".ghcid_session"
   Monad.when exists do
     contents <- liftIO $ T.IO.readFile "ghcid.txt"
-    eghcid_session <- liftIO $ Parsec.parseFromFile parseGhcidSession ".ghcid_session"
     staticEnv <- lift StaticEnv.getStaticEnv
-    pathPrefix <- case eghcid_session of
-      Left e -> do
-        lift $ logInfo $ T.unwords ["could not parse ghcid_session", T.pack . show $ e]
-        pure (staticEnv.wsRoot Path.</>)
-      Right ghcid_session -> pure (ghcid_session.workingDirectory Path.</>)
+    ghcidSessExists <- liftIO $ doesFileExist ghcidSess
+    pathPrefix <-
+      if ghcidSessExists
+        then do
+          eghcid_session <- liftIO $ Parsec.parseFromFile parseGhcidSession ghcidSess
+          case eghcid_session of
+            Left e -> do
+              lift $ logInfo $ T.unwords ["could not parse ghcid_session", T.pack . show $ e]
+              pure (staticEnv.wsRoot Path.</>)
+            Right ghcid_session -> pure (ghcid_session.workingDirectory Path.</>)
+        else pure (staticEnv.wsRoot Path.</>)
     let diags = IDE.Diagnostics.ParseGHC.parse pathPrefix contents
     lift $ logInfo $ "diags: " <> T.pack (show diags)
     clearDiagnostics

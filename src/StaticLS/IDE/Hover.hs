@@ -1,7 +1,4 @@
-module StaticLS.IDE.Hover (
-  retrieveHover,
-)
-where
+module StaticLS.IDE.Hover where
 
 import Control.Monad.IO.Class
 import Control.Monad.RWS
@@ -25,22 +22,23 @@ import Language.LSP.Protocol.Types (
  )
 import StaticLS.HI
 import StaticLS.HI.File
+import TreeSitter.Api
 
 import AST qualified
 import AST.Haskell qualified as H
+import Control.Applicative
 import Control.Monad qualified as Monad
 import Data.LineColRange qualified as LineColRange
 import Data.Maybe qualified as Maybe
 import Data.Pos (Pos)
-import Data.Range (Range)
 import Data.Range qualified as Range
+import Hir.Types qualified as Hir
 import Language.LSP.Protocol.Types qualified as LSP
+import StaticLS.Arborist
 import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.View qualified as HieView
-import Hir.Parse qualified as Hir
-import Hir.Types qualified as Hir
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
 import StaticLS.IDE.Monad
@@ -57,8 +55,11 @@ retrieveHover ::
   m (Maybe Hover)
 retrieveHover path lineCol = do
   pos <- lineColToPos path lineCol
-  throwIfInThSplice "retriveHover" path pos
-  runMaybeT $ do
+  throwIfInThSplice "retrieveHover" path pos
+  prg <- getHir path
+  (mVarNode, prgs) <- getResolvedVarAndPrgs prg lineCol
+  let astResult = varToHover prgs =<< mVarNode
+  hieResult <- runMaybeT $ do
     hieFile <- getHieFile path
     hieView <- getHieView path
     lineCol' <- lineColToHieLineCol path lineCol
@@ -88,6 +89,7 @@ retrieveHover path lineCol = do
           )
           mHieInfo
     pure $ hoverInfoToHover srcInfo
+  pure $ astResult <|> hieResult
  where
   hoverInfoToHover :: (Maybe LSP.Range, [Text]) -> Hover
   hoverInfoToHover (mRange, contents) =

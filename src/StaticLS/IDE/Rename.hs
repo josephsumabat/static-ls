@@ -22,8 +22,8 @@ import Data.Range qualified as Range
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Traversable (for)
-import Hir.Types qualified as Hir
 import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.IDE.FileWith (FileWith' (..))
 import StaticLS.IDE.Monad
 import StaticLS.IDE.References qualified as References

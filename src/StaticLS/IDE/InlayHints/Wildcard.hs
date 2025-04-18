@@ -26,13 +26,13 @@ import Data.Text qualified as Text
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Plugins as GHC hiding ((<>))
 import HieDb (pointCommand)
+import Hir.Types qualified as Hir
 import StaticLS.HI
 import StaticLS.HI.File
 import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.View qualified as HieView
-import Hir.Types qualified as Hir
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Hover.Info
 import StaticLS.IDE.InlayHints.Common

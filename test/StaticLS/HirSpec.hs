@@ -8,8 +8,8 @@ import Data.Function ((&))
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.Read qualified as T.Read
-import NeatInterpolation (trimming)
 import Hir.Parse qualified as Hir
+import NeatInterpolation (trimming)
 import StaticLS.Utils (isJustOrThrowS, isRightOrThrowS)
 import Test.Hspec
 import TestImport.Annotation qualified as Annotation

@@ -2,10 +2,10 @@ module StaticLS.IDE.Definition (
   getDefinition,
   getTypeDefinition,
   nameToLocation,
-  findDefString,
 ) where
 
 import AST qualified
+import Control.Applicative
 import Control.Error
 import Control.Monad qualified as Monad
 import Control.Monad.Extra (mapMaybeM)
@@ -28,6 +28,9 @@ import GHC qualified
 import GHC.Types.Name qualified as GHC
 import HieDb (HieDb)
 import HieDb qualified
+import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
+import StaticLS.Arborist
 import StaticLS.FilePath
 import StaticLS.HIE.File
 import StaticLS.HIE.Position
@@ -35,8 +38,6 @@ import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
 import StaticLS.HieView.View qualified as HieView
-import Hir.Parse qualified as Hir
-import Hir.Types qualified as Hir
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.FileWith qualified as FileWith
 import StaticLS.IDE.HiePos
@@ -52,6 +53,34 @@ getDefinition ::
   LineCol ->
   m [FileLcRange]
 getDefinition path lineCol = do
+  hieDef <- getHieDefinition path lineCol
+  arboristDef <- getArboristDefinition path lineCol
+  pure $
+    case hieDef of
+      [] ->  arboristDef
+      _ -> hieDef
+
+getArboristDefinition ::
+  (MonadIde m, MonadIO m) =>
+  AbsPath ->
+  LineCol ->
+  m [FileLcRange]
+getArboristDefinition path lineCol = do
+  modFileMap <- getModFileMap
+  prg <- getHir path
+  mVarNode <- getResolvedVar prg lineCol
+  let mResult = do
+        varNode <- mVarNode
+        modText <- prg.mod
+        pure $ varToFileLcRange modFileMap modText varNode
+  fromMaybe (pure []) mResult
+
+getHieDefinition ::
+  (MonadIde m, MonadIO m) =>
+  AbsPath ->
+  LineCol ->
+  m [FileLcRange]
+getHieDefinition path lineCol = do
   pos <- lineColToPos path lineCol
   throwIfInThSplice "getDefinition" path pos
   hs <- getHaskell path
@@ -70,12 +99,7 @@ getDefinition path lineCol = do
         let identifiers = HieView.Query.fileIdentifiersAtRangeList (Just (LineColRange.point hieLineCol)) hieView
         pure identifiers
       identifiers <- pure $ Maybe.fromMaybe [] identifiers
-      fileLcs <- case qual of
-        Right (Just qual) | null identifiers -> do
-          logInfo "no identifiers under cursor found, fallback logic"
-          res <- findDefString qual
-          hieFileLcToFileLcParallel res
-        _ -> do
+      fileLcs <- do
           mLocationLinks <- do
             locations <- traverse identifierToLocation identifiers
             locations <- pure $ concat locations
@@ -143,9 +167,9 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
               let absRange = FileWith.mapPath (staticEnv.wsRoot Path.</>) range
               pure [absRange]
             Nothing ->
-              fallbackToDb
-      | otherwise -> fallbackToDb
-    Nothing -> fallbackToDb
+              MaybeT $ pure Nothing
+      | otherwise -> MaybeT $ pure Nothing
+    Nothing -> MaybeT $ pure Nothing
  where
   modSrcFile name = do
     staticEnv <- getStaticEnv
@@ -159,75 +183,6 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
   checkFileRange fileRange = do
     exists <- doesFileExist (Path.toFilePath fileRange.path)
     return $ if exists then Just fileRange else Nothing
-
-  fallbackToDb :: (HasCallStack, HasStaticEnv m, MonadIO m, HasLogger m) => MaybeT m [FileLcRange]
-  fallbackToDb = do
-    -- This case usually arises when the definition is in an external package.
-    -- In this case the interface files contain garbage source spans
-    -- so we instead read the .hie files to get useful source spans.
-    logInfo "fallbackToDb"
-    erow <- runHieDbMaybeT (\hieDb -> hieDbFindDef hieDb name (HieView.Name.getUnit name))
-    case erow of
-      [] -> do
-        logInfo "trying again without unit id"
-        -- If the lookup failed, try again without specifying a unit-id.
-        -- This is a hack to make find definition work better with ghcide's nascent multi-component support,
-        -- where names from a component that has been indexed in a previous session but not loaded in this
-        -- session may end up with different unit ids
-        erow' <- runHieDbMaybeT (\hieDb -> hieDbFindDef hieDb name Nothing)
-        case erow' of
-          [] -> MaybeT $ pure Nothing
-          xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
-      xs -> lift $ mapMaybeM (runMaybeT . defRowToLocation) xs
-
-hieDbFindDef :: HieDb -> HieView.Name.Name -> Maybe Text -> IO [HieDb.DefRow]
-hieDbFindDef conn name unit =
-  SQL.queryNamed
-    (HieDb.getConn conn)
-    "SELECT defs.* \
-    \FROM defs JOIN mods USING (hieFile) \
-    \WHERE occ = :occ AND (:mod IS NULL OR mod = :mod) AND (:unit IS NULL OR unit = :unit)"
-    [ ":occ" SQL.:= HieView.Name.toGHCOccName name
-    , ":mod" SQL.:= HieView.Name.getModule name
-    , ":unit" SQL.:= unit
-    ]
-
-findDefString ::
-  (MonadIde m, MonadIO m) =>
-  Hir.Qualified ->
-  m [FileLcRange]
-findDefString qual = do
-  let name = qual.name.node.nodeText
-  let mod = qual.mod
-  res <- runMaybeT do
-    res <- hieDbFindDefString name mod
-    mapMaybeM (runMaybeT . defRowToLocation) res
-  pure $ Maybe.fromMaybe [] res
-
-hieDbFindDefString :: (HasStaticEnv m, MonadIO m) => Text -> Maybe Hir.ModuleName -> MaybeT m [HieDb.DefRow]
-hieDbFindDefString name mod = do
-  -- we need to resolve the mod first
-  let _modText = (.mod.text) <$> mod
-  runHieDbMaybeT
-    ( \hieDb ->
-        SQL.queryNamed
-          (HieDb.getConn hieDb)
-          "SELECT defs.* \
-          \FROM defs JOIN mods USING (hieFile) \
-          \WHERE occ LIKE :occ"
-          [ ":occ" SQL.:= ("_:" <> name)
-          ]
-    )
-
-defRowToLocation :: (HasCallStack, HasLogger m, HasStaticEnv m, MonadIO m) => HieDb.DefRow -> MaybeT m FileLcRange
-defRowToLocation defRow = do
-  let start = hiedbCoordsToLineCol (defRow.defSLine, defRow.defSCol)
-      end = hiedbCoordsToLineCol (defRow.defELine, defRow.defECol)
-      range = LineColRange start end
-      hieFilePath = defRow.defSrc
-  hieFilePath <- Path.filePathToAbs hieFilePath
-  file <- hieFilePathToSrcFilePath hieFilePath
-  pure $ FileWith file range
 
 persistentModelNameToFileLc :: (MonadIde m, MonadIO m) => Text -> m (Maybe FileLcRange)
 persistentModelNameToFileLc persistentModelName = do

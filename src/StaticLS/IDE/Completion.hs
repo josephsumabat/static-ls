@@ -41,9 +41,9 @@ import Database.SQLite.Simple qualified as SQL
 import GHC.Generics (Generic)
 import HieDb (HieDb)
 import HieDb qualified
+import Hir.Types qualified as Hir
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
-import Hir.Types qualified as Hir
 import StaticLS.IDE.AllExtensions (allExtensions)
 import StaticLS.IDE.CodeActions.AutoImport qualified as IDE.CodeActions.AutoImport
 import StaticLS.IDE.Monad

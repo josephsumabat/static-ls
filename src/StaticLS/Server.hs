@@ -168,7 +168,7 @@ initServer reactorChan staticEnvOptions logger serverConfig _ = do
 #endif
 
 serverDef :: StaticEnvOptions -> LoggerM IO -> IO (ServerDefinition ())
-serverDef argOptions logger = do
+serverDef options logger = do
   reactorChan <- liftIO Conc.newChan
   let
     -- TODO: actually respond to the client with an error
@@ -200,7 +200,7 @@ serverDef argOptions logger = do
       , configSection = ""
       , parseConfig = \_conf _value -> Right ()
       , doInitialize = do
-          initServer reactorChan argOptions logger
+          initServer reactorChan options logger
       , -- TODO: Do handlers need to inspect clientCapabilities?
         staticHandlers = \_clientCapabilities ->
           mapHandlers goReq goNot $
@@ -225,10 +225,13 @@ serverDef argOptions logger = do
                 , handleResolveCodeAction
                 , handleDocumentSymbols
                 , handleCompletion
-                , handleFormat
                 , handleCompletionItemResolve
                 ]
-                  <> (if argOptions.provideInlays then [handleInlayHintRequest argOptions, handleResolveInlayHint] else [])
+                  <> (if options.provideInlays then [handleInlayHintRequest options, handleResolveInlayHint] else [])
+                  <> ( case options.fourmoluCommand of
+                        Just _ -> [handleFormat]
+                        Nothing -> []
+                     )
               )
       , interpretHandler = \env -> Iso (LSP.runLspT env) liftIO
       , options = lspOptions

@@ -61,6 +61,7 @@ library
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
+    , filemanip
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
@@ -110,6 +111,8 @@ library
       Data.TextUtils
       StaticLS.Except
       StaticLS.FilePath
+      StaticLS.FileWatcher
+      StaticLS.GhcidSession
       StaticLS.Handlers
       StaticLS.HI
       StaticLS.HI.File
@@ -165,6 +168,7 @@ library
       StaticLS.Monad
       StaticLS.PositionDiff
       StaticLS.ProtoLSP
+      StaticLS.Reactor
       StaticLS.SDoc
       StaticLS.Semantic
       StaticLS.Semantic.Types
@@ -174,7 +178,6 @@ library
       StaticLS.StaticEnv.Options
       StaticLS.Tree
       StaticLS.Utils
-      StaticLS.GhcidSession
   other-modules:
       Paths_static_ls
   autogen-modules:
@@ -214,6 +217,7 @@ executable print-hie
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
+    , filemanip
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
@@ -283,6 +287,7 @@ executable static-ls
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
+    , filemanip
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
@@ -368,6 +373,7 @@ test-suite expect_tests
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
+    , filemanip
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
@@ -442,6 +448,7 @@ test-suite static-ls-test
     , errors >=2.3.0 && <2.4
     , exceptions
     , extra >=1.7.12 && <1.8
+    , filemanip
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11

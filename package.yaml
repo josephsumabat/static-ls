@@ -68,6 +68,7 @@ dependencies:
   - row-types
   - regex-tdfa # why is the api for this library so bad
   - stm
+  - filemanip
 language: GHC2021
 default-extensions:
 - LambdaCase

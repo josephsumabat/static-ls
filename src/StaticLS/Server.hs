@@ -10,10 +10,8 @@ module StaticLS.Server (
 where
 
 import Colog.Core qualified as Colog
-import Control.Monad qualified as Monad
 import Control.Monad.Reader
 import Control.Monad.Trans.Except
-import Data.Foldable qualified as Foldable
 import Data.Path qualified as Path
 import Data.Text qualified as T
 import Language.LSP.Logging qualified as LSP.Logging
@@ -31,87 +29,15 @@ import Language.LSP.Server (
   type (<~>) (Iso),
  )
 import Language.LSP.Server qualified as LSP
+import StaticLS.FileWatcher
 import StaticLS.Handlers
 import StaticLS.Handlers qualified as Handlers
 import StaticLS.Logger
 import StaticLS.Monad
-import StaticLS.StaticEnv
+import StaticLS.Reactor
 import StaticLS.StaticEnv.Options
-import System.Directory qualified as Dir
-import System.FSNotify qualified as FSNotify
-import System.FilePath qualified as FilePath
 import UnliftIO.Concurrent qualified as Conc
 import UnliftIO.Exception qualified as Exception
-
-type LspConfig = ()
-
-data ReactorMsg where
-  ReactorMsgAct :: StaticLsM () -> ReactorMsg
-  ReactorMsgRequest :: StaticLsM a -> Conc.MVar a -> ReactorMsg
-  ReactorMsgLspAct :: LSP.LspT LspConfig StaticLsM () -> ReactorMsg
-
-reactor :: Conc.Chan ReactorMsg -> LSP.LanguageContextEnv LspConfig -> LoggerM IO -> StaticLsM ()
-reactor chan lspEnv _logger = do
-  Monad.forever do
-    msg <- liftIO $ Conc.readChan chan
-    Exception.catchAny
-      ( case msg of
-          ReactorMsgAct act -> act
-          ReactorMsgRequest act resp -> do
-            a <- act
-            Conc.putMVar resp a
-          ReactorMsgLspAct act -> do
-            LSP.runLspT lspEnv act
-      )
-      ( \e -> do
-          logError $ "Error in reactor: " <> T.pack (show e)
-      )
-
-fileWatcher :: Conc.Chan ReactorMsg -> StaticEnv -> LoggerM IO -> IO ()
-fileWatcher chan staticEnv _logger = do
-  mgr <- FSNotify.startManager
-  Foldable.for_ staticEnv.hieDirs \hieDir -> do
-    hieDir <- pure $ Path.toFilePath hieDir
-    exists <- Dir.doesDirectoryExist hieDir
-    Monad.when exists do
-      _stop <-
-        FSNotify.watchTree
-          mgr
-          hieDir
-          (\e -> FilePath.takeExtension e.eventPath == ".hie")
-          ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
-              logInfo $ "File changed: " <> T.pack (show e)
-              Handlers.handleHieFileChangeEvent e
-          )
-      pure ()
-
-  Foldable.for_ staticEnv.srcDirs \srcDir -> do
-    srcDir <- pure $ Path.toFilePath srcDir
-    exists <- Dir.doesDirectoryExist srcDir
-    Monad.when exists do
-      _stop <-
-        FSNotify.watchTree
-          mgr
-          srcDir
-          (\e -> FilePath.takeExtension e.eventPath == ".hs")
-          ( \e -> Conc.writeChan chan $ ReactorMsgAct $ do
-              logInfo $ "File changed: " <> T.pack (show e)
-              Handlers.handleFileChangeEvent e
-          )
-      pure ()
-
-  _stop <-
-    FSNotify.watchDir
-      mgr
-      (Path.toFilePath staticEnv.wsRoot)
-      (\e -> FilePath.takeFileName e.eventPath == "ghcid.txt")
-      ( \e -> Conc.writeChan chan $ ReactorMsgLspAct $ do
-          lift $ logInfo $ "ghcid file changed: " <> T.pack (show e)
-          Handlers.handleGhcidFileChange
-          pure ()
-      )
-
-  pure ()
 
 #if MIN_VERSION_lsp(2,7,0)
 initServer ::

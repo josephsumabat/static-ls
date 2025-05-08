@@ -70,6 +70,18 @@ reactor chan lspEnv _logger = do
 fileWatcher :: Conc.Chan ReactorMsg -> StaticEnv -> LoggerM IO -> IO ()
 fileWatcher chan staticEnv _logger = do
   mgr <- FSNotify.startManager
+
+  _stop <-
+    FSNotify.watchDir
+      mgr
+      (Path.toFilePath staticEnv.wsRoot)
+      (\e -> FilePath.takeFileName e.eventPath == "ghcid.txt")
+      ( \e -> Conc.writeChan chan $ ReactorMsgLspAct $ do
+          lift $ logInfo $ "ghcid file changed: " <> T.pack (show e)
+          Handlers.handleGhcidFileChange
+          pure ()
+      )
+
   Foldable.for_ staticEnv.hieDirs \hieDir -> do
     hieDir <- pure $ Path.toFilePath hieDir
     exists <- Dir.doesDirectoryExist hieDir
@@ -99,17 +111,6 @@ fileWatcher chan staticEnv _logger = do
               Handlers.handleFileChangeEvent e
           )
       pure ()
-
-  _stop <-
-    FSNotify.watchDir
-      mgr
-      (Path.toFilePath staticEnv.wsRoot)
-      (\e -> FilePath.takeFileName e.eventPath == "ghcid.txt")
-      ( \e -> Conc.writeChan chan $ ReactorMsgLspAct $ do
-          lift $ logInfo $ "ghcid file changed: " <> T.pack (show e)
-          Handlers.handleGhcidFileChange
-          pure ()
-      )
 
   pure ()
 

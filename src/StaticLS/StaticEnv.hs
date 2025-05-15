@@ -56,8 +56,12 @@ data StaticEnv = StaticEnv
   , wsRoot :: AbsPath
   , modelsFilesDir :: AbsPath
   -- ^ workspace root
-  , srcDirs :: [AbsPath]
-  -- ^ directories to search for source code in order of priority
+  , mutableSrcDirs :: [AbsPath]
+  -- ^ directories to search for source code in order of priority (mutable directories)
+  , immutableSrcDirs :: [AbsPath]
+  -- ^ directories to search for source code in order of priority (immutable directories)
+  , allSrcDirs :: [AbsPath]
+  -- ^ directories to search for source code in order of priority (muttable and imuttable directories)
   , fourmoluCommand :: Maybe FilePath
   -- ^ path to fourmolu binary
   }
@@ -81,7 +85,9 @@ initStaticEnv :: AbsPath -> StaticEnvOptions -> IO StaticEnv
 initStaticEnv wsRoot staticEnvOptions = do
   let databasePath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHieDbPath)
       hieDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionHieDirs)
-      srcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionSrcDirs)
+      mutableSrcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionSrcDirs)
+      immutableSrcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionImmutableSrcDirs)
+      allSrcDirs = mutableSrcDirs <> immutableSrcDirs
       hiFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHiFilesPath)
   let serverStaticEnv =
         StaticEnv
@@ -90,7 +96,9 @@ initStaticEnv wsRoot staticEnvOptions = do
           , hiFilesPath = hiFilesPath
           , wsRoot = wsRoot
           , modelsFilesDir = wsRoot Path.</> "config" Path.</> "modelsFiles"
-          , srcDirs = srcDirs
+          , mutableSrcDirs = mutableSrcDirs
+          , immutableSrcDirs = immutableSrcDirs
+          , allSrcDirs = allSrcDirs
           , fourmoluCommand = staticEnvOptions.fourmoluCommand
           }
   pure serverStaticEnv

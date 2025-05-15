@@ -20,9 +20,9 @@ pathToModule :: AbsPath -> StaticLsM (Maybe Hir.ModuleText)
 pathToModule absPath = do
   let fp = Path.toFilePath absPath
   staticEnv <- getStaticEnv
-  let srcDirs = staticEnv.srcDirs
+  let allSrcDirs = staticEnv.allSrcDirs
   pure $ do
-    modPath <- asum ((\srcDir -> makeRelativeMaybe (Path.toFilePath srcDir) fp) <$> srcDirs)
+    modPath <- asum ((\srcDir -> makeRelativeMaybe (Path.toFilePath srcDir) fp) <$> allSrcDirs)
     let (modPathWithoutExt, ext) = splitExtension modPath
     guard $ ext == ".hs"
     let modText = T.replace (T.pack [pathSeparator]) "." (T.pack modPathWithoutExt)

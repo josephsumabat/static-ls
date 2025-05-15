@@ -47,12 +47,16 @@ testHieDbDir = "test/TestData/.hiedb"
 testSrcDirs :: [FilePath]
 testSrcDirs = Options.defaultStaticEnvOptions.optionSrcDirs
 
+testImmutableSrcDirs :: [FilePath]
+testImmutableSrcDirs = Options.defaultStaticEnvOptions.optionImmutableSrcDirs
+
 defaultTestStaticEnvOptions :: StaticEnvOptions
 defaultTestStaticEnvOptions =
   StaticEnvOptions
     { optionHieDbPath = testHieDbDir
     , optionHieDirs = testHieDirs
     , optionSrcDirs = testSrcDirs
+    , optionImmutableSrcDirs = testImmutableSrcDirs
     , optionHiFilesPath = testHiDir
     , provideInlays = True
     , inlayLengthCap = Just 32

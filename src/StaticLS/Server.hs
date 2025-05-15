@@ -97,7 +97,7 @@ fileWatcher chan staticEnv _logger = do
           )
       pure ()
 
-  Foldable.for_ staticEnv.srcDirs \srcDir -> do
+  Foldable.for_ staticEnv.mutableSrcDirs \srcDir -> do
     srcDir <- pure $ Path.toFilePath srcDir
     exists <- Dir.doesDirectoryExist srcDir
     Monad.when exists do

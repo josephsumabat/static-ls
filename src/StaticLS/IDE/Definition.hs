@@ -152,7 +152,7 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
       runMaybeT $ do
         modName <- MaybeT $ pure $ GHC.moduleName <$> GHC.nameModule_maybe (HieView.Name.toGHCName name)
         let modFilePath = modToFilePath modName ".hs"
-        subRootExtensionFilepathCandidates [] staticEnv.srcDirs ".hs" modFilePath
+        subRootExtensionFilepathCandidates [] staticEnv.allSrcDirs ".hs" modFilePath
     pure $ Path.absToRel <$> existingCandidates
 
   checkFileRange fileRange = do

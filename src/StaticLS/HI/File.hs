@@ -62,4 +62,4 @@ readHiFileExceptT filePath = do
 srcFilePathToHiFilePath :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 srcFilePathToHiFilePath srcPath = do
   staticEnv <- getStaticEnv
-  subRootExtensionFilepath staticEnv.srcDirs staticEnv.hiFilesPath ".hi" (Path.absToRel srcPath)
+  subRootExtensionFilepath staticEnv.allSrcDirs staticEnv.hiFilesPath ".hi" (Path.absToRel srcPath)

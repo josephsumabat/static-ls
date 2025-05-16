@@ -14,6 +14,7 @@ data StaticEnvOptions = StaticEnvOptions
   , optionHiFilesPath :: FilePath
   -- ^ Relative path to hi files directory
   , optionSrcDirs :: [FilePath]
+  , optionImmutableSrcDirs :: [FilePath]
   , provideInlays :: Bool
   , inlayLengthCap :: Maybe Int
   , fourmoluCommand :: Maybe FilePath
@@ -32,6 +33,9 @@ defaultHieFiles = [".hiefiles"]
 defaultSrcDirs :: [FilePath]
 defaultSrcDirs = ["src/", "lib/", "app/", "test/"]
 
+defaultImmutableSrcDirs :: [FilePath]
+defaultImmutableSrcDirs = []
+
 defaultHiFiles :: FilePath
 defaultHiFiles = ".hifiles"
 
@@ -41,6 +45,7 @@ defaultStaticEnvOptions =
     { optionHieDbPath = defaultHieDb
     , optionHieDirs = defaultHieFiles
     , optionSrcDirs = defaultSrcDirs
+    , optionImmutableSrcDirs = defaultImmutableSrcDirs
     , optionHiFilesPath = defaultHiFiles
     , provideInlays = True
     , inlayLengthCap = Just 32

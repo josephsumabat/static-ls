@@ -57,6 +57,7 @@ spec = do
             { optionHieDbPath = ""
             , optionHieDirs = []
             , optionSrcDirs = []
+            , optionImmutableSrcDirs = []
             , optionHiFilesPath = ""
             , provideInlays = True
             , inlayLengthCap = Just 32

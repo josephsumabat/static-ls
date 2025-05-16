@@ -150,7 +150,7 @@ hieFilePathToSrcFilePathFromFile hiePath = do
 srcFilePathToHieFilePathFromFile :: (HasStaticEnv m, MonadIO m) => AbsPath -> MaybeT m AbsPath
 srcFilePathToHieFilePathFromFile srcPath = do
   staticEnv <- getStaticEnv
-  subRootExtensionFilepathCandidates staticEnv.srcDirs staticEnv.hieDirs ".hie" (Path.absToRel srcPath)
+  subRootExtensionFilepathCandidates staticEnv.allSrcDirs staticEnv.hieDirs ".hie" (Path.absToRel srcPath)
 
 -----------------------------------------------------------------------------------
 -- Map index method for getting hie files - too slow in practice on startup but makes

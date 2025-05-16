@@ -125,6 +125,13 @@ staticEnvOptParser defaultStaticEnvOptions =
           <> help "Path to directories containing source code. Comma delimited strings"
           <> showDefault
       )
+    <*> listOption
+      ( long "immutableSrcDirs"
+          <> metavar "TARGET1,TARGET2,TARGET3..."
+          <> value defaultStaticEnvOptions.optionImmutableSrcDirs
+          <> help "Path to immutable directories containing source code. Directories are not watched. Comma delimited strings"
+          <> showDefault
+      )
     <*> ( flag
             defaultStaticEnvOptions.provideInlays
             False

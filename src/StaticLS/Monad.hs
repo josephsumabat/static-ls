@@ -42,7 +42,7 @@ instance HasStaticEnv StaticLsM where
 initEnv :: AbsPath -> StaticEnvOptions -> Logger -> IO Env
 initEnv wsRoot staticEnvOptions loggerToUse = do
   staticEnv <- initStaticEnv wsRoot staticEnvOptions
-  ideEnv <- IDE.Monad.newIdeEnv staticEnv.srcDirs
+  ideEnv <- IDE.Monad.newIdeEnv staticEnv.allSrcDirs
   let logger = Colog.liftLogIO loggerToUse
   pure $
     Env

@@ -8,26 +8,85 @@ import Hir.Types qualified as Hir
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.Monad
+import AST.Haskell as Haskell
+import StaticLS.IDE.SourceEdit as SourceEdit
+import Hir.Parse as AST
+import Arborist.AutoExport (getAllDeclExportEdit, getDeclExportEdit)
+import Data.Path
+import Data.Text (Text)
 
--- declToExportItem :: Hir.Decl -> ExportItem
--- declToExportItem decl = case decl of
---   DeclData d -> ExportItem (getDeclName decl) (AST.getDynNode d.node)
---   DeclNewtype n -> ExportItem (getDeclName decl) (AST.getDynNode n.node)
---   DeclClass c -> ExportItem (getDeclName decl) (AST.getDynNode c.node)
---   DeclSig s -> ExportItem (getDeclName decl) (AST.getDynNode s.node)
---   DeclBind b -> ExportItem (getDeclName decl) (AST.getDynNode b.node)
---   DeclDataFamily d -> ExportItem (getDeclName decl) (AST.getDynNode d.node)
---   DeclPatternSig p -> ExportItem (getDeclName decl) (AST.getDynNode p.node)
---   DeclPattern p -> ExportItem (getDeclName decl) (AST.getDynNode p.node)
---   DeclTypeFamily t -> ExportItem (getDeclName decl) (AST.getDynNode t.node)
---   DeclTypeSynonym t -> ExportItem (getDeclName decl) (AST.getDynNode t.node)
+dropModule :: Hir.Qualified -> Hir.Name
+dropModule (Hir.Qualified _ name) = name
+
+qualifiedToText :: Hir.Name -> Text
+qualifiedToText nm = AST.nodeToText (nm.node)
+
+isAlreadyExported :: Hir.Program -> Hir.Decl -> Bool
+isAlreadyExported prog decl =
+  let current = getCurrentExportNames prog
+      nameTxt = declNameText decl
+  in  nameTxt `elem` current
+
+getCurrentExportNames :: Hir.Program -> [Text]
+getCurrentExportNames prog =
+  case prog.exports of
+    Nothing -> []
+    Just xs -> map (qualifiedToText . dropModule) (exportItemNames xs)
+
+isSupportedDecl :: Hir.Decl -> Bool
+isSupportedDecl decl = 
+  case decl of
+    Hir.DeclBind _ -> True
+    Hir.DeclData _ -> True
+    Hir.DeclNewtype _ -> True
+    Hir.DeclClass _ -> True
+    _ -> False
 
 getDeclarationsAtPoint :: Range -> [Hir.Decl] -> [Hir.Decl]
 getDeclarationsAtPoint range decls =
-  filter (\decl -> (declDynNode decl).nodeRange `Range.containsRange` range) decls
+  filter (\decl -> (declName decl).node.nodeRange `Range.containsRange` range) decls
+
+getHeaderAtPoint :: Range -> Haskell.HeaderP -> Maybe Haskell.HeaderP
+getHeaderAtPoint cursorLocation headerP = if (AST.getDynNode headerP).nodeRange `Range.containsRange` cursorLocation
+                               then Just headerP
+                            else Nothing
+
+mkAssistForAllDecl:: AbsPath -> Hir.Program -> Haskell.HeaderP -> Assist
+mkAssistForAllDecl path prog headerP =
+  let allExportEdit = getAllDeclExportEdit prog headerP
+      sourceEdit = SourceEdit.single path allExportEdit
+      label = "Add exports for all declarations" 
+  in
+    mkAssist label sourceEdit
+
+mkAssistForDecl :: AbsPath -> Haskell.HeaderP -> Hir.Decl -> Assist
+mkAssistForDecl path headerP decl =
+  let declExportEdit = getDeclExportEdit headerP decl
+      sourceEdit = SourceEdit.single path declExportEdit
+      label = "Add export for " <> declNameText decl
+  in
+      mkAssist label sourceEdit
 
 codeAction :: CodeActionContext -> StaticLsM [Assist]
-codeAction cx = do
-  hir <- getHir cx.path
-  let _decls = getDeclarationsAtPoint (Range.point cx.pos) hir.decls
-  pure []
+codeAction CodeActionContext {path, pos} = do
+  hir <- getHir path
+
+  -- get the decl at the current cursor/highlight pos
+  let cursorLocation = Range.point pos
+      allDeclsAtPoint = getDeclarationsAtPoint cursorLocation (filter isSupportedDecl hir.decls)
+      declsAtPoint = filter (not . isAlreadyExported hir) allDeclsAtPoint
+
+  -- get header
+  let dynNode = AST.getDynNode  hir.node
+      mHeaderP = AST.findNode (AST.cast @Haskell.HeaderP) dynNode
+
+  case mHeaderP of
+    Nothing -> pure []
+    Just headerP -> do
+      let mHeaderPCursor = getHeaderAtPoint cursorLocation headerP
+          assistAll = case mHeaderPCursor of
+                          Just headerP -> [mkAssistForAllDecl path hir headerP]
+                          _ -> []
+          assistsPerDecl = map (mkAssistForDecl path headerP) declsAtPoint
+
+      pure (assistAll ++ assistsPerDecl)

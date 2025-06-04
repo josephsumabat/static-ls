@@ -3,7 +3,6 @@ module StaticLS.Arborist where
 import AST qualified
 import AST.Haskell qualified as H
 import Arborist.Files
-import Arborist.ModGraph
 import Arborist.Renamer
 import Arborist.Scope.Types
 import Control.Error
@@ -28,6 +27,7 @@ import StaticLS.IDE.Monad
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import System.Directory (doesFileExist)
 import Arborist.Haddock
+import Arborist.ProgramIndex
 
 time :: (MonadIO m) => [Char] -> m a -> m a
 time label fn = do

@@ -11,6 +11,7 @@ import Data.Rope qualified as Rope
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
 import StaticLS.IDE.CodeActions.AutoImport qualified as AutoImport
 import StaticLS.IDE.CodeActions.RemoveRedundantImports as RemoveRedundantImports
+import StaticLS.IDE.CodeActions.AutoExport as AutoExport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)
@@ -25,7 +26,8 @@ getCodeActions path lineCol = do
   typesCodeActions <- AddTypeSig.codeAction cx
   importCodeActions <- AutoImport.codeAction cx
   removeRedundantImports <- RemoveRedundantImports.codeAction cx
-  let codeActions = typesCodeActions ++ importCodeActions ++ removeRedundantImports
+  exportCodeActions <- AutoExport.codeAction cx
+  let codeActions = typesCodeActions ++ importCodeActions ++ removeRedundantImports ++ exportCodeActions
   pure codeActions
 
 resolveLazyAssist :: CodeActionMessage -> StaticLsM SourceEdit

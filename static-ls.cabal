@@ -101,10 +101,8 @@ library
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
   exposed-modules:
-      Data.Change
       Data.ConcurrentCache
       Data.Diff
-      Data.Edit
       Data.ListUtils
       Data.RangeMap
       Data.Rope

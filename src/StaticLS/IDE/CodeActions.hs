@@ -9,9 +9,9 @@ import Data.LineCol (LineCol (..))
 import Data.Path (AbsPath)
 import Data.Rope qualified as Rope
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
+import StaticLS.IDE.CodeActions.AutoExport as AutoExport
 import StaticLS.IDE.CodeActions.AutoImport qualified as AutoImport
 import StaticLS.IDE.CodeActions.RemoveRedundantImports as RemoveRedundantImports
-import StaticLS.IDE.CodeActions.AutoExport as AutoExport
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
 import StaticLS.IDE.SourceEdit (SourceEdit)

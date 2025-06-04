@@ -3,6 +3,8 @@ module StaticLS.Arborist where
 import AST qualified
 import AST.Haskell qualified as H
 import Arborist.Files
+import Arborist.Haddock
+import Arborist.ProgramIndex
 import Arborist.Renamer
 import Arborist.Scope.Types
 import Control.Error
@@ -26,8 +28,6 @@ import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import System.Directory (doesFileExist)
-import Arborist.Haddock
-import Arborist.ProgramIndex
 
 time :: (MonadIO m) => [Char] -> m a -> m a
 time label fn = do
@@ -51,14 +51,12 @@ getResolvedVarAndPrgs target lc = do
     let resolvedVar = (AST.getDeepestContainingLineCol @(H.Variable RenamePhase) (point lc)) . (.dynNode) =<< renameTree
     pure (resolvedVar, requiredPrograms)
 
-
 getRequiredHaddock :: ProgramIndex -> GlblVarInfo -> Maybe HaddockInfo
 getRequiredHaddock prgIndex varInfo =
   let mPrg = Map.lookup varInfo.originatingMod prgIndex
       haddockIndex = maybe Map.empty (indexPrgHaddocks Map.empty) mPrg
       qualName = glblVarInfoToQualified varInfo
-    in
-    Map.lookup qualName haddockIndex
+   in Map.lookup qualName haddockIndex
 
 -------------------
 -- Definition
@@ -96,32 +94,37 @@ varToHover prgIndex varNode =
   let mResolvedVar = varNode.ext
       range = ProtoLSP.lineColRangeToProto varNode.dynNode.nodeLineColRange
       mContents = (resolvedVarToContents prgIndex =<< mResolvedVar)
-   in (\contents -> Hover
-        { _range = Just range
-        , _contents = InL $ MarkupContent MarkupKind_Markdown contents
-        }) <$> mContents
+   in ( \contents ->
+          Hover
+            { _range = Just range
+            , _contents = InL $ MarkupContent MarkupKind_Markdown contents
+            }
+      )
+        <$> mContents
 
 resolvedVarToContents :: ProgramIndex -> ResolvedVariable -> Maybe Text
 resolvedVarToContents prgIndex resolvedVar =
   case resolvedVar of
     ResolvedVariable (ResolvedGlobal glblVarInfo) ->
-      let mHover = getRequiredHaddock prgIndex glblVarInfo in
-        Just $ renderGlblVarInfo mHover glblVarInfo
+      let mHover = getRequiredHaddock prgIndex glblVarInfo
+       in Just $ renderGlblVarInfo mHover glblVarInfo
     _ -> Nothing
 
 renderGlblVarInfo :: Maybe HaddockInfo -> GlblVarInfo -> Text
 renderGlblVarInfo mHaddock glblVarInfo =
-  wrapHaskell 
-    (T.intercalate "\n"
-    [haddock
-     ,tySig
-     ]
+  wrapHaskell
+    ( T.intercalate
+        "\n"
+        [ haddock
+        , tySig
+        ]
     )
     <> "  \n\nimported from: *"
     <> T.intercalate ", " (NE.toList $ (.mod.text) <$> NESet.toList glblVarInfo.importedFrom)
     <> "*"
     <> "  \noriginates from: *"
-    <> glblVarInfo.originatingMod.text <> "*"
+    <> glblVarInfo.originatingMod.text
+    <> "*"
  where
   haddock =
     maybe "" (.text) mHaddock

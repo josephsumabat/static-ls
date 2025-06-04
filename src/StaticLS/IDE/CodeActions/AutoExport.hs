@@ -1,19 +1,19 @@
 module StaticLS.IDE.CodeActions.AutoExport where
 
 import AST qualified
+import AST.Haskell as Haskell
+import Arborist.AutoExport (getAllDeclExportEdit, getDeclExportEdit)
+import Data.Path
 import Data.Range (Range)
 import Data.Range qualified as Range
+import Data.Text (Text)
 import Hir
+import Hir.Parse as AST
 import Hir.Types qualified as Hir
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
-import StaticLS.Monad
-import AST.Haskell as Haskell
 import StaticLS.IDE.SourceEdit as SourceEdit
-import Hir.Parse as AST
-import Arborist.AutoExport (getAllDeclExportEdit, getDeclExportEdit)
-import Data.Path
-import Data.Text (Text)
+import StaticLS.Monad
 
 dropModule :: Hir.Qualified -> Hir.Name
 dropModule (Hir.Qualified _ name) = name
@@ -25,7 +25,7 @@ isAlreadyExported :: Hir.Program -> Hir.Decl -> Bool
 isAlreadyExported prog decl =
   let current = getCurrentExportNames prog
       nameTxt = declNameText decl
-  in  nameTxt `elem` current
+   in nameTxt `elem` current
 
 getCurrentExportNames :: Hir.Program -> [Text]
 getCurrentExportNames prog =
@@ -34,7 +34,7 @@ getCurrentExportNames prog =
     Just xs -> map (qualifiedToText . dropModule) (exportItemNames xs)
 
 isSupportedDecl :: Hir.Decl -> Bool
-isSupportedDecl decl = 
+isSupportedDecl decl =
   case decl of
     Hir.DeclBind _ -> True
     Hir.DeclData _ -> True
@@ -47,25 +47,24 @@ getDeclarationsAtPoint range decls =
   filter (\decl -> (declName decl).node.nodeRange `Range.containsRange` range) decls
 
 getHeaderAtPoint :: Range -> Haskell.HeaderP -> Maybe Haskell.HeaderP
-getHeaderAtPoint cursorLocation headerP = if (AST.getDynNode headerP).nodeRange `Range.containsRange` cursorLocation
-                               then Just headerP
-                            else Nothing
+getHeaderAtPoint cursorLocation headerP =
+  if (AST.getDynNode headerP).nodeRange `Range.containsRange` cursorLocation
+    then Just headerP
+    else Nothing
 
-mkAssistForAllDecl:: AbsPath -> Hir.Program -> Haskell.HeaderP -> Assist
+mkAssistForAllDecl :: AbsPath -> Hir.Program -> Haskell.HeaderP -> Assist
 mkAssistForAllDecl path prog headerP =
   let allExportEdit = getAllDeclExportEdit prog headerP
       sourceEdit = SourceEdit.single path allExportEdit
-      label = "Add exports for all declarations" 
-  in
-    mkAssist label sourceEdit
+      label = "Add exports for all declarations"
+   in mkAssist label sourceEdit
 
 mkAssistForDecl :: AbsPath -> Haskell.HeaderP -> Hir.Decl -> Assist
 mkAssistForDecl path headerP decl =
   let declExportEdit = getDeclExportEdit headerP decl
       sourceEdit = SourceEdit.single path declExportEdit
       label = "Add export for " <> declNameText decl
-  in
-      mkAssist label sourceEdit
+   in mkAssist label sourceEdit
 
 codeAction :: CodeActionContext -> StaticLsM [Assist]
 codeAction CodeActionContext {path, pos} = do
@@ -77,7 +76,7 @@ codeAction CodeActionContext {path, pos} = do
       declsAtPoint = filter (not . isAlreadyExported hir) allDeclsAtPoint
 
   -- get header
-  let dynNode = AST.getDynNode  hir.node
+  let dynNode = AST.getDynNode hir.node
       mHeaderP = AST.findNode (AST.cast @Haskell.HeaderP) dynNode
 
   case mHeaderP of
@@ -85,8 +84,8 @@ codeAction CodeActionContext {path, pos} = do
     Just headerP -> do
       let mHeaderPCursor = getHeaderAtPoint cursorLocation headerP
           assistAll = case mHeaderPCursor of
-                          Just headerP -> [mkAssistForAllDecl path hir headerP]
-                          _ -> []
+            Just headerP -> [mkAssistForAllDecl path hir headerP]
+            _ -> []
           assistsPerDecl = map (mkAssistForDecl path headerP) declsAtPoint
 
       pure (assistAll ++ assistsPerDecl)

@@ -10,8 +10,8 @@ import Arborist.Scope.Types
 import Control.Error
 import Control.Monad qualified as Monad
 import Control.Monad.IO.Class
-import Data.HashMap.Lazy qualified as HashMap
 import Data.HashMap.Lazy qualified as Map
+import Data.HashMap.Lazy qualified as HashMap
 import Data.LineCol (LineCol (..))
 import Data.LineColRange
 import Data.List qualified as List
@@ -37,19 +37,24 @@ time label fn = do
   traceShowM $ "Time to run " <> label <> ": " ++ show (diffUTCTime end start)
   pure res
 
-getResolvedVar :: (MonadIO m, MonadIde m) => Hir.Program -> LineCol -> m (Maybe (H.Variable RenamePhase))
-getResolvedVar target lc = fst <$> getResolvedVarAndPrgs target lc
 
-getResolvedVarAndPrgs :: (MonadIO m, MonadIde m) => Hir.Program -> LineCol -> m (Maybe (H.Variable RenamePhase), ProgramIndex)
+getResolvedVar :: (MonadIO m, MonadIde m) => Hir.Program -> LineCol -> m (Maybe (H.Variable RenamePhase))
+getResolvedVar target lc = (\(var, _, _) -> var) <$> getResolvedVarAndPrgs target lc
+
+getResolvedName :: (MonadIO m, MonadIde m) => Hir.Program -> LineCol -> m (Maybe (H.Name RenamePhase))
+getResolvedName target lc = (\(_, name, _) -> name) <$> getResolvedVarAndPrgs target lc
+
+getResolvedVarAndPrgs :: (MonadIO m, MonadIde m) => Hir.Program -> LineCol -> m (Maybe (H.Variable RenamePhase), Maybe (H.Name RenamePhase), ProgramIndex)
 getResolvedVarAndPrgs target lc = do
-  time "resolvedVar" $ do
+  time "resolvedVarAndName" $ do
     modFileMap <- getModFileMap
     prgIndex <- getPrgIndex
     (requiredPrograms) <- liftIO $ time "gather" $ gatherScopeDeps prgIndex target modFileMap (Just 2)
     tryWritePrgIndex (\_ -> requiredPrograms)
     let renameTree = renamePrg requiredPrograms HashMap.empty target
-    let resolvedVar = (AST.getDeepestContainingLineCol @(H.Variable RenamePhase) (point lc)) . (.dynNode) =<< renameTree
-    pure (resolvedVar, requiredPrograms)
+        mResolvedVar = (AST.getDeepestContainingLineCol @(H.Variable RenamePhase) (point lc)) . (.dynNode) =<< renameTree
+        mResolvedName = (AST.getDeepestContainingLineCol @(H.Name RenamePhase) (point lc)) . (.dynNode) =<< renameTree 
+     in pure (mResolvedVar, mResolvedName, requiredPrograms)
 
 getRequiredHaddock :: ProgramIndex -> GlblVarInfo -> Maybe HaddockInfo
 getRequiredHaddock prgIndex varInfo =
@@ -83,6 +88,12 @@ varToFileLcRange :: (MonadIO m) => ModFileMap -> Hir.ModuleText -> (H.Variable R
 varToFileLcRange modFileMap thisMod varNode = do
   let locLst = maybe [] (resolvedLocs thisMod) varNode.ext
   fileLcRanges <- Monad.join <$> (mapM (modLocToFileLcRange modFileMap) locLst)
+  pure fileLcRanges
+
+nameToFileLcRange :: (MonadIO m) => ModFileMap -> H.Name RenamePhase -> m [FileLcRange]
+nameToFileLcRange modFileMap nameNode = do
+  let locLst = maybe [] resolvedNameLocs nameNode.ext
+  fileLcRanges <- Monad.join <$> mapM (modLocToFileLcRange modFileMap) locLst
   pure fileLcRanges
 
 -------------------
@@ -131,3 +142,5 @@ renderGlblVarInfo mHaddock glblVarInfo =
   tySig =
     maybe "" (.node.dynNode.nodeText) glblVarInfo.sig
   wrapHaskell x = "\n```haskell\n" <> x <> "\n```\n"
+
+

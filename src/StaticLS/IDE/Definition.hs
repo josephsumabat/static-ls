@@ -59,7 +59,7 @@ getDefinition path lineCol = do
     case hieDef of
       [] ->  arboristDef
       _ -> hieDef
-
+-- DUX 3409
 getArboristDefinition ::
   (MonadIde m, MonadIO m) =>
   AbsPath ->
@@ -69,11 +69,22 @@ getArboristDefinition path lineCol = do
   modFileMap <- getModFileMap
   prg <- getHir path
   mVarNode <- getResolvedVar prg lineCol
-  let mResult = do
-        varNode <- mVarNode
-        modText <- prg.mod
-        pure $ varToFileLcRange modFileMap modText varNode
-  fromMaybe (pure []) mResult
+  case mVarNode of
+    Just varNode -> do
+      let mResult = do
+            modText <- prg.mod
+            pure $ varToFileLcRange modFileMap modText varNode
+        in fromMaybe (pure []) mResult
+    Nothing -> do
+      mNameNode <- getResolvedName prg lineCol
+      case mNameNode of
+          Just nameNode ->
+            let mResult = pure $ nameToFileLcRange modFileMap nameNode
+             in fromMaybe (pure []) mResult
+          Nothing ->
+            pure []
+
+
 
 getHieDefinition ::
   (MonadIde m, MonadIO m) =>

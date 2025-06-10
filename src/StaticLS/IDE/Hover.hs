@@ -57,7 +57,7 @@ retrieveHover path lineCol = do
   pos <- lineColToPos path lineCol
   throwIfInThSplice "retrieveHover" path pos
   prg <- getHir path
-  (mVarNode, prgs) <- getResolvedVarAndPrgs prg lineCol
+  (mVarNode, mNameNode, prgs) <- getResolvedVarAndPrgs prg lineCol
   let astResult = varToHover prgs =<< mVarNode
   hieResult <- runMaybeT $ do
     hieFile <- getHieFile path

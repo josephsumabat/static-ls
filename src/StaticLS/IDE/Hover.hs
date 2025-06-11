@@ -45,6 +45,8 @@ import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
+import AST.Sum (pattern Inj)
+import Arborist.Renamer
 
 -- | Retrieve hover information.
 retrieveHover ::
@@ -57,8 +59,11 @@ retrieveHover path lineCol = do
   pos <- lineColToPos path lineCol
   throwIfInThSplice "retrieveHover" path pos
   prg <- getHir path
-  (mVarNode, mNameNode, prgs) <- getResolvedVarAndPrgs prg lineCol
-  let astResult = varToHover prgs =<< mVarNode
+  (mResolved, prgs) <- getResolvedTermAndPrgs prg lineCol
+  let astResult = case mResolved of
+        Just (Inj @(H.Variable RenamePhase) var) -> varToHover prgs var
+        Just (Inj @(H.Name RenamePhase) _) -> Nothing
+        _ -> Nothing
   hieResult <- runMaybeT $ do
     hieFile <- getHieFile path
     hieView <- getHieView path

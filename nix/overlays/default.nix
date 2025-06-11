@@ -9,8 +9,8 @@ let
 
   haskell-arborist-repo = {
     url = "https://github.com/josephsumabat/haskell-arborist";
-    sha256 = "sha256-pn76y2jRe+RqBJmi2ESs14J7z46qnBT2QcSmnXFXu1s=";
-    rev = "a20f13c8b06dedfa468e24c7e205386517cdf954";
+    sha256 = "sha256-vctDkDltFDIkIasp6+qgpjdnpLp8akYqf+o5WuXgMJo=";
+    rev = "bb5dd066305addbac81cb6f1bf740295595bcaef";
     fetchSubmodules = true;
   };
 

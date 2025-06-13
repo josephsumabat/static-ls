@@ -62,7 +62,7 @@ retrieveHover path lineCol = do
   (mResolved, prgs) <- getResolvedTermAndPrgs prg lineCol
   let astResult = case mResolved of
         Just (Inj @(H.Variable RenamePhase) var) -> varToHover prgs var
-        Just (Inj @(H.Name RenamePhase) _) -> Nothing
+        Just (Inj @(H.Name RenamePhase) name) -> nameToHover prgs name
         _ -> Nothing
   hieResult <- runMaybeT $ do
     hieFile <- getHieFile path

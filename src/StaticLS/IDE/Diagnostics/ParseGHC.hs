@@ -2,9 +2,11 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE QuasiQuotes #-}
 
+-- This file parses the output of ghciwatch or ghc diagnostics
 module StaticLS.IDE.Diagnostics.ParseGHC (
   split,
   parse,
+  mainFile,
   parseErrorInfo,
   emptyErrorInfo,
   ErrorInfo (..),
@@ -32,6 +34,9 @@ import StaticLS.IDE.FileWith (FileWith' (..))
 import StaticLS.IDE.FileWith qualified as FileWith
 import Text.RawString.QQ
 import Text.Regex.TDFA qualified as RE
+import Data.Ord (comparing)
+import Data.List (maximumBy)
+import qualified Data.HashMap.Strict as HashMap
 
 mkRegex :: Text -> RE.Regex
 mkRegex = RE.makeRegex
@@ -203,8 +208,30 @@ toDiagnostic toAbs ((range, severity, info), message) =
   code = info.errorCode
   codeUri = fmap ("https://errors.haskell.org/messages/" <>) info.errorCode
 
-parse :: (Path.RelPath -> Path.AbsPath) -> Text -> [Diagnostic]
-parse toAbs = fmap (toDiagnostic toAbs . second (dedent . clean)) . split
+isCompilingLine :: Text -> Bool
+isCompilingLine t = t == "[ghciwatch is still compiling]"
+
+createCompilingDiagnostic :: (Path.RelPath -> Path.AbsPath) -> Path.RelPath -> Diagnostic
+createCompilingDiagnostic toAbs mainFile =
+  Diagnostics.mkDiagnostic
+    (FileWith
+      { path = toAbs mainFile
+      , loc = LineColRange.point (LineCol (Pos 0) (Pos 0))
+      })
+    Diagnostics.Error
+    "ghciwatch is still compiling. Please wait for updated diagnostics"
+
+-- TODO: make configurable
+mainFile :: Path.RelPath
+mainFile = Path.filePathToRel "app/main.hs"
+
+parse :: (Path.RelPath -> Path.AbsPath) -> Path.RelPath -> Text -> [Diagnostic]
+parse toAbs mainFile input = 
+  let diags = fmap (toDiagnostic toAbs . second (dedent . clean)) . split $ input in
+  -- Special ghciwatch cas 
+  if any isCompilingLine (T.lines input)
+    then createCompilingDiagnostic toAbs mainFile : diags
+    else diags
 
 dedent :: [Text] -> [Text]
 dedent lines =

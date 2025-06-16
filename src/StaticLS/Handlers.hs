@@ -22,9 +22,10 @@ import Language.LSP.Protocol.Types qualified as LSP
 import Language.LSP.Server (
   Handlers,
   LspT,
+  getVirtualFiles,
  )
 import Language.LSP.Server qualified as LSP
-import Language.LSP.VFS (VirtualFile (..))
+import Language.LSP.VFS (VirtualFile (..), VFS(..))
 import StaticLS.Arborist
 import StaticLS.GhcidSession
 import StaticLS.HIE.File qualified as HIE.File
@@ -51,7 +52,7 @@ import StaticLS.ProtoLSP qualified as ProtoLSP
 import StaticLS.StaticEnv qualified as StaticEnv
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import StaticLS.Utils
-import System.Directory (doesFileExist)
+import System.Directory (doesFileExist, getModificationTime)
 import System.FSNotify qualified as FSNotify
 import Text.Parsec.Text qualified as Parsec
 import UnliftIO.Exception qualified as Exception
@@ -340,7 +341,11 @@ handleGhcidFileChange = do
               pure (staticEnv.wsRoot Path.</>)
             Right ghcid_session -> pure (ghcid_session.workingDirectory Path.</>)
         else pure (staticEnv.wsRoot Path.</>)
-    let diags = IDE.Diagnostics.ParseGHC.parse pathPrefix contents
+    let diags =
+          IDE.Diagnostics.ParseGHC.parse
+            pathPrefix
+            IDE.Diagnostics.ParseGHC.mainFile
+            contents
     lift $ logInfo $ "diags: " <> T.pack (show diags)
     clearDiagnostics
     sendDiagnostics Nothing diags

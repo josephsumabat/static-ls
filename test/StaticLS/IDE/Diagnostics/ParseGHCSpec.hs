@@ -41,12 +41,14 @@ spec = do
     it "weird case" do
       parse
         Path.uncheckedCoercePath
+        mainFile
         msg
         `shouldBe` []
 
     it "smoke2" do
       parse
         Path.uncheckedCoercePath
+        mainFile
         [trimming|
         All good (60 modules)
         src/StaticLS/IDE/Diagnostics/ParseGHC.hs:18:1: warning: [-Wunused-imports]
@@ -76,6 +78,7 @@ spec = do
 
       parse
         Path.uncheckedCoercePath
+        mainFile
         [trimming|
         src/StaticLS/PositionDiff.hs:19:3: warning: [GHC-47854] [-Wduplicate-exports]
             ‘getDiffMapFromDiff’ is exported by ‘getDiffMapFromDiff’ and ‘getDiffMapFromDiff’

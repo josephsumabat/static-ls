@@ -74,8 +74,11 @@ getArboristDefinition path lineCol = do
           case prg.mod of
             Just modText -> resolvedToFileLcRange modFileMap modText resolved
             Nothing -> pure []
+      Just resolved@(Inj @(H.Constructor RenamePhase) _) -> 
+        case prg.mod of
+          Just modText -> resolvedToFileLcRange modFileMap modText resolved
+          Nothing -> pure []
       _ -> pure []
-
 
 getHieDefinition ::
   (MonadIde m, MonadIO m) =>

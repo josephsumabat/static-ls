@@ -95,6 +95,7 @@ resolvedToFileLcRange modFileMap thisMod resolved = do
   let locLst = case resolved of
         Inj @(H.Variable RenamePhase) var -> maybe [] (resolvedLocs thisMod) var.ext
         Inj @(H.Name RenamePhase) name -> maybe [] resolvedNameLocs name.ext
+        Inj @(H.Constructor RenamePhase) constructor -> maybe [] resolvedConstructorLocs constructor.ext
         _ -> []
   fileLcRanges <- Monad.join <$> mapM (modLocToFileLcRange modFileMap) locLst
   pure fileLcRanges

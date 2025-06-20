@@ -2,15 +2,15 @@
 let
   tree-sitter-simple-repo = {
     url = "https://github.com/josephsumabat/tree-sitter-simple";
-    sha256 = "sha256-un4lP1i/Xr4BnzHvyvFOlPs6kPqRA8tVwFZrQNY0+z0=";
-    rev = "9ba9cdf3f678b1f5e68258247c33f6788bca6cea";
+    sha256 = "sha256-EpSbOb2+w/EOvr3nWQinA4lorv/Tqpz37LtngMLjEAM=";
+    rev = "d388baf38d5548469f805dd80f004ca6de26cc24";
     fetchSubmodules = true;
   };
 
   haskell-arborist-repo = {
     url = "https://github.com/josephsumabat/haskell-arborist";
-    sha256 = "sha256-mbDnT+V7ILhp+RwHiybnSalPIZWdEQztIdiB97WlgKk=";
-    rev = "4d63f1b8b9aa08c44b9659e5a68f73a74e7c3e8d";
+    sha256 = "sha256-+jdlDU2wPhxBioI6yIB1N300IF8Wf84Q3OYkrUVDleQ=";
+    rev = "d84603da0c404b1e498dfef8ad0fbcb70dbab9f3";
     fetchSubmodules = true;
   };
 

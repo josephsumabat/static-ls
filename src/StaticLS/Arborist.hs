@@ -23,6 +23,7 @@ import Data.Text qualified as T
 import Data.Time
 import Debug.Trace
 import Hir.Types qualified as Hir
+import Hir.Types 
 import Language.LSP.Protocol.Types
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
@@ -178,10 +179,7 @@ renderNameInfo mHaddock nameInfo =
           declText
         ]
     )
-    <> "  \n\n**Type**: *" 
-    <> nameKindText nameInfo.nameKind
-    <> "*"
-    <> "  \n\nimported from: *"
+    <> "  \n\nimporated from: *"
     <> T.intercalate ", " (NE.toList $ (.mod.text) <$> NESet.toList nameInfo.importedFrom)
     <> "*"
     <> "  \noriginates from: *"
@@ -190,10 +188,11 @@ renderNameInfo mHaddock nameInfo =
  where
   haddock =
     maybe "" (.text) mHaddock
-  declText = pack (show nameInfo.decl)
+  declText = case nameInfo.decl of
+    DeclData decl -> decl.node.dynNode.nodeText
+    DeclNewtype decl -> decl.node.dynNode.nodeText
+    DeclClass decl -> decl.node.dynNode.nodeText
+    _ -> "Not supported yet."
   wrapHaskell x = "\n```haskell\n" <> x <> "\n```\n"
-  
-  nameKindText :: NameKind -> Text
-  nameKindText DataDecl = "Data Type"
-  nameKindText NewtypeDecl = "Newtype"
-  nameKindText ClassDecl = "Type Class"
+
+

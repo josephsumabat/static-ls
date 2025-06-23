@@ -192,7 +192,8 @@ renderNameInfo mHaddock nameInfo =
     DeclData decl -> decl.node.dynNode.nodeText
     DeclNewtype decl -> decl.node.dynNode.nodeText
     DeclClass decl -> decl.node.dynNode.nodeText
-    _ -> "Not supported yet."
+    DeclTypeSynonym decl -> decl.node.dynNode.nodeText
+    _ -> ""
   wrapHaskell x = "\n```haskell\n" <> x <> "\n```\n"
 
 

@@ -58,7 +58,7 @@ getDiagnostics = do
   let makeAbsPath = unsafeFilePathToAbs . (wsRootPath System.FilePath.</>) . toFilePath
   let ghcidPath = wsRootPath System.FilePath.</> ghcidFile
   info <- liftIO $ catch @IOException (TextIO.readFile ghcidPath) (const $ pure "")
-  let diagnostics = parse makeAbsPath info
+  let diagnostics = parse makeAbsPath mainFile info
   pure diagnostics
 
 data DeletionInfo = Partial PartialDeletionInfo | Full FullDeletionInfo

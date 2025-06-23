@@ -4,14 +4,11 @@ module StaticLS.IDE.Definition (
   nameToLocation,
 ) where
 
-import AST qualified
-import Control.Applicative
 import Control.Error
 import Control.Monad qualified as Monad
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.Reader
 import Data.LineCol (LineCol (..))
-import Data.LineColRange
 import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
 import Data.Maybe qualified as Maybe
@@ -23,17 +20,13 @@ import Data.Range qualified as Range
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
-import Database.SQLite.Simple qualified as SQL
 import GHC qualified
 import GHC.Types.Name qualified as GHC
-import HieDb (HieDb)
-import HieDb qualified
 import Hir.Parse qualified as Hir
 import Hir.Types qualified as Hir
 import StaticLS.Arborist
 import StaticLS.FilePath
 import StaticLS.HIE.File
-import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
@@ -46,6 +39,9 @@ import StaticLS.Logger
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.Directory qualified as Directory
+import AST.Sum (pattern Inj)
+import AST.Haskell qualified as H
+import Arborist.Renamer
 
 getDefinition ::
   (MonadIde m, MonadIO m) =>
@@ -68,12 +64,21 @@ getArboristDefinition ::
 getArboristDefinition path lineCol = do
   modFileMap <- getModFileMap
   prg <- getHir path
-  mVarNode <- getResolvedVar prg lineCol
-  let mResult = do
-        varNode <- mVarNode
-        modText <- prg.mod
-        pure $ varToFileLcRange modFileMap modText varNode
-  fromMaybe (pure []) mResult
+  mResolved <- getResolved prg lineCol
+  case mResolved of
+      Just resolved@(Inj @(H.Variable RenamePhase) _) -> 
+        case prg.mod of
+          Just modText -> resolvedToFileLcRange modFileMap modText resolved
+          Nothing -> pure []
+      Just resolved@(Inj @(H.Name RenamePhase) _) -> 
+          case prg.mod of
+            Just modText -> resolvedToFileLcRange modFileMap modText resolved
+            Nothing -> pure []
+      Just resolved@(Inj @(H.Constructor RenamePhase) _) -> 
+        case prg.mod of
+          Just modText -> resolvedToFileLcRange modFileMap modText resolved
+          Nothing -> pure []
+      _ -> pure []
 
 getHieDefinition ::
   (MonadIde m, MonadIO m) =>

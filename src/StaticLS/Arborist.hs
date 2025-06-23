@@ -33,7 +33,6 @@ import AST.Sum (pattern Inj)
 
 type ResolveableRename = Resolveable RenamePhase
 
-
 time :: (MonadIO m) => [Char] -> m a -> m a
 time label fn = do
   start <- liftIO getCurrentTime

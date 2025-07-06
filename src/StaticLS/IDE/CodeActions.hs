@@ -66,18 +66,13 @@ issueToActions tdi issue =
   case issue of
     Parse.MissingMethods (Parse.Ignored diag) methods ->
       pure [InsertMissingMethods.codeAction tdi diag methods]
-
     Parse.MissingAssociatedType (Parse.Ignored diag) ty ->
       pure [InsertAssociatedType.codeAction tdi diag ty]
-
     Parse.MissingFields (Parse.Ignored diag) ctor ext flds ->
       pure [InsertFields.codeAction tdi diag ctor ext flds]
-
     Parse.MissingCasses (Parse.Ignored diag) pats ->
       pure [InsertCases.codeAction tdi diag pats]
-
     Parse.RequiredExtension (Parse.Ignored diag) ext ->
       pure [AddRequiredExtension.codeAction tdi diag ext]
-
     Parse.TypedHoleFits (Parse.Ignored diag) fits ->
       pure $ UseValidHoleFit.codeAction tdi diag <$> fits

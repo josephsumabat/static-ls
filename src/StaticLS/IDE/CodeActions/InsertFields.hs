@@ -27,7 +27,7 @@ insertFields tdi diag ctor existingFields missingFields =
       formatOldFields flds = T.concat [spaces, ", ", flds]
       newFields = zipWith formatNewField seps missingFields
       allFields = case existingFields of
-          Nothing -> newFields
-          Just flds -> newFields <> [formatOldFields flds]
+        Nothing -> newFields
+        Just flds -> newFields <> [formatOldFields flds]
       renderedExpr = T.concat [ctor, "\n" <> T.unlines allFields <> spaces <> "}\n"]
    in prefer $ quickFix tdi diag "Insert fields." (diag._range) renderedExpr

@@ -219,12 +219,12 @@ handleCodeAction = LSP.requestHandler LSP.SMethod_TextDocumentCodeAction $ \req 
   _ <- lift $ logInfo "handleCodeAction"
   let params = req._params
   let tdi = params._textDocument
+  let ctx = params._context
   path <- ProtoLSP.uriToAbsPath tdi._uri
   let range = params._range
   let lineCol = (ProtoLSP.lineColFromProto range._start)
-  assists <- lift $ getCodeActions path lineCol
-  codeActions <- lift $ traverse ProtoLSP.assistToCodeAction assists
-  res (Right (LSP.InL (fmap LSP.InR codeActions)))
+  codeActions <- lift $ getCodeActions tdi ctx path lineCol
+  res $ Right $ LSP.InL $ fmap LSP.InR codeActions
   pure ()
 
 handleResolveCodeAction :: Handlers (LspT c StaticLsM)

@@ -132,11 +132,19 @@ library
       StaticLS.Hir.Types
       StaticLS.IDE.AllExtensions
       StaticLS.IDE.CodeActions
+      StaticLS.IDE.CodeActions.AddRequiredExtension
       StaticLS.IDE.CodeActions.AddTypeSig
       StaticLS.IDE.CodeActions.AutoExport
       StaticLS.IDE.CodeActions.AutoImport
+      StaticLS.IDE.CodeActions.InsertAssociatedType
+      StaticLS.IDE.CodeActions.InsertCases
+      StaticLS.IDE.CodeActions.InsertFields
+      StaticLS.IDE.CodeActions.InsertMissingMethods
+      StaticLS.IDE.CodeActions.Parse
       StaticLS.IDE.CodeActions.RemoveRedundantImports
       StaticLS.IDE.CodeActions.Types
+      StaticLS.IDE.CodeActions.UseValidHoleFit
+      StaticLS.IDE.CodeActions.Utils
       StaticLS.IDE.Completion
       StaticLS.IDE.Definition
       StaticLS.IDE.Diagnostics

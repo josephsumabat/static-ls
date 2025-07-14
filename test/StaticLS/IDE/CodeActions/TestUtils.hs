@@ -14,6 +14,14 @@ import StaticLS.IDE.SourceEdit (SourceEdit (..))
 import StaticLS.Monad
 import StaticLS.Utils (isJustOrThrowS)
 import Test.Hspec
+import Data.Text.IO qualified as T
+import Data.HashMap.Internal qualified as HM
+import Hir.Types qualified as Hir
+import Control.Monad
+import Hir.Parse qualified as Hir
+import AST.Haskell qualified as AST
+import Arborist.ProgramIndex
+import Control.Monad.Trans.Reader
 
 checkCodeAction ::
   (HasCallStack) =>
@@ -49,3 +57,23 @@ checkCodeAction path pos codeAction findAssist = do
       liftIO $ Rope.toText rope' `shouldBe` expected
       pure ()
   pure ()
+
+
+getPrg :: [FilePath] -> IO [Hir.Program]
+getPrg hsFiles =
+  forM hsFiles $ \file -> do
+    fileContents <- T.readFile file
+    let v = Hir.parseHaskell (AST.parse fileContents)
+    pure $ snd v
+
+updatePrgIndex :: [FilePath] -> ReaderT Env IO ()
+updatePrgIndex file = do 
+  programs <- liftIO $ getPrg file
+  let prog = head programs
+  modFileMap <- getModFileMap
+
+  -- get sccope
+  scopeDeps <- liftIO $ gatherScopeDeps HM.empty  prog modFileMap Nothing
+
+  -- write new prg index
+  tryWritePrgIndex (const scopeDeps)

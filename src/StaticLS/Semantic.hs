@@ -21,6 +21,7 @@ data FileState = FileState
   , hirParseErrors :: [Text]
   , tokens :: [PositionDiff.Token]
   , tokenMap :: RangeMap PositionDiff.Token
+  , fileName :: Text
   }
   deriving (Show)
 
@@ -29,7 +30,7 @@ data Semantic = Semantic
   }
 
 emptyFileState :: FileState
-emptyFileState = mkFileState T.empty Rope.empty
+emptyFileState = mkFileState T.empty T.empty Rope.empty
 
 mkSemantic :: Semantic
 mkSemantic =
@@ -37,8 +38,8 @@ mkSemantic =
     { fileStates = mempty
     }
 
-mkFileState :: Text -> Rope -> FileState
-mkFileState contentsText contentsRope = do
+mkFileState :: Text -> Text -> Rope -> FileState
+mkFileState fileName contentsText contentsRope = do
   let tokens = PositionDiff.lex $ T.unpack contentsText
   -- TODO: convert utf8 positions to normal positions
   let tree = Haskell.parse contentsText
@@ -51,4 +52,5 @@ mkFileState contentsText contentsRope = do
     , hirParseErrors = es
     , tokens
     , tokenMap = PositionDiff.tokensToRangeMap tokens
+    , fileName = fileName
     }

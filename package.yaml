@@ -70,6 +70,8 @@ dependencies:
   - stm
   - haskell-arborist
   - nonempty-containers
+  - ghc-debug-stub == 0.6.0.0
+  - ghc-debug-client == 0.6.0.0
 
 language: GHC2021
 default-extensions:

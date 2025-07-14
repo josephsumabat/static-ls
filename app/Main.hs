@@ -8,9 +8,10 @@ import Options.Applicative
 import StaticLS.Logger
 import StaticLS.Server qualified as StaticLS
 import StaticLS.StaticEnv.Options (defaultStaticEnvOptions)
+import GHC.Debug.Stub
 
 main :: IO ()
-main = do
+main = withGhcDebug $ do
   logger <- StaticLS.Logger.setupLogger
   mFileConfig <- getFileConfig logger
   let jsonOrDefaultOpts = (fromMaybe defaultStaticEnvOptions mFileConfig)

@@ -64,6 +64,8 @@ library
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
+    , ghc-debug-client ==0.6.0.0
+    , ghc-debug-stub ==0.6.0.0
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-arborist
@@ -110,6 +112,7 @@ library
       StaticLS.Arborist
       StaticLS.Except
       StaticLS.FilePath
+      StaticLS.GhcidSession
       StaticLS.Handlers
       StaticLS.HI
       StaticLS.HI.File
@@ -168,7 +171,6 @@ library
       StaticLS.StaticEnv.Options
       StaticLS.Tree
       StaticLS.Utils
-      StaticLS.GhcidSession
   other-modules:
       Paths_static_ls
   autogen-modules:
@@ -211,6 +213,8 @@ executable print-hie
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
+    , ghc-debug-client ==0.6.0.0
+    , ghc-debug-stub ==0.6.0.0
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-arborist
@@ -282,6 +286,8 @@ executable static-ls
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
+    , ghc-debug-client ==0.6.0.0
+    , ghc-debug-stub ==0.6.0.0
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-arborist
@@ -369,6 +375,8 @@ test-suite expect_tests
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
+    , ghc-debug-client ==0.6.0.0
+    , ghc-debug-stub ==0.6.0.0
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-arborist
@@ -445,6 +453,8 @@ test-suite static-ls-test
     , filepath
     , fsnotify
     , ghc >=9.4.3 && <9.11
+    , ghc-debug-client ==0.6.0.0
+    , ghc-debug-stub ==0.6.0.0
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-arborist

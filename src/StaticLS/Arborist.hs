@@ -38,7 +38,7 @@ time label fn = do
   start <- liftIO getCurrentTime
   res <- fn
   end <- liftIO getCurrentTime
-  traceShowM $ "Time to run " <> label <> ": " ++ show (diffUTCTime end start)
+  traceShowM $ "Time to run " <> label <> ": " ++ Prelude.show (diffUTCTime end start)
   pure res
 
 getResolved :: (MonadIO m, MonadIde m) => Hir.Program -> LineCol -> m (Maybe (ResolveableRename))

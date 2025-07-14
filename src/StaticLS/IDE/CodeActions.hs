@@ -17,6 +17,7 @@ import StaticLS.IDE.CodeActions.AddRequiredExtension qualified as AddRequiredExt
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
 import StaticLS.IDE.CodeActions.AutoExport as AutoExport
 import StaticLS.IDE.CodeActions.AutoImport qualified as AutoImport
+import StaticLS.IDE.CodeActions.AutoImportExisting qualified as AutoImportExisting
 import StaticLS.IDE.CodeActions.BringVariableInScope qualified as BringVariableInScope
 import StaticLS.IDE.CodeActions.InsertAssociatedType qualified as InsertAssociatedType
 import StaticLS.IDE.CodeActions.InsertCases qualified as InsertCases
@@ -47,6 +48,7 @@ getCodeActions tdi ctx path lineCol = do
   importCodeActions <- AutoImport.codeAction cx
   removeRedundantImports <- RemoveRedundantImports.codeAction cx
   exportCodeActions <- AutoExport.codeAction cx
+  autoImportExistingCodeActions <- AutoImportExisting.codeAction cx
   let issues = S.fromList (mapMaybe Parse.actionableIssue ctx._diagnostics)
   issueActions <- join <$> traverse (issueToActions tdi path leadingSpaces) (S.toList issues)
   assistActions <-
@@ -55,6 +57,7 @@ getCodeActions tdi ctx path lineCol = do
         ++ importCodeActions
         ++ removeRedundantImports
         ++ exportCodeActions
+        ++ autoImportExistingCodeActions
   pure $ assistActions ++ issueActions
 
 resolveLazyAssist :: CodeActionMessage -> StaticLsM SourceEdit

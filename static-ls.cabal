@@ -132,6 +132,7 @@ library
       StaticLS.IDE.CodeActions.AddTypeSig
       StaticLS.IDE.CodeActions.AutoExport
       StaticLS.IDE.CodeActions.AutoImport
+      StaticLS.IDE.CodeActions.AutoImportExisting
       StaticLS.IDE.CodeActions.BringVariableInScope
       StaticLS.IDE.CodeActions.InsertAssociatedType
       StaticLS.IDE.CodeActions.InsertCases

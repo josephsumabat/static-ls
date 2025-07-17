@@ -88,10 +88,10 @@ findQualifiedImportsForIdentifier path identifier imports = do
       identifierInImport identifier hirImport
 
 -- create assist for qualifying
-mkAssistForQualify :: AbsPath -> Text -> AST.DynNode -> Haskell.ImportP -> Hir.Import -> Assist
-mkAssistForQualify path identifier usageNode importP hirImport =
+mkAssistForQualify :: AbsPath -> Text -> Hir.Name -> Haskell.ImportP -> Hir.Import -> Assist
+mkAssistForQualify path identifier identifierName importP hirImport =
   let
-    qualifyEdit = qualifyIdentifier usageNode hirImport
+    qualifyEdit = qualifyIdentifier identifierName hirImport
     sourceEdit = SourceEdit.single path qualifyEdit
     qualifier = case hirImport.alias of
       Just alias -> alias.text
@@ -116,9 +116,9 @@ codeAction CodeActionContext {path, pos} = do
         Nothing -> do
           case AST.getQualifiedAtPoint cursorLocation hir.node of
             Right (Just qualified) -> do
-              let usageNode = qualified.name.node
+              let identifierName = qualified.name
               qualifiedImports <- findQualifiedImportsForIdentifier path identifier parsedImports
 
-              let assists = map (uncurry (mkAssistForQualify path identifier usageNode)) qualifiedImports
+              let assists = map (uncurry (mkAssistForQualify path identifier identifierName)) qualifiedImports
               pure assists
             _ -> pure []

@@ -130,6 +130,7 @@ library
       StaticLS.IDE.CodeActions.AutoExport
       StaticLS.IDE.CodeActions.AutoImport
       StaticLS.IDE.CodeActions.AutoImportExisting
+      StaticLS.IDE.CodeActions.AutoQualify
       StaticLS.IDE.CodeActions.RemoveRedundantImports
       StaticLS.IDE.CodeActions.Types
       StaticLS.IDE.Completion
@@ -496,6 +497,8 @@ test-suite static-ls-test
       StaticLS.HISpec
       StaticLS.IDE.CodeActions.AddTypeSigSpec
       StaticLS.IDE.CodeActions.AutoImportSpec
+      StaticLS.IDE.CodeActions.AutoQualifySpec
+      StaticLS.IDE.CodeActions.AutoImportExistingSpec
       StaticLS.IDE.CodeActions.TestUtils
       StaticLS.IDE.DefinitionSpec
       StaticLS.IDE.Diagnostics.ParseGHCSpec

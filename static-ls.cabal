@@ -100,7 +100,6 @@ library
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
   exposed-modules:
       Data.Change
-      Data.ConcurrentCache
       Data.Diff
       Data.Edit
       Data.ListUtils
@@ -484,7 +483,6 @@ test-suite static-ls-test
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
   main-is: Main.hs
   other-modules:
-      Data.ConcurrentCacheSpec
       Data.RopeSpec
       Semantic.HirSpec
       Spec

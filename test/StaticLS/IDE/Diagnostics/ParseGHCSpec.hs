@@ -12,24 +12,24 @@ spec = do
   xdescribe "smoke" do
     let msg =
           [trimming|
-            src/Mercury/Expenses/Sql.hs:(98,23)-(99,14): error: [GHC-83865] [-Wdeferred-type-errors, Werror=deferred-type-errors]
+            src/MyFile/Test/Sql.hs:(98,23)-(99,14): error: [GHC-83865] [-Wdeferred-type-errors, Werror=deferred-type-errors]
                 • Couldn't match expected type: t0 -> b0
-                              with actual type: From (SqlExpr (Entity ExpenseData))
+                              with actual type: From (SqlExpr (Entity MyData))
                 • The function ‘table’ is applied to one value argument,
-                    but its type ‘From (SqlExpr (Entity ExpenseData))’ has none
-                  In the first argument of ‘on’, namely ‘table @ExpenseData asfd’
+                    but its type ‘From (SqlExpr (Entity MyData))’ has none
+                  In the first argument of ‘on’, namely ‘table @MyData asfd’
                   In the second argument of ‘innerJoin’, namely
-                    ‘table @ExpenseData asfd
+                    ‘table @MyData asfd
                       `on`
-                        (\ (expense :& expenseData)
-                            -> expense.latestDataId ==. expenseData.id)’
+                        (\ (val :& myData)
+                            -> val.latestDataId ==. myData.id)’
               |
-           98 |           `innerJoin` table @ExpenseData
+           98 |           `innerJoin` table @MyData
               |                       ^^^^^^^^^^^^^^^^^^...
-            src/Mercury/Expenses/Sql.hs:99:11-14: error: [GHC-88464] [-Wdeferred-out-of-scope-variables, Werror=deferred-out-of-scope-variables]
+            src/MyFile/Test/Sql.hs:99:11-14: error: [GHC-88464] [-Wdeferred-out-of-scope-variables, Werror=deferred-out-of-scope-variables]
                 Variable not in scope: asfd
               |
-           99 |             `on` (\(expense :& expenseData) -> expense.latestDataId ==. expenseData.id)
+           99 |             `on` (\(val :& myData) -> val.latestDataId ==. myData.id)
               |           ^^^^
             |]
 

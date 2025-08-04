@@ -10,9 +10,12 @@ hpack:
 format:
 	fourmolu . -i
 
-.PHONY: clean
-clean:
-	rm -r .test_builds
+.PHONY: clean-test
+clean-test:
+	rm -rf .test_builds
+	rm -rf test/TestData/.hiefiles/
+	rm -rf test/TestData/.hifiles/
+	rm -f test/TestData/.hifiles/.hiedb
 
 .PHONY: hlint
 hlint:

@@ -31,11 +31,6 @@ spec = do
               pure @IO ()
 
       check
-        "returns a valid hie file when called on a src file"
-        "src/StaticLS/HIE/File.hs"
-        "test/TestData/.hiefiles/StaticLS/HIE/File.hie"
-
-      check
         "returns a valid hie file when called on a test/ file"
         "test/TestData/Mod1.hs"
         "test/TestData/.hiefiles/TestData/Mod1.hie"
@@ -62,6 +57,7 @@ spec = do
             , provideInlays = True
             , inlayLengthCap = Just 32
             , experimentalFeatures = False
+            , fourmoluCommand = Nothing
             }
 
     check

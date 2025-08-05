@@ -42,7 +42,7 @@ data FileCacheEntry = FileCacheEntry
   , diffCache :: Maybe DiffCache
   }
 
--- empty 
+-- empty
 emptyEntry :: FileCacheEntry
 emptyEntry = FileCacheEntry Nothing Nothing Nothing
 
@@ -85,7 +85,7 @@ getFileState path = do
       res <- getFileStateResult path
       let fs = fromMaybe Semantic.emptyFileState res
       let currentEntry = fromMaybe emptyEntry entry
-      liftIO $ AtomicLRU.insert path (currentEntry { fileState = Just fs }) env.cache
+      liftIO $ AtomicLRU.insert path (currentEntry {fileState = Just fs}) env.cache
       pure fs
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
@@ -179,7 +179,7 @@ invalidateStaleHieCacheFile path = do
     case entry.hieCache of
       Just hieFile -> do
         when (hieFile.modifiedAt < latestHieModifiedAt) $ do
-          liftIO $ AtomicLRU.insert path (entry { hieCache = Nothing, diffCache = Nothing }) env.cache
+          liftIO $ AtomicLRU.insert path (entry {hieCache = Nothing, diffCache = Nothing}) env.cache
       Nothing -> pure ()
 
 getHieCache :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m CachedHieFile
@@ -192,7 +192,7 @@ getHieCache path = do
     Nothing -> do
       hie <- getHieCacheResult path
       let currentEntry = fromMaybe emptyEntry entry
-      liftIO $ AtomicLRU.insert path (currentEntry { hieCache = Just hie }) env.cache
+      liftIO $ AtomicLRU.insert path (currentEntry {hieCache = Just hie}) env.cache
       pure hie
 
 getTokenMap :: (MonadIde m, MonadIO m) => AbsPath -> m (RangeMap PositionDiff.Token)
@@ -255,7 +255,7 @@ getDiffCache path = do
     Nothing -> do
       diff <- getDiffCacheResult path
       let currentEntry = fromMaybe emptyEntry entry
-      liftIO $ AtomicLRU.insert path (currentEntry { diffCache = Just diff }) env.cache
+      liftIO $ AtomicLRU.insert path (currentEntry {diffCache = Just diff}) env.cache
       pure diff
 
 getDiffCacheResult :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m DiffCache
@@ -280,7 +280,7 @@ removeHieFromSourcePath path = do
   env <- getIdeEnv
   entry <- liftIO $ AtomicLRU.lookup path env.cache
   case entry of
-    Just e -> liftIO $ AtomicLRU.insert path (e { hieCache = Nothing, diffCache = Nothing }) env.cache
+    Just e -> liftIO $ AtomicLRU.insert path (e {hieCache = Nothing, diffCache = Nothing}) env.cache
     Nothing -> pure ()
 
 forceCachedHieFile :: CachedHieFile -> CachedHieFile

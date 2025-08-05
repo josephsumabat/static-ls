@@ -10,7 +10,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
-import Data.Cache.LRU.IO.Internal (AtomicLRU)
+import Data.Cache.LRU.IO.Internal (AtomicLRU, toList)
 import Data.Cache.LRU.IO.Internal qualified as AtomicLRU
 import Data.HashMap.Strict qualified as HashMap
 import Data.IORef
@@ -40,6 +40,7 @@ import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import UnliftIO (MonadUnliftIO)
 import UnliftIO.Exception qualified as Exception
+import Debug.Trace
 
 data FileCacheEntry = FileCacheEntry
   { fileState :: Maybe FileState
@@ -60,7 +61,7 @@ data IdeEnv = IdeEnv
 
 newIdeEnv :: [AbsPath] -> IO IdeEnv
 newIdeEnv srcDirs = do
-  cache <- AtomicLRU.newAtomicLRU (Just 10)
+  cache <- AtomicLRU.newAtomicLRU (Just 3)
   prgIndex <- newMVar HashMap.empty
   modFileMap <- buildModuleFileMap (Path.toFilePath <$> srcDirs)
   pure $ IdeEnv {modFileMap, prgIndex, cache}
@@ -112,6 +113,8 @@ removePath path = do
 getFileState :: (MonadIde m) => AbsPath -> m FileState
 getFileState path = do
   env <- getIdeEnv
+  myList <- liftIO $ toList env.cache
+  traceShowM $ fmap fst myList
   entry <- liftIO $ AtomicLRU.lookup path env.cache
   case entry >>= (.fileState) of
     Just fs -> pure fs

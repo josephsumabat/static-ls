@@ -50,6 +50,7 @@ library
   build-depends:
       Diff
     , aeson >=2 && <2.3
+    , lrucache >= 1.2.0.1
     , array >=0.5.4 && <0.6
     , async
     , base >=4.17.0 && <4.21
@@ -101,7 +102,6 @@ library
   if flag(dev)
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
   exposed-modules:
-      Data.ConcurrentCache
       Data.Diff
       Data.ListUtils
       Data.RangeMap
@@ -488,7 +488,6 @@ test-suite static-ls-test
     ghc-options: -fwrite-ide-info -hiedir .hiefiles -fdefer-type-errors -fno-defer-typed-holes -Werror=deferred-type-errors -Werror=deferred-out-of-scope-variables
   main-is: Main.hs
   other-modules:
-      Data.ConcurrentCacheSpec
       Data.RopeSpec
       Semantic.HirSpec
       Spec

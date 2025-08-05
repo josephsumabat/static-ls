@@ -60,7 +60,6 @@ import Data.Ord (comparing)
 import Data.List (maximumBy)
 import Data.Time.Clock (UTCTime)
 import Data.IORef (readIORef)
-import Data.ConcurrentCache
 import qualified Data.Map.Strict as Map
 import qualified Data.Text.Mixed.Rope as MixedRope
 

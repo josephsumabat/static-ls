@@ -27,6 +27,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Time
+import Debug.Trace
 import Hir qualified as Hir
 import Hir.Types qualified as Hir
 import StaticLS.FilePath
@@ -40,7 +41,6 @@ import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import UnliftIO (MonadUnliftIO)
 import UnliftIO.Exception qualified as Exception
-import Debug.Trace
 
 data FileCacheEntry = FileCacheEntry
   { fileState :: Maybe FileState
@@ -48,20 +48,19 @@ data FileCacheEntry = FileCacheEntry
   , diffCache :: Maybe DiffCache
   }
 
--- empty 
+-- empty
 emptyEntry :: FileCacheEntry
 emptyEntry = FileCacheEntry Nothing Nothing Nothing
 
 data IdeEnv = IdeEnv
-  {
-    modFileMap :: ModFileMap
+  { modFileMap :: ModFileMap
   , prgIndex :: MVar ProgramIndex
   , cache :: AtomicLRU AbsPath FileCacheEntry
   }
 
 newIdeEnv :: [AbsPath] -> IO IdeEnv
 newIdeEnv srcDirs = do
-  cache <- AtomicLRU.newAtomicLRU (Just 3)
+  cache <- AtomicLRU.newAtomicLRU (Just 10)
   prgIndex <- newMVar HashMap.empty
   modFileMap <- buildModuleFileMap (Path.toFilePath <$> srcDirs)
   pure $ IdeEnv {modFileMap, prgIndex, cache}
@@ -114,7 +113,6 @@ getFileState :: (MonadIde m) => AbsPath -> m FileState
 getFileState path = do
   env <- getIdeEnv
   myList <- liftIO $ toList env.cache
-  traceShowM $ fmap fst myList
   entry <- liftIO $ AtomicLRU.lookup path env.cache
   case entry >>= (.fileState) of
     Just fs -> pure fs
@@ -122,7 +120,7 @@ getFileState path = do
       res <- getFileStateResult path
       let fs = fromMaybe Semantic.emptyFileState res
       let currentEntry = fromMaybe emptyEntry entry
-      liftIO $ AtomicLRU.insert path (currentEntry { fileState = Just fs }) env.cache
+      liftIO $ AtomicLRU.insert path (currentEntry {fileState = Just fs}) env.cache
       pure fs
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.HaskellP
@@ -163,9 +161,9 @@ getFileStateResult path = do
   if doesExist
     then do
       contents <-
-        liftIO $
-          Exception.tryAny
-            (liftIO $ T.readFile $ toFilePath path)
+        trace ("Reading from disk (not in cache): " ++ show path) $
+          liftIO $
+            Exception.tryAny (liftIO $ T.readFile $ toFilePath path)
       case contents of
         Left e -> do
           logError $ "Failed to read file: " <> T.pack (show e)
@@ -216,7 +214,7 @@ invalidateStaleHieCacheFile path = do
     case entry.hieCache of
       Just hieFile -> do
         when (hieFile.modifiedAt < latestHieModifiedAt) $ do
-          liftIO $ AtomicLRU.insert path (entry { hieCache = Nothing, diffCache = Nothing }) env.cache
+          liftIO $ AtomicLRU.insert path (entry {hieCache = Nothing, diffCache = Nothing}) env.cache
       Nothing -> pure ()
 
 getHieCache :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m CachedHieFile
@@ -229,7 +227,7 @@ getHieCache path = do
     Nothing -> do
       hie <- getHieCacheResult path
       let currentEntry = fromMaybe emptyEntry entry
-      liftIO $ AtomicLRU.insert path (currentEntry { hieCache = Just hie }) env.cache
+      liftIO $ AtomicLRU.insert path (currentEntry {hieCache = Just hie}) env.cache
       pure hie
 
 getTokenMap :: (MonadIde m, MonadIO m) => AbsPath -> m (RangeMap PositionDiff.Token)
@@ -292,7 +290,7 @@ getDiffCache path = do
     Nothing -> do
       diff <- getDiffCacheResult path
       let currentEntry = fromMaybe emptyEntry entry
-      liftIO $ AtomicLRU.insert path (currentEntry { diffCache = Just diff }) env.cache
+      liftIO $ AtomicLRU.insert path (currentEntry {diffCache = Just diff}) env.cache
       pure diff
 
 getDiffCacheResult :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m DiffCache
@@ -317,7 +315,7 @@ removeHieFromSourcePath path = do
   env <- getIdeEnv
   entry <- liftIO $ AtomicLRU.lookup path env.cache
   case entry of
-    Just e -> liftIO $ AtomicLRU.insert path (e { hieCache = Nothing, diffCache = Nothing }) env.cache
+    Just e -> liftIO $ AtomicLRU.insert path (e {hieCache = Nothing, diffCache = Nothing}) env.cache
     Nothing -> pure ()
 
 forceCachedHieFile :: CachedHieFile -> CachedHieFile

@@ -23,6 +23,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Time
+import Debug.Trace
 import StaticLS.FilePath
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView qualified as HieView
@@ -126,9 +127,9 @@ getFileStateResult path = do
   if doesExist
     then do
       contents <-
-        liftIO $
-          Exception.tryAny
-            (liftIO $ T.readFile $ toFilePath path)
+        trace ("Reading from disk (not in cache): " ++ show path) $
+          liftIO $
+            Exception.tryAny (liftIO $ T.readFile $ toFilePath path)
       case contents of
         Left e -> do
           logError $ "Failed to read file: " <> T.pack (show e)

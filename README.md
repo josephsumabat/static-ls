@@ -211,3 +211,28 @@ You can technically use any LSP compliant client - for a generic one we generall
 (Note `"command"` should point to your static-ls binary).
 
 3. Some helpful LSP troubleshooting information can be found [here](https://lsp.sublimetext.io/troubleshooting/)
+
+### Emacs
+1. Install [Emacs](https://www.gnu.org/software/emacs/download.html)
+
+2. Download [lsp-mode](https://github.com/emacs-lsp/lsp-mode) through your favorite Emacs package manager, then get either [haskell-mode](https://github.com/haskell/haskell-mode) or [haskell-ts-mode](https://codeberg.org/pranshu/haskell-ts-mode) for syntax highlighting, and to allow `lsp-mode` to auto-start the right server.
+
+3. Register `static-ls` as a language client:
+
+```
+(lsp-register-client
+ (make-lsp-client
+  :new-connection (lsp-stdio-connection
+                   (defun my/static-ls-launch-command ()
+                     (list "static-ls") ;; Specify path to static-ls binary instead if you don't have it installed globally
+                     ))
+  :major-modes '(haskell-mode haskell-ts-mode)
+  :server-id 'static-ls-haskell
+  :language-id "haskell"))
+```
+
+## Troubleshooting
+### Slowdowns
+Some editors watch all folders in your project directory for changes and report those to the LSP server. This might cause significant slowdown when `.hiefiles` or `.hifiles` are tracked (documented in #175).
+
+This is currently an issue with `Emacs`, (but should be fixed in `lsp-mode` with [this PR](https://github.com/emacs-lsp/lsp-mode/pull/4855)). It's not clear what other editors are affected.

@@ -6,6 +6,7 @@ import Data.Pos (Pos (..))
 
 -- | LSP Position is 0 indexed
 -- Note HieDbCoords are 1 indexed
+-- (Line, Column)
 type HieDbCoords = (Int, Int)
 
 data UIntConversionException = UIntConversionException

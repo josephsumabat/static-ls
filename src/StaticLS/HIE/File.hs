@@ -5,6 +5,7 @@ module StaticLS.HIE.File (
   modToSrcFile,
   srcFilePathToHieFilePath,
   hieFilePathToSrcFilePath,
+  hieFilePathToSrcFilePathFromFile,
   -- | An alternate way of getting file information by pre-indexing hie files -
   -- far slower on startup and currently unused
   getHieFileMap,

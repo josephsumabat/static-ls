@@ -8,6 +8,7 @@ import Control.Error
 import Control.Monad qualified as Monad
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.Reader
+import Data.Char (isSpace)
 import Data.LineCol (LineCol (..))
 import Data.LineColRange qualified as LineColRange
 import Data.List (isSuffixOf)
@@ -20,8 +21,12 @@ import Data.Range qualified as Range
 import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
+import Database.SQLite.Simple qualified as SQL
+import Debug.Trace
 import GHC qualified
 import GHC.Types.Name qualified as GHC
+import HieDb
+import HieDb qualified
 import Hir.Parse qualified as Hir
 import Hir.Types qualified as Hir
 import StaticLS.Arborist
@@ -35,6 +40,7 @@ import StaticLS.IDE.FileWith
 import StaticLS.IDE.FileWith qualified as FileWith
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
+import StaticLS.HIE.Position
 import StaticLS.Logger
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
@@ -49,12 +55,37 @@ getDefinition ::
   LineCol ->
   m [FileLcRange]
 getDefinition path lineCol = do
-  hieDef <- getHieDefinition path lineCol
-  arboristDef <- getArboristDefinition path lineCol
-  pure $
-    case hieDef of
-      [] ->  arboristDef
-      _ -> hieDef
+  case path of 
+    Path.Path fp | ".yesodroutes" `isSuffixOf` fp ->
+      getYesodRoutesDefinition path lineCol
+    _ -> do
+      hieDef <- getHieDefinition path lineCol
+      arboristDef <- getArboristDefinition path lineCol
+      pure $
+        case hieDef of
+          [] ->  arboristDef
+          _ -> hieDef
+
+getYesodRoutesDefinition :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
+getYesodRoutesDefinition path lineCol = do
+  currWord <- getWordAtPos lineCol <$> getSourceRope path
+  followingWord <- getFollowingWordAtPos lineCol <$> getSourceRope path
+  case (currWord, followingWord) of
+    (Just curr, Just following)
+      | not (T.null curr)
+        , T.last curr == 'R'
+        , following == "GET" || following == "POST"
+        -> do
+          let occ = T.toLower following <> curr
+          mRow <- runMaybeT $ hieDbFindDefString occ Nothing
+          case mRow of
+            Just (row:_) -> do
+              mPath <- runMaybeT . hieFilePathToSrcFilePathFromFile =<< Path.filePathToAbs (defSrc row)
+              let newLoc = LineColRange.point (hiedbCoordsToLineCol (row.defSLine, row.defSCol))
+              pure $ 
+                maybe [] (\p -> [FileWith p newLoc]) mPath
+            _ -> pure []
+    _ -> pure []
 
 getArboristDefinition ::
   (MonadIde m, MonadIO m) =>
@@ -215,3 +246,46 @@ convertPersistentModelFileLc fileLc = do
     Just persistentModelName -> do
       res <- persistentModelNameToFileLc persistentModelName
       pure $ maybeToList res <> [fileLc]
+
+hieDbFindDefString :: (HasStaticEnv m, MonadIO m) => Text -> Maybe Hir.ModuleName -> MaybeT m [HieDb.DefRow]
+hieDbFindDefString name mod = do
+  -- we need to resolve the mod first
+  let _modText = (.mod.text) <$> mod
+  runHieDbMaybeT
+    ( \hieDb ->
+        SQL.queryNamed
+          (HieDb.getConn hieDb)
+          "SELECT defs.* \
+          \FROM defs JOIN mods USING (hieFile) \
+          \WHERE occ LIKE :occ"
+          [ ":occ" SQL.:= ("_:" <> name)
+          ]
+    )
+
+-- Find the word range and extract it as Text
+getWordAtPos :: LineCol ->  Rope.Rope -> Maybe Text
+getWordAtPos lineCol rope = do
+  lineText <- Rope.getLine rope lineCol.line
+  let txt = Rope.toText lineText
+      col = lineCol.col.pos
+      before = T.take col txt
+      after = T.drop col txt
+      wordStart = T.length $ T.takeWhileEnd (not . isSpace) before
+      wordEnd = T.length $ T.takeWhile (not . isSpace) after
+      start = col - wordStart
+      end = col + wordEnd
+  pure $ T.take (end - start) $ T.drop start txt
+
+getFollowingWordAtPos :: LineCol -> Rope.Rope -> Maybe Text
+getFollowingWordAtPos lineCol rope = do
+  lineText <- Rope.getLine rope lineCol.line
+  let txt = Rope.toText lineText
+      col = lineCol.col.pos
+      after = T.drop col txt
+      wordEnd = T.length $ T.takeWhile (not . isSpace) after
+      -- skip initial spaces
+      rest = T.drop wordEnd after
+      nextRest = T.dropWhile isSpace rest
+      -- take the next word
+      word = T.takeWhile (not . isSpace) nextRest
+  if T.null word then Nothing else Just word

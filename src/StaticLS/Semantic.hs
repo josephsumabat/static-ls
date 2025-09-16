@@ -17,7 +17,7 @@ data FileState = FileState
   { contentsRope :: Rope
   , contentsText :: Text
   , tree :: Haskell.HaskellP
-  , hir :: Hir.Program
+  , hir :: Hir.Program Hir.HirRead
   , hirParseErrors :: [Text]
   , tokens :: [PositionDiff.Token]
   , tokenMap :: RangeMap PositionDiff.Token

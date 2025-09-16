@@ -33,7 +33,7 @@ import StaticLS.Logger
 import StaticLS.Monad
 
 data RenameContext
-  = RenameQualified Hir.Qualified
+  = RenameQualified (Hir.Qualified Hir.HirRead)
   | RenameTopSplice H.TopSpliceP
   | RenameSplice H.SpliceP
   | RenameOther
@@ -106,7 +106,7 @@ rename path pos lineCol newName = do
       Right context -> do
         case context of
           RenameQualified (Hir.Qualified {mod = Just _, name}) -> do
-            let start = name.node.nodeRange.start
+            let start = name.dynNode.nodeRange.start
             let edit = Edit.replace (Range start ref.loc.end) newName
             pure $ SourceEdit.single ref.path edit
           RenameQualified (Hir.Qualified {mod = Nothing}) -> pure defaultSourceEdit

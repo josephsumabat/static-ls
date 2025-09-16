@@ -175,7 +175,7 @@ getHaskell path = do
   fileState <- getFileState path
   pure fileState.tree
 
-getHir :: (MonadIde m, MonadIO m) => AbsPath -> m Hir.Program
+getHir :: (MonadIde m, MonadIO m) => AbsPath -> m (Hir.Program Hir.HirRead)
 getHir hir = do
   fileState <- getFileState hir
   pure fileState.hir

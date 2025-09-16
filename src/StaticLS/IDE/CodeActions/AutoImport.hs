@@ -83,7 +83,7 @@ getModulesToImport path pos = do
           }
     Right Nothing -> pure ModulesToImport {moduleNames = [], moduleQualifier = Nothing}
     Right (Just qualified) -> do
-      res <- findModulesForDef qualified.name.node.nodeText
+      res <- findModulesForDef qualified.name.dynNode.nodeText
       pure $
         ModulesToImport
           { moduleNames = res
@@ -117,7 +117,7 @@ codeAction CodeActionContext {path, pos} = do
           ( \imp ->
               case (modulesToImport.moduleQualifier, imp) of
                 (Just qual, imp) -> Hir.importQualifier imp == qual.mod && imp.mod == mod
-                (Nothing, Hir.OpenImport impMod) -> mod == impMod
+                (Nothing, Hir.OpenImport impMod _) -> mod == impMod
                 _ -> False
           )
           hir.imports

@@ -38,7 +38,7 @@ source-repository-package
 source-repository-package
     type: git
     location: https://github.com/josephsumabat/haskell-arborist
-    tag: 74efa2878f46bf945c37cb17f9ea2c0c809fa05c
+    tag: c23fc0a4a2991bd074163674ab9e1e294cf58879
 
 source-repository-package
     type: git

@@ -41,10 +41,10 @@ time label fn = do
   traceShowM $ "Time to run " <> label <> ": " ++ show (diffUTCTime end start)
   pure res
 
-getResolved :: (MonadIO m, MonadIde m) => Hir.Program -> LineCol -> m (Maybe (ResolveableRename))
+getResolved :: (MonadIO m, MonadIde m) => Hir.Program Hir.HirRead -> LineCol -> m (Maybe (ResolveableRename))
 getResolved target lc = fst <$> getResolvedTermAndPrgs target lc
 
-getResolvedTermAndPrgs :: (MonadIO m, MonadIde m) => Hir.Program -> LineCol -> m (Maybe (ResolveableRename), ProgramIndex)
+getResolvedTermAndPrgs :: (MonadIO m, MonadIde m) => Hir.Program Hir.HirRead -> LineCol -> m (Maybe (ResolveableRename), ProgramIndex)
 getResolvedTermAndPrgs target lc = do
   time "resolved" $ do
     modFileMap <- getModFileMap

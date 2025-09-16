@@ -3,7 +3,7 @@ module StaticLS.IDE.CodeActions.AutoImportExisting where
 import AST qualified
 import AST.Haskell as Haskell
 import Arborist.AutoImport (addDeclToImportEdit)
-import Arborist.Scope.Global (getGlobalAvalibleDecls)
+import Arborist.Scope.Global (getGlobalAvailableDecls)
 import Arborist.Scope.Types (GlblDeclInfo(..))
 import Control.Monad (forM)
 import Data.HashMap.Lazy qualified as Map
@@ -21,11 +21,11 @@ import StaticLS.IDE.SourceEdit as SourceEdit
 import StaticLS.Monad
 
 -- get the identifier at the cursor position
-getIdentifierAtPoint :: Range -> Hir.Program -> Maybe (Maybe Text, Text)
+getIdentifierAtPoint :: Range -> Hir.Program Hir.HirRead -> Maybe (Maybe Text, Text)
 getIdentifierAtPoint range prog = 
   case AST.getQualifiedAtPoint range prog.node of
     Right (Just qualified) -> 
-      let name = AST.nodeToText qualified.name.node
+      let name = AST.nodeToText qualified.name.dynNode
           qualifier = case qualified.mod of
             Nothing -> Nothing
             Just modName -> Just (modName.mod.text)
@@ -33,7 +33,7 @@ getIdentifierAtPoint range prog =
     _ -> Nothing
 
 -- find which modules an identifier can be imported from
-findModulesForIdentifier :: AbsPath -> Text -> StaticLsM [(Text, Hir.Decl)]
+findModulesForIdentifier :: AbsPath -> Text -> StaticLsM [(Text, Hir.Decl Hir.HirRead)]
 findModulesForIdentifier path identifier = do
   hir <- getHir path
   
@@ -41,18 +41,18 @@ findModulesForIdentifier path identifier = do
   let exportIndex = Map.empty
   
   -- get all available declarations
-  let availableDecls = getGlobalAvalibleDecls programIndex exportIndex hir
+  let availableDecls = getGlobalAvailableDecls programIndex exportIndex hir
       matchingDecls = filter (\info -> info.name == identifier) availableDecls
       moduleDecls = Map.toList $ Map.fromList 
         [(info.originatingMod.text, info.decl) | info <- matchingDecls]
   
   pure moduleDecls
 
-parseImportToHir :: Haskell.ImportP -> Maybe Hir.Import
+parseImportToHir :: Haskell.ImportP -> Maybe (Hir.Import Hir.HirRead)
 parseImportToHir = eitherToMaybe . AST.parseImport
 
 -- find existing imports for a module in the current file
-findExistingImports :: Text -> Maybe Text -> [(Haskell.ImportP, Hir.Import)] -> [(Haskell.ImportP, Hir.Import)]
+findExistingImports :: Text -> Maybe Text -> [(Haskell.ImportP, Hir.Import Hir.HirRead)] -> [(Haskell.ImportP, Hir.Import Hir.HirRead)]
 findExistingImports moduleName mQualifier imports =
   filter moduleMatches imports
   where
@@ -67,7 +67,7 @@ findExistingImports moduleName mQualifier imports =
             Nothing -> hirImport.mod.text == qual 
 
 -- get all imports from the current file
-getCurrentImports :: Hir.Program -> [Haskell.ImportP]
+getCurrentImports :: Hir.Program Hir.HirRead -> [Haskell.ImportP]
 getCurrentImports prog =
   let dynNode = AST.getDynNode prog.node
   in getAllImports dynNode
@@ -80,7 +80,7 @@ getCurrentImports prog =
       in thisImport ++ childImports
 
 -- check if identifier is already accessible through any import for this module
-isIdentifierAccessible :: Text -> Text -> Maybe Text -> [(Haskell.ImportP, Hir.Import)] -> Bool
+isIdentifierAccessible :: Text -> Text -> Maybe Text -> [(Haskell.ImportP, Hir.Import Hir.HirRead)] -> Bool
 isIdentifierAccessible moduleName identifier mQualifier imports =
   any canAccess imports
   where
@@ -94,14 +94,14 @@ isIdentifierAccessible moduleName identifier mQualifier imports =
               case hirImport.importList of
                 Nothing -> True 
                 Just [] -> False 
-                Just items -> any (\item -> AST.nodeToText item.name.node == identifier) items  
+                Just items -> any (\item -> AST.nodeToText item.name.dynNode == identifier) items  
             Just qual ->
               hirImport.qualified &&
               matchesQualifier qual hirImport &&
               case hirImport.importList of
                 Nothing -> True
                 Just [] -> False 
-                Just items -> any (\item -> AST.nodeToText item.name.node == identifier) items
+                Just items -> any (\item -> AST.nodeToText item.name.dynNode == identifier) items
     
     matchesQualifier qual hirImport =
       case hirImport.alias of
@@ -109,19 +109,19 @@ isIdentifierAccessible moduleName identifier mQualifier imports =
         Nothing -> hirImport.mod.text == qual
 
 -- check if identifier is in a specific import
-identifierInImport :: Text -> Hir.Import -> Bool  
+identifierInImport :: Text -> Hir.Import Hir.HirRead -> Bool  
 identifierInImport identifier hirImport =
   case hirImport.importList of
     Nothing -> not hirImport.hiding
     Just [] -> False
-    Just items -> any (\item -> AST.nodeToText item.name.node == identifier) items
+    Just items -> any (\item -> AST.nodeToText item.name.dynNode == identifier) items
 
 -- create assist for adding import
-mkAssistForImport :: AbsPath -> Text -> Text -> Hir.Decl -> Haskell.ImportP -> Hir.Import -> Assist
+mkAssistForImport :: AbsPath -> Text -> Text -> Hir.Decl Hir.HirRead -> Haskell.ImportP -> Hir.Import Hir.HirRead -> Assist
 mkAssistForImport path identifier moduleName decl existingImport hirImport =
   let 
     dynNode = AST.getDynNode existingImport
-    importEdit = addDeclToImportEdit dynNode hirImport decl
+    importEdit = addDeclToImportEdit hirImport decl
     sourceEdit = SourceEdit.single path importEdit
     label = "Import " <> identifier <> " from " <> moduleName
   in mkAssist label sourceEdit

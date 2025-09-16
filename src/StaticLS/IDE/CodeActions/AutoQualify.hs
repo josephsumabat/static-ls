@@ -3,7 +3,7 @@ module StaticLS.IDE.CodeActions.AutoQualify where
 import AST qualified
 import AST.Haskell as Haskell
 import Arborist.AutoQualify (qualifyIdentifier)
-import Arborist.Scope.Global (getGlobalAvalibleDecls)
+import Arborist.Scope.Global (getGlobalAvailableDecls)
 import Arborist.Scope.Types (GlblDeclInfo(..))
 import Control.Monad (forM)
 import Data.HashMap.Lazy qualified as Map
@@ -23,11 +23,11 @@ import StaticLS.Monad
 import Debug.Trace
 
 -- get the identifier at the cursor position
-getIdentifierAtPoint :: Range -> Hir.Program -> Maybe (Maybe Text, Text)
+getIdentifierAtPoint :: Range -> Hir.Program Hir.HirRead -> Maybe (Maybe Text, Text)
 getIdentifierAtPoint range prog =
   case AST.getQualifiedAtPoint range prog.node of
     Right (Just qualified) ->
-      let name = AST.nodeToText qualified.name.node
+      let name = AST.nodeToText qualified.name.dynNode
           qualifier = case qualified.mod of
             Nothing -> Nothing
             Just modName -> Just (modName.mod.text)
@@ -35,7 +35,7 @@ getIdentifierAtPoint range prog =
     _ -> Nothing
 
 -- find which modules an identifier can be imported from
-findModulesForIdentifier :: AbsPath -> Text -> StaticLsM [(Text, Hir.Decl)]
+findModulesForIdentifier :: AbsPath -> Text -> StaticLsM [(Text, Hir.Decl Hir.HirRead)]
 findModulesForIdentifier path identifier = do
   hir <- getHir path
 
@@ -43,18 +43,18 @@ findModulesForIdentifier path identifier = do
   let exportIndex = Map.empty
 
   -- get all available declarations
-  let availableDecls = getGlobalAvalibleDecls programIndex exportIndex hir
+  let availableDecls = getGlobalAvailableDecls programIndex exportIndex hir
       matchingDecls = filter (\info -> info.name == identifier) availableDecls
       moduleDecls = Map.toList $ Map.fromList
         [(info.originatingMod.text, info.decl) | info <- matchingDecls]
 
   pure moduleDecls
 
-parseImportToHir :: Haskell.ImportP -> Maybe Hir.Import
+parseImportToHir :: Haskell.ImportP -> Maybe (Hir.Import Hir.HirRead)
 parseImportToHir = eitherToMaybe . AST.parseImport
 
 -- get all imports from the current file
-getCurrentImports :: Hir.Program -> [Haskell.ImportP]
+getCurrentImports :: Hir.Program Hir.HirRead -> [Haskell.ImportP]
 getCurrentImports prog =
   let dynNode = AST.getDynNode prog.node
   in getAllImports dynNode
@@ -67,15 +67,15 @@ getCurrentImports prog =
       in thisImport ++ childImports
 
 -- check if identifier is in an import
-identifierInImport :: Text -> Hir.Import -> Bool
+identifierInImport :: Text -> Hir.Import Hir.HirRead -> Bool
 identifierInImport identifier hirImport =
   case hirImport.importList of
     Nothing -> not hirImport.hiding
     Just [] -> False
-    Just items -> any (\item -> AST.nodeToText item.name.node == identifier) items
+    Just items -> any (\item -> AST.nodeToText item.name.dynNode == identifier) items
 
 -- find qualified imports that can provide this identifier
-findQualifiedImportsForIdentifier :: AbsPath -> Text -> [(Haskell.ImportP, Hir.Import)] -> StaticLsM [(Haskell.ImportP, Hir.Import)]
+findQualifiedImportsForIdentifier :: AbsPath -> Text -> [(Haskell.ImportP, Hir.Import Hir.HirRead)] -> StaticLsM [(Haskell.ImportP, Hir.Import Hir.HirRead)]
 findQualifiedImportsForIdentifier path identifier imports = do
   -- get modules that actually export this identifier
   modulesThatExport <- findModulesForIdentifier path identifier
@@ -88,7 +88,7 @@ findQualifiedImportsForIdentifier path identifier imports = do
       identifierInImport identifier hirImport
 
 -- create assist for qualifying
-mkAssistForQualify :: AbsPath -> Text -> Hir.Name -> Haskell.ImportP -> Hir.Import -> Assist
+mkAssistForQualify :: AbsPath -> Text -> Hir.Name Hir.HirRead -> Haskell.ImportP -> Hir.Import Hir.HirRead -> Assist
 mkAssistForQualify path identifier identifierName importP hirImport =
   let
     qualifyEdit = qualifyIdentifier identifierName hirImport

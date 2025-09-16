@@ -61,7 +61,7 @@ findRefs path lineCol = do
     Nothing
       | Right (Just qual) <- qual -> do
           logInfo "fallback logic for refs"
-          findRefsString qual.name.node.nodeText
+          findRefsString qual.name.dynNode.nodeText
       | otherwise -> do
           pure []
     Just (hieView, names, nameDefRanges, localDefNames) -> do

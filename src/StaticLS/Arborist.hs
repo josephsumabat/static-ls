@@ -18,12 +18,12 @@ import Data.List qualified as List
 import Data.List.NonEmpty qualified as NE
 import Data.Path qualified as Path
 import Data.Set.NonEmpty qualified as NESet
-import Data.Text
+import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Time
 import Debug.Trace
 import Hir.Types qualified as Hir
-import Hir.Types 
+import Hir.Types
 import Language.LSP.Protocol.Types
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad

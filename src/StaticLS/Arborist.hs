@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeAbstractions #-}
 module StaticLS.Arborist where
 
 import AST qualified
@@ -178,7 +179,7 @@ renderNameInfo mHaddock nameInfo =
           declText
         ]
     )
-    <> "  \n\nimporated from: *"
+    <> "  \n\nimported from: *"
     <> T.intercalate ", " (NE.toList $ (.mod.text) <$> NESet.toList nameInfo.importedFrom)
     <> "*"
     <> "  \noriginates from: *"

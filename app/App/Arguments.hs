@@ -1,4 +1,5 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE CPP #-}
 
 module App.Arguments (
   execArgParser,
@@ -19,6 +20,20 @@ import Text.Read
 
 currVersion :: String
 currVersion = showVersion version
+
+hieBuiltVersion :: String
+hieBuiltVersion =
+#ifdef __GLASGOW_HASKELL__
+  let ghcInt = (__GLASGOW_HASKELL__ :: Int)
+#  ifdef __GLASGOW_HASKELL_PATCHLEVEL1__
+      patch = (__GLASGOW_HASKELL_PATCHLEVEL1__ :: Int)
+#  else
+      patch = (0 :: Int)
+#  endif
+   in show (ghcInt * 10 + patch)
+#else
+  "unknown"
+#endif
 
 data PrgOptions
   = StaticLsOptions
@@ -46,6 +61,7 @@ handleParseResultWithSuppression defaultOpts res = case res of
   Success (StaticLsOptions {showVer = True}) -> do
     -- Show version info
     putStrLn $ "static-ls, version " <> currVersion
+    putStrLn $ "hie version " <> hieBuiltVersion
     exitSuccess
   Success a -> return a.staticEnvOpts
   -- Ignore if invalid arguments are input
@@ -85,7 +101,7 @@ argParser defaultOpts =
         True
         ( long "version"
             <> short 'v'
-            <> help "Show the program version"
+            <> help "Show the program version and HIE version"
         )
       <*> flag
         False

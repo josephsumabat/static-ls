@@ -1,5 +1,4 @@
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE CPP #-}
 
 module App.Arguments (
   execArgParser,
@@ -10,6 +9,7 @@ module App.Arguments (
 import Control.Applicative
 import Data.Maybe
 import Data.Version (showVersion)
+import GHC.Iface.Ext.Types qualified as GHC
 import Options.Applicative
 import Paths_static_ls (version)
 import StaticLS.StaticEnv.Options
@@ -22,18 +22,7 @@ currVersion :: String
 currVersion = showVersion version
 
 hieBuiltVersion :: String
-hieBuiltVersion =
-#ifdef __GLASGOW_HASKELL__
-  let ghcInt = (__GLASGOW_HASKELL__ :: Int)
-#  ifdef __GLASGOW_HASKELL_PATCHLEVEL1__
-      patch = (__GLASGOW_HASKELL_PATCHLEVEL1__ :: Int)
-#  else
-      patch = (0 :: Int)
-#  endif
-   in show (ghcInt * 10 + patch)
-#else
-  "unknown"
-#endif
+hieBuiltVersion = show GHC.hieVersion
 
 data PrgOptions
   = StaticLsOptions

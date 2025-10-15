@@ -9,6 +9,7 @@ module App.Arguments (
 import Control.Applicative
 import Data.Maybe
 import Data.Version (showVersion)
+import GHC.Iface.Ext.Types qualified as GHC
 import Options.Applicative
 import Paths_static_ls (version)
 import StaticLS.StaticEnv.Options
@@ -19,6 +20,9 @@ import Text.Read
 
 currVersion :: String
 currVersion = showVersion version
+
+hieBuiltVersion :: String
+hieBuiltVersion = show GHC.hieVersion
 
 data PrgOptions
   = StaticLsOptions
@@ -46,6 +50,7 @@ handleParseResultWithSuppression defaultOpts res = case res of
   Success (StaticLsOptions {showVer = True}) -> do
     -- Show version info
     putStrLn $ "static-ls, version " <> currVersion
+    putStrLn $ "hie version " <> hieBuiltVersion
     exitSuccess
   Success a -> return a.staticEnvOpts
   -- Ignore if invalid arguments are input
@@ -85,7 +90,7 @@ argParser defaultOpts =
         True
         ( long "version"
             <> short 'v'
-            <> help "Show the program version"
+            <> help "Show the program version and HIE version"
         )
       <*> flag
         False

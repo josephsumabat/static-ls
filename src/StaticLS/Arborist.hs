@@ -1,8 +1,13 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 981
 {-# LANGUAGE TypeAbstractions #-}
+#else
+#endif
 module StaticLS.Arborist where
 
 import AST qualified
 import AST.Haskell qualified as H
+import AST.Sum (pattern Inj)
 import Arborist.Files
 import Arborist.Haddock
 import Arborist.ProgramIndex
@@ -11,8 +16,8 @@ import Arborist.Scope.Types
 import Control.Error
 import Control.Monad qualified as Monad
 import Control.Monad.IO.Class
-import Data.HashMap.Lazy qualified as Map
 import Data.HashMap.Lazy qualified as HashMap
+import Data.HashMap.Lazy qualified as Map
 import Data.LineCol (LineCol (..))
 import Data.LineColRange
 import Data.List qualified as List
@@ -23,14 +28,13 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Time
 import Debug.Trace
-import Hir.Types qualified as Hir
 import Hir.Types
+import Hir.Types qualified as Hir
 import Language.LSP.Protocol.Types
 import StaticLS.IDE.FileWith
 import StaticLS.IDE.Monad
 import StaticLS.ProtoLSP qualified as ProtoLSP
 import System.Directory (doesFileExist)
-import AST.Sum (pattern Inj)
 
 type ResolveableRename = Resolveable RenamePhase
 
@@ -150,33 +154,32 @@ renderGlblVarInfo mHaddock glblVarInfo =
 
 nameToHover :: ProgramIndex -> (H.Name RenamePhase) -> Maybe Hover
 nameToHover prgIndex nameNode =
- let mResolvedName = nameNode.ext
-     range = ProtoLSP.lineColRangeToProto nameNode.dynNode.nodeLineColRange
-     mContents = (resolvedNameToContents prgIndex =<< mResolvedName)
-  in ( \contents ->
-         Hover
-           { _range = Just range
-           , _contents = InL $ MarkupContent MarkupKind_Markdown contents
-           }
-     )
-       <$> mContents
+  let mResolvedName = nameNode.ext
+      range = ProtoLSP.lineColRangeToProto nameNode.dynNode.nodeLineColRange
+      mContents = (resolvedNameToContents prgIndex =<< mResolvedName)
+   in ( \contents ->
+          Hover
+            { _range = Just range
+            , _contents = InL $ MarkupContent MarkupKind_Markdown contents
+            }
+      )
+        <$> mContents
 
 resolvedNameToContents :: ProgramIndex -> ResolvedName -> Maybe Text
 resolvedNameToContents prgIndex resolvedName =
- case resolvedName of
-   ResolvedName nameInfo _ ->
-     let mHover = getRequiredHaddockName prgIndex nameInfo
-      in Just $ renderNameInfo mHover nameInfo
-   _ -> Nothing
-
+  case resolvedName of
+    ResolvedName nameInfo _ ->
+      let mHover = getRequiredHaddockName prgIndex nameInfo
+       in Just $ renderNameInfo mHover nameInfo
+    _ -> Nothing
 
 renderNameInfo :: Maybe HaddockInfo -> GlblNameInfo -> Text
 renderNameInfo mHaddock nameInfo =
   wrapHaskell
     ( T.intercalate
         "\n"
-        [ haddock,
-          declText
+        [ haddock
+        , declText
         ]
     )
     <> "  \n\nimported from: *"
@@ -195,5 +198,3 @@ renderNameInfo mHaddock nameInfo =
     DeclTypeSynonym decl -> decl.node.dynNode.nodeText
     _ -> ""
   wrapHaskell x = "\n```haskell\n" <> x <> "\n```\n"
-
-

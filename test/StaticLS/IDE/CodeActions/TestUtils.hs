@@ -1,12 +1,20 @@
 module StaticLS.IDE.CodeActions.TestUtils where
 
+import AST.Haskell qualified as AST
+import Arborist.ProgramIndex
+import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Reader
 import Data.Function ((&))
+import Data.HashMap.Internal qualified as HM
 import Data.HashMap.Strict qualified as HashMap
 import Data.Path (AbsPath)
 import Data.Pos (Pos)
 import Data.Rope qualified as Rope
 import Data.Text (Text)
+import Data.Text.IO qualified as T
+import Hir.Parse qualified as Hir
+import Hir.Types qualified as Hir
 import StaticLS.IDE.CodeActions qualified as CodeActions
 import StaticLS.IDE.CodeActions.Types
 import StaticLS.IDE.Monad
@@ -14,14 +22,6 @@ import StaticLS.IDE.SourceEdit (SourceEdit (..))
 import StaticLS.Monad
 import StaticLS.Utils (isJustOrThrowS)
 import Test.Hspec
-import Data.Text.IO qualified as T
-import Data.HashMap.Internal qualified as HM
-import Hir.Types qualified as Hir
-import Control.Monad
-import Hir.Parse qualified as Hir
-import AST.Haskell qualified as AST
-import Arborist.ProgramIndex
-import Control.Monad.Trans.Reader
 
 checkCodeAction ::
   (HasCallStack) =>
@@ -58,8 +58,7 @@ checkCodeAction path pos codeAction findAssist = do
       pure ()
   pure ()
 
-
-getPrg :: [FilePath] -> IO [Hir.Program]
+getPrg :: [FilePath] -> IO [Hir.Program Hir.HirRead]
 getPrg hsFiles =
   forM hsFiles $ \file -> do
     fileContents <- T.readFile file
@@ -67,13 +66,13 @@ getPrg hsFiles =
     pure $ snd v
 
 updatePrgIndex :: [FilePath] -> ReaderT Env IO ()
-updatePrgIndex file = do 
+updatePrgIndex file = do
   programs <- liftIO $ getPrg file
   let prog = head programs
   modFileMap <- getModFileMap
 
   -- get sccope
-  scopeDeps <- liftIO $ gatherScopeDeps HM.empty  prog modFileMap Nothing
+  scopeDeps <- liftIO $ gatherScopeDeps HM.empty prog modFileMap Nothing
 
   -- write new prg index
   tryWritePrgIndex (const scopeDeps)

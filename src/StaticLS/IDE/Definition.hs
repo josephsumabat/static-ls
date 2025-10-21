@@ -4,6 +4,9 @@ module StaticLS.IDE.Definition (
   nameToLocation,
 ) where
 
+import AST.Haskell qualified as H
+import AST.Sum (pattern Inj)
+import Arborist.Renamer
 import Control.Error
 import Control.Monad qualified as Monad
 import Control.Monad.Extra (mapMaybeM)
@@ -32,6 +35,7 @@ import Hir.Types qualified as Hir
 import StaticLS.Arborist
 import StaticLS.FilePath
 import StaticLS.HIE.File
+import StaticLS.HIE.Position
 import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.HieView.Type qualified as HieView.Type
@@ -40,14 +44,10 @@ import StaticLS.IDE.FileWith
 import StaticLS.IDE.FileWith qualified as FileWith
 import StaticLS.IDE.HiePos
 import StaticLS.IDE.Monad
-import StaticLS.HIE.Position
 import StaticLS.Logger
 import StaticLS.StaticEnv
 import System.Directory (doesFileExist)
 import System.Directory qualified as Directory
-import AST.Sum (pattern Inj)
-import AST.Haskell qualified as H
-import Arborist.Renamer
 
 getDefinition ::
   (MonadIde m, MonadIO m) =>
@@ -55,15 +55,16 @@ getDefinition ::
   LineCol ->
   m [FileLcRange]
 getDefinition path lineCol = do
-  case path of 
-    Path.Path fp | ".yesodroutes" `isSuffixOf` fp ->
-      getYesodRoutesDefinition path lineCol
+  case path of
+    Path.Path fp
+      | ".yesodroutes" `isSuffixOf` fp ->
+          getYesodRoutesDefinition path lineCol
     _ -> do
       hieDef <- getHieDefinition path lineCol
       arboristDef <- getArboristDefinition path lineCol
       pure $
         case hieDef of
-          [] ->  arboristDef
+          [] -> arboristDef
           _ -> hieDef
 
 getYesodRoutesDefinition :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m [FileLcRange]
@@ -73,18 +74,18 @@ getYesodRoutesDefinition path lineCol = do
   case (currWord, followingWord) of
     (Just curr, Just following)
       | not (T.null curr)
-        , T.last curr == 'R'
-        , following == "GET" || following == "POST"
-        -> do
-          let occ = T.toLower following <> curr
-          mRow <- runMaybeT $ hieDbFindDefString occ Nothing
-          case mRow of
-            Just (row:_) -> do
-              mPath <- runMaybeT . hieFilePathToSrcFilePathFromFile =<< Path.filePathToAbs (defSrc row)
-              let newLoc = LineColRange.point (hiedbCoordsToLineCol (row.defSLine, row.defSCol))
-              pure $ 
-                maybe [] (\p -> [FileWith p newLoc]) mPath
-            _ -> pure []
+      , T.last curr == 'R'
+      , following == "GET" || following == "POST" ->
+          do
+            let occ = T.toLower following <> curr
+            mRow <- runMaybeT $ hieDbFindDefString occ Nothing
+            case mRow of
+              Just (row : _) -> do
+                mPath <- runMaybeT . hieFilePathToSrcFilePathFromFile =<< Path.filePathToAbs (defSrc row)
+                let newLoc = LineColRange.point (hiedbCoordsToLineCol (row.defSLine, row.defSCol))
+                pure $
+                  maybe [] (\p -> [FileWith p newLoc]) mPath
+              _ -> pure []
     _ -> pure []
 
 getArboristDefinition ::
@@ -97,19 +98,19 @@ getArboristDefinition path lineCol = do
   prg <- getHir path
   mResolved <- getResolved prg lineCol
   case mResolved of
-      Just resolved@(Inj @(H.Variable RenamePhase) _) -> 
-        case prg.mod of
-          Just modText -> resolvedToFileLcRange modFileMap modText resolved
-          Nothing -> pure []
-      Just resolved@(Inj @(H.Name RenamePhase) _) -> 
-          case prg.mod of
-            Just modText -> resolvedToFileLcRange modFileMap modText resolved
-            Nothing -> pure []
-      Just resolved@(Inj @(H.Constructor RenamePhase) _) -> 
-        case prg.mod of
-          Just modText -> resolvedToFileLcRange modFileMap modText resolved
-          Nothing -> pure []
-      _ -> pure []
+    Just resolved@(Inj @(H.Variable RenamePhase) _) ->
+      case prg.mod of
+        Just modText -> resolvedToFileLcRange modFileMap modText resolved
+        Nothing -> pure []
+    Just resolved@(Inj @(H.Name RenamePhase) _) ->
+      case prg.mod of
+        Just modText -> resolvedToFileLcRange modFileMap modText resolved
+        Nothing -> pure []
+    Just resolved@(Inj @(H.Constructor RenamePhase) _) ->
+      case prg.mod of
+        Just modText -> resolvedToFileLcRange modFileMap modText resolved
+        Nothing -> pure []
+    _ -> pure []
 
 getHieDefinition ::
   (MonadIde m, MonadIO m) =>
@@ -136,11 +137,11 @@ getHieDefinition path lineCol = do
         pure identifiers
       identifiers <- pure $ Maybe.fromMaybe [] identifiers
       fileLcs <- do
-          mLocationLinks <- do
-            locations <- traverse identifierToLocation identifiers
-            locations <- pure $ concat locations
-            pure locations
-          pure mLocationLinks
+        mLocationLinks <- do
+          locations <- traverse identifierToLocation identifiers
+          locations <- pure $ concat locations
+          pure locations
+        pure mLocationLinks
       convertedFileLcs <- traverse convertPersistentModelFileLc fileLcs
       pure $ concat convertedFileLcs
  where
@@ -263,7 +264,7 @@ hieDbFindDefString name mod = do
     )
 
 -- Find the word range and extract it as Text
-getWordAtPos :: LineCol ->  Rope.Rope -> Maybe Text
+getWordAtPos :: LineCol -> Rope.Rope -> Maybe Text
 getWordAtPos lineCol rope = do
   lineText <- Rope.getLine rope lineCol.line
   let txt = Rope.toText lineText

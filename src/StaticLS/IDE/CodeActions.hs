@@ -10,8 +10,12 @@ import Control.Monad (join)
 import Data.LineCol (LineCol (..))
 import Data.Maybe (catMaybes)
 import Data.Path (AbsPath)
+import Data.Pos (Pos (..))
+import Data.Rope (Rope)
 import Data.Rope qualified as Rope
 import Data.Set qualified as S
+import Data.Text qualified as T
+import Data.Text.Utf8.Rope qualified as Rope8
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.CodeActions.AddRequiredExtension qualified as AddRequiredExtension
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
@@ -43,7 +47,7 @@ getCodeActions ::
 getCodeActions tdi ctx path lineCol = do
   rope <- getSourceRope path
   let pos = Rope.lineColToPos rope lineCol
-  let leadingSpaces = Rope.getLeadingSpaceCountAtLine lineCol.line rope
+  let leadingSpaces = getLeadingSpaceCountAtLine lineCol.line rope
   let cx = CodeActionContext {path, pos, lineCol}
   typesCodeActions <- AddTypeSig.codeAction cx
   importCodeActions <- AutoImport.codeAction cx
@@ -62,6 +66,11 @@ getCodeActions tdi ctx path lineCol = do
         ++ autoImportExistingCodeActions
         ++ autoQualifyCodeActions
   pure $ assistActions ++ issueActions
+
+getLeadingSpaceCountAtLine :: Pos -> Rope -> Int
+getLeadingSpaceCountAtLine (Pos lineNumber) rope = do
+  let line = Rope8.toText $ Rope8.getLine (fromIntegral lineNumber) (Rope.toTextRope rope)
+  T.length $ T.takeWhile (== ' ') line
 
 resolveLazyAssist :: CodeActionMessage -> StaticLsM SourceEdit
 resolveLazyAssist (CodeActionMessage {kind, path}) = do

@@ -106,7 +106,6 @@ library
       Data.Diff
       Data.ListUtils
       Data.RangeMap
-      Data.Rope
       Data.TextUtils
       StaticLS.Arborist
       StaticLS.Except
@@ -509,9 +508,9 @@ test-suite static-ls-test
       StaticLS.HirSpec
       StaticLS.HISpec
       StaticLS.IDE.CodeActions.AddTypeSigSpec
+      StaticLS.IDE.CodeActions.AutoImportExistingSpec
       StaticLS.IDE.CodeActions.AutoImportSpec
       StaticLS.IDE.CodeActions.AutoQualifySpec
-      StaticLS.IDE.CodeActions.AutoImportExistingSpec
       StaticLS.IDE.CodeActions.BringVariableInScopeSpec
       StaticLS.IDE.CodeActions.ParsingSpec
       StaticLS.IDE.CodeActions.TestUtils

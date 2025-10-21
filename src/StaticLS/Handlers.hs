@@ -7,13 +7,20 @@ import Control.Monad qualified as Monad
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Aeson qualified as Aeson
+import Data.ConcurrentCache
 import Data.Foldable (for_)
 import Data.HashMap.Strict qualified as HashMap
+import Data.IORef (readIORef)
+import Data.List (maximumBy)
+import Data.Map.Strict qualified as Map
 import Data.Maybe qualified as Maybe
+import Data.Ord (comparing)
 import Data.Path qualified as Path
 import Data.Rope qualified as Rope
 import Data.Text qualified as T
 import Data.Text.IO qualified as T.IO
+import Data.Text.Mixed.Rope qualified as MixedRope
+import Data.Time.Clock (UTCTime)
 import Language.LSP.Diagnostics qualified as LSP
 import Language.LSP.Protocol.Lens qualified as LSP hiding (publishDiagnostics)
 import Language.LSP.Protocol.Message qualified as LSP
@@ -25,7 +32,7 @@ import Language.LSP.Server (
   getVirtualFiles,
  )
 import Language.LSP.Server qualified as LSP
-import Language.LSP.VFS (VirtualFile (..), VFS(..))
+import Language.LSP.VFS (VFS (..), VirtualFile (..))
 import StaticLS.Arborist
 import StaticLS.GhcidSession
 import StaticLS.HIE.File qualified as HIE.File
@@ -56,13 +63,6 @@ import System.Directory (doesFileExist, getModificationTime)
 import System.FSNotify qualified as FSNotify
 import Text.Parsec.Text qualified as Parsec
 import UnliftIO.Exception qualified as Exception
-import Data.Ord (comparing)
-import Data.List (maximumBy)
-import Data.Time.Clock (UTCTime)
-import Data.IORef (readIORef)
-import Data.ConcurrentCache
-import qualified Data.Map.Strict as Map
-import qualified Data.Text.Mixed.Rope as MixedRope
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------

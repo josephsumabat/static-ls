@@ -45,7 +45,7 @@ testHieDbDir :: FilePath
 testHieDbDir = "test/TestData/.hiedb"
 
 testSrcDirs :: [FilePath]
-testSrcDirs = Options.defaultStaticEnvOptions.optionSrcDirs
+testSrcDirs = ["src", "test", "test-data-no-compile"]
 
 testImmutableSrcDirs :: [FilePath]
 testImmutableSrcDirs = Options.defaultStaticEnvOptions.optionImmutableSrcDirs

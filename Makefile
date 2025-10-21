@@ -8,7 +8,8 @@ hpack:
 
 .PHONY: format
 format:
-	fourmolu . -i
+	fourmolu src/ -i
+	fourmolu test/ -i
 
 .PHONY: clean-test
 clean-test:

@@ -16,13 +16,16 @@ where
 import Data.Bifunctor (second)
 import Data.Char qualified as Char
 import Data.Function ((&))
+import Data.HashMap.Strict qualified as HashMap
 import Data.LineCol (LineCol (..))
 import Data.LineColRange (LineColRange (..))
 import Data.LineColRange qualified as LineColRange
+import Data.List (maximumBy)
 import Data.List qualified as List
 import Data.List.NonEmpty qualified as NE
 import Data.List.NonEmpty.Extra (minimum1)
 import Data.Maybe qualified as Maybe
+import Data.Ord (comparing)
 import Data.Path qualified as Path
 import Data.Pos (Pos (..))
 import Data.Text (Text)
@@ -34,9 +37,6 @@ import StaticLS.IDE.FileWith (FileWith' (..))
 import StaticLS.IDE.FileWith qualified as FileWith
 import Text.RawString.QQ
 import Text.Regex.TDFA qualified as RE
-import Data.Ord (comparing)
-import Data.List (maximumBy)
-import qualified Data.HashMap.Strict as HashMap
 
 mkRegex :: Text -> RE.Regex
 mkRegex = RE.makeRegex
@@ -214,10 +214,11 @@ isCompilingLine t = t == "[ghciwatch is still compiling]"
 createCompilingDiagnostic :: (Path.RelPath -> Path.AbsPath) -> Path.RelPath -> Diagnostic
 createCompilingDiagnostic toAbs mainFile =
   Diagnostics.mkDiagnostic
-    (FileWith
-      { path = toAbs mainFile
-      , loc = LineColRange.point (LineCol (Pos 0) (Pos 0))
-      })
+    ( FileWith
+        { path = toAbs mainFile
+        , loc = LineColRange.point (LineCol (Pos 0) (Pos 0))
+        }
+    )
     Diagnostics.Error
     "ghciwatch is still compiling. Please wait for updated diagnostics"
 
@@ -226,12 +227,12 @@ mainFile :: Path.RelPath
 mainFile = Path.filePathToRel "app/main.hs"
 
 parse :: (Path.RelPath -> Path.AbsPath) -> Path.RelPath -> Text -> [Diagnostic]
-parse toAbs mainFile input = 
-  let diags = fmap (toDiagnostic toAbs . second (dedent . clean)) . split $ input in
-  -- Special ghciwatch cas 
-  if any isCompilingLine (T.lines input)
-    then createCompilingDiagnostic toAbs mainFile : diags
-    else diags
+parse toAbs mainFile input =
+  let diags = fmap (toDiagnostic toAbs . second (dedent . clean)) . split $ input
+   in -- Special ghciwatch cas
+      if any isCompilingLine (T.lines input)
+        then createCompilingDiagnostic toAbs mainFile : diags
+        else diags
 
 dedent :: [Text] -> [Text]
 dedent lines =

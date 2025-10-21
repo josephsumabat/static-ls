@@ -26,6 +26,8 @@ import TreeSitter.Api
 
 import AST qualified
 import AST.Haskell qualified as H
+import AST.Sum (pattern Inj)
+import Arborist.Renamer
 import Control.Applicative
 import Control.Monad qualified as Monad
 import Data.LineColRange qualified as LineColRange
@@ -45,8 +47,6 @@ import StaticLS.IDE.Monad
 import StaticLS.Logger (logInfo)
 import StaticLS.Maybe
 import StaticLS.ProtoLSP qualified as ProtoLSP
-import AST.Sum (pattern Inj)
-import Arborist.Renamer
 
 -- | Retrieve hover information.
 retrieveHover ::

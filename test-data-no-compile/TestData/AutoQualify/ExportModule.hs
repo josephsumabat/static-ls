@@ -1,9 +1,9 @@
-module TestData.AutoQualify.ExportModule 
-  ( foo
-  , bar
-  , MyData(..)
-  , (***)
-  ) where
+module TestData.AutoQualify.ExportModule (
+  foo,
+  bar,
+  MyData (..),
+  (***),
+) where
 
 foo :: Int -> Int
 foo x = x + 1

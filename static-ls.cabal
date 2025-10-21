@@ -105,11 +105,11 @@ library
       Data.Diff
       Data.ListUtils
       Data.RangeMap
-      Data.Rope
       Data.TextUtils
       StaticLS.Arborist
       StaticLS.Except
       StaticLS.FilePath
+      StaticLS.GhcidSession
       StaticLS.Handlers
       StaticLS.HI
       StaticLS.HI.File
@@ -170,7 +170,6 @@ library
       StaticLS.StaticEnv.Options
       StaticLS.Tree
       StaticLS.Utils
-      StaticLS.GhcidSession
   other-modules:
       Paths_static_ls
   autogen-modules:
@@ -498,9 +497,9 @@ test-suite static-ls-test
       StaticLS.HirSpec
       StaticLS.HISpec
       StaticLS.IDE.CodeActions.AddTypeSigSpec
+      StaticLS.IDE.CodeActions.AutoImportExistingSpec
       StaticLS.IDE.CodeActions.AutoImportSpec
       StaticLS.IDE.CodeActions.AutoQualifySpec
-      StaticLS.IDE.CodeActions.AutoImportExistingSpec
       StaticLS.IDE.CodeActions.TestUtils
       StaticLS.IDE.DefinitionSpec
       StaticLS.IDE.Diagnostics.ParseGHCSpec

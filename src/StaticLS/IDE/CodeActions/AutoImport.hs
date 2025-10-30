@@ -46,7 +46,7 @@ findModulesForDefQuery (getConn -> conn) name = do
       \FROM exports \
       \JOIN mods USING (hieFile) \
       \WHERE (exports.occ = ? COLLATE BINARY OR exports.occ = ? COLLATE BINARY)"
-      (T.pack "t:" <> name, T.pack "v:" <> name)
+      (T.pack "t:" <> name, T.pack "v:" <> name, T.pack "c:" <> name)
   pure (coerce res)
 
 findModulesForDef :: Text -> StaticLsM [Hir.ModuleText]

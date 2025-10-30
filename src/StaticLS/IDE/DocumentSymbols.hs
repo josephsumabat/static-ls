@@ -47,7 +47,7 @@ declarationToSymbol decl =
     Inj @Haskell.DataTypeP dataType -> dataTypeToSymbol dataType
     Inj @Haskell.NewtypeP newtype_ -> newtypeToSymbol newtype_
     Inj @Haskell.ClassP class_ -> classToSymbol class_
-    Inj @Haskell.TypeSynomymP typeSynonym -> typeSynonymToSymbol typeSynonym
+    Inj @Haskell.TypeSynonymP typeSynonym -> typeSynonymToSymbol typeSynonym
     Inj @Haskell.TypeFamilyP typeFamily -> typeFamilyToSymbol typeFamily
     _ -> pure []
 
@@ -63,7 +63,7 @@ typeFamilyToSymbol typeFamily = do
         (AST.nodeToRange typeFamily)
         (AST.nodeToRange name)
 
-typeSynonymToSymbol :: Haskell.TypeSynomymP -> AST.Err [SymbolTree]
+typeSynonymToSymbol :: Haskell.TypeSynonymP -> AST.Err [SymbolTree]
 typeSynonymToSymbol typeSynonym = do
   name <- AST.collapseErr typeSynonym.name
   pure $ Foldable.toList $ do

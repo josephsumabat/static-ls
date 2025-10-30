@@ -1,8 +1,4 @@
 {-# LANGUAGE CPP #-}
-#if __GLASGOW_HASKELL__ >= 981
-{-# LANGUAGE TypeAbstractions #-}
-#else
-#endif
 module StaticLS.Arborist where
 
 import AST qualified

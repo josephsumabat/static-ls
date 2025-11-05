@@ -177,7 +177,7 @@ shouldDropLine :: Text -> Bool
 shouldDropLine t = t == "In the" || t `matches` r1 || t `matches` r2
  where
   r1 = mkRegex [r|^\s*\|$|]
-  r2 = mkRegex [r|(\d+)?\s*\||]
+  r2 = mkRegex [r|(\d+)?\s+\|[\s$]+|]
 
 split :: Text -> [Message]
 split = findHeader . T.lines

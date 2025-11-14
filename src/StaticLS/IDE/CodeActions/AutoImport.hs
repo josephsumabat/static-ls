@@ -45,7 +45,7 @@ findModulesForDefQuery (getConn -> conn) name = do
       "SELECT DISTINCT mods.mod \
       \FROM exports \
       \JOIN mods USING (hieFile) \
-      \WHERE (exports.occ = ? COLLATE BINARY OR exports.occ = ? COLLATE BINARY)"
+      \WHERE (exports.occ = ? COLLATE BINARY OR exports.occ = ? COLLATE BINARY OR exports.occ = ? COLLATE BINARY)"
       (T.pack "t:" <> name, T.pack "v:" <> name, T.pack "c:" <> name)
   pure (coerce res)
 

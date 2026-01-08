@@ -8,8 +8,9 @@ let
   };
 
 in
+  ghcVersion:
   self: super: {
-    ghcVersion = "ghc963";
+    ghcVersion = ghcVersion;
 
     all-cabal-hashes =
         # Update revision to match required hackage

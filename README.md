@@ -25,9 +25,14 @@ If you want to use `static-ls` in your IDE then
 recommended alongside `-fdefer-type-errors flag` for better UX
 and the [ghc hiedb plugin](https://github.com/josephsumabat/hiedb-plugin) for re-indexing. 
 
-Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add support for other versions of ghc if desired
+Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add support for other versions of ghc if desired.
 
-(NOTE: The current version on hackage is out of date. Building from source is currently recommended.)
+To install, it is recommended to build from source. It's important to build
+`static-ls` with the same version of GHC that your project uses.
+
+If you use nix, you can checkout the section below to see how to install
+`static-ls`  via nix flake.
+
 
 ## Quick start
 
@@ -154,6 +159,33 @@ static-ls includes a `ghcid` subcommand which passes the appropriate flags to us
 - Must be compiled on the same version of ghc as the project
 - You will need to re-index your hie files once you edit your project
 
+## Install with Nix
+
+**IMPORTANT:** You must build `static-ls` with the same GHC version as your project. Using a different GHC version will result in compatibility issues with HIE files.
+
+Add `static-ls` as an input to your flake:
+
+```nix
+# flake.nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    static-ls = {
+      url = "github:josephsumabat/static-ls";
+      inputs.nixpkgs.follows = "nixpkgs";  # Use your nixpkgs version
+    };
+  };
+
+  outputs = { self, nixpkgs, static-ls, ... }: {
+    packages.x86_64-linux.default = static-ls.lib.x86_64-linux.mkPackage {
+      ghcVersion = "ghc963";  # Match your project's GHC version
+    };
+  };
+}
+```
+
+Available GHC versions include: `ghc963`, `ghc981`, `ghc982`, `ghc945`, `ghc946`, etc. Check your nixpkgs for available versions.
+
 ## Editor setup
 Instructions for editor setup
 
@@ -229,6 +261,27 @@ You can technically use any LSP compliant client - for a generic one we generall
   :major-modes '(haskell-mode haskell-ts-mode)
   :server-id 'static-ls-haskell
   :language-id "haskell"))
+```
+
+### Helix
+Modify your `languages.toml` config file to add the following:
+
+```toml
+[[language]]
+name = "haskell"
+language-servers = ["haskell-static-ls"]
+
+[language-server.haskell-static-ls]
+command = "static-ls"
+
+```
+
+You can verify that it's configured properly and that `static-ls` is discoverable
+by helix with `hx --health haskell`. You should see something like:
+
+```sh
+Configured language servers:
+  ✓ haskell-static-ls: /path/to/static-ls
 ```
 
 ## Troubleshooting

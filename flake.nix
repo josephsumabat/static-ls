@@ -9,46 +9,77 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    flake-utils,
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      # pkgs = nixpkgs.legacyPackages.${system};
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [
-          (import ./nix/overlays)
-        ];
-      };
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
+    let
+      # Default GHC version used for the default package outputs
+      defaultGhcVersion = "ghc963";
 
-      #haskellPackages = pkgs.haskell.packages.ghc963;
-      haskellPackages = pkgs.haskellPackages;
-
-      jailbreakUnbreak = pkg:
-        pkgs.haskell.lib.doJailbreak (pkg.overrideAttrs (_: {meta = {};}));
-
+      # Name of package
       packageName = "static-ls";
-    in {
-      packages.${packageName} = pkgs.haskell.lib.dontCheck (haskellPackages.callCabal2nix packageName self rec {
-        # Dependency overrides go here
-      });
 
-      packages.default = self.packages.${system}.${packageName};
+      # Function to create packages for a given GHC version
+      mkNixPkgs =
+        {
+          system,
+          ghcVersion,
+        }:
+        import nixpkgs {
+          inherit system;
+          overlays = [
+            (import ./nix/overlays ghcVersion)
+          ];
+        };
 
-      devShells.default = pkgs.mkShell {
-        buildInputs = with pkgs; [
-          pkgs.haskell.packages.${pkgs.ghcVersion}.haskell-language-server # you must build it with your ghc to work
-          haskellPackages.fourmolu
-          haskellPackages.hiedb
-          sqlite
-          ghcid
-          cabal-install
-          alejandra
-        ];
-        inputsFrom = [self.packages.${system}.${packageName}.env];
-        shellHook = "PS1=\"[static-ls:\\w]$ \"";
-      };
-    });
+      # Given a pkg set, build static-ls
+      mkPackage =
+        pkgs:
+        pkgs.haskell.lib.dontCheck (
+          pkgs.haskellPackages.callCabal2nix packageName self rec {
+            # Dependency overrides go here
+          }
+        );
+
+    in
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = mkNixPkgs {
+          inherit system;
+          ghcVersion = defaultGhcVersion;
+        };
+        package = mkPackage pkgs;
+      in
+      {
+        packages.${packageName} = package;
+        packages.default = package;
+
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            pkgs.haskell.packages.${pkgs.ghcVersion}.haskell-language-server # you must build it with your ghc to work
+            haskellPackages.fourmolu
+            haskellPackages.hiedb
+            sqlite
+            ghcid
+            cabal-install
+            alejandra
+          ];
+          inputsFrom = [ package.env ];
+          shellHook = "PS1=\"[static-ls:\\w]$ \"";
+        };
+
+        # Expose a function that consumers can use to build with their desired
+        # GHC version
+        lib.mkPackage =
+          { ghcVersion }:
+          (mkPackage (mkNixPkgs {
+            inherit system ghcVersion;
+          }));
+
+      }
+    );
 }

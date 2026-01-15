@@ -37,6 +37,7 @@ import Data.HashMap.Strict (HashMap)
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineCol (LineCol (..))
 import Data.LineColRange
+import Data.Map qualified as Map
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Data.Pos
@@ -154,23 +155,18 @@ editToProto rope edit =
   changeToProto rope <$> Edit.getChanges edit
 
 -- TODO: convert fsEdits
+
 sourceEditToProto :: SourceEdit -> StaticLsM LSP.WorkspaceEdit
 sourceEditToProto SourceEdit {fileEdits} = do
-  documentChanges <- for (HashMap.toList fileEdits) \(path, edit) -> do
+  changesKVs <- for (HashMap.toList fileEdits) $ \(path, edit) -> do
     rope <- IDE.Monad.getSourceRope path
-    pure
-      LSP.TextDocumentEdit
-        { _textDocument =
-            LSP.OptionalVersionedTextDocumentIdentifier
-              { _uri = absPathToUri path
-              , _version = LSP.InR LSP.Null
-              }
-        , _edits = LSP.InL <$> editToProto rope edit
-        }
+    let edits = editToProto rope edit
+    pure (absPathToUri path, edits)
+
   pure
     LSP.WorkspaceEdit
-      { _changes = Nothing
-      , _documentChanges = Just (fmap LSP.InL documentChanges)
+      { _changes = Just (Map.fromList changesKVs)
+      , _documentChanges = Nothing
       , _changeAnnotations = Nothing
       }
 

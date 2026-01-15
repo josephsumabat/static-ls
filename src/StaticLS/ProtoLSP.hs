@@ -27,6 +27,7 @@ module StaticLS.ProtoLSP (
 )
 where
 
+import Data.Map qualified as Map
 import Control.Monad ((<=<))
 import Control.Monad.Catch
 import Data.Aeson qualified as Aeson
@@ -154,25 +155,19 @@ editToProto rope edit =
   changeToProto rope <$> Edit.getChanges edit
 
 -- TODO: convert fsEdits
+
 sourceEditToProto :: SourceEdit -> StaticLsM LSP.WorkspaceEdit
-sourceEditToProto SourceEdit {fileEdits} = do
-  documentChanges <- for (HashMap.toList fileEdits) \(path, edit) -> do
-    rope <- IDE.Monad.getSourceRope path
-    pure
-      LSP.TextDocumentEdit
-        { _textDocument =
-            LSP.OptionalVersionedTextDocumentIdentifier
-              { _uri = absPathToUri path
-              , _version = LSP.InR LSP.Null
-              }
-        , _edits = LSP.InL <$> editToProto rope edit
-        }
-  pure
-    LSP.WorkspaceEdit
-      { _changes = Nothing
-      , _documentChanges = Just (fmap LSP.InL documentChanges)
-      , _changeAnnotations = Nothing
-      }
+sourceEditToProto SourceEdit{ fileEdits } = do
+  changesKVs <- for (HashMap.toList fileEdits) $ \(path, edit) -> do
+    rope  <- IDE.Monad.getSourceRope path
+    let edits = editToProto rope edit
+    pure (absPathToUri path, edits)
+
+  pure LSP.WorkspaceEdit
+    { _changes = Just (Map.fromList changesKVs)
+    , _documentChanges = Nothing
+    , _changeAnnotations = Nothing
+    }
 
 assistToCodeAction :: Assist -> StaticLsM LSP.CodeAction
 assistToCodeAction Assist {label, sourceEdit} = do

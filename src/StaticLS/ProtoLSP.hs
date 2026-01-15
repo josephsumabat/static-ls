@@ -27,6 +27,7 @@ module StaticLS.ProtoLSP (
 )
 where
 
+import Data.Map qualified as Map
 import Control.Monad ((<=<))
 import Control.Monad.Catch
 import Data.Aeson qualified as Aeson

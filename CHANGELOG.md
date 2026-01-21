@@ -1,5 +1,14 @@
 # Revision history for static-ls
 
+## Unreleased -- 2025-07-06
+  * New code actions/quick fixes
+    * Add required extension
+    * Insert associated type
+    * Insert cases
+    * Insert fields
+    * Insert missing methods
+    * Use valid hole fit
+
 ## 1.0.0 -- 2024-09-24
   * Re-architect to use tree-sitter and in memory representation of file system
   * New features:

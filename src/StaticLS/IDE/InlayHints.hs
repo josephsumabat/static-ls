@@ -7,6 +7,7 @@ module StaticLS.IDE.InlayHints (
 ) where
 
 import Data.Path
+import StaticLS.IDE.InlayHints.Imports qualified as Imports
 import StaticLS.IDE.InlayHints.TypeAnnotations qualified as TypeAnnotations
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.InlayHints.Wildcard qualified as Wildcard
@@ -19,4 +20,5 @@ getInlayHints path options = concat <$> sequenceA hints
   hints =
     ( [TypeAnnotations.getInlayHints options path]
         ++ [Wildcard.getInlayHints path | options.experimentalFeatures]
+        ++ [Imports.getInlayHints path options]
     )

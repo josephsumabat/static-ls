@@ -24,6 +24,7 @@ module StaticLS.ProtoLSP (
   diagnosticToProto,
   diagnosticsToProto,
   inlayHintToProto,
+  documentLinkToProto,
 )
 where
 
@@ -48,6 +49,7 @@ import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.CodeActions.Types (Assist (..))
 import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Diagnostics qualified as IDE.Diagnostics
+import StaticLS.IDE.DocumentLink qualified as IDE.DocumentLink
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
 import StaticLS.IDE.InlayHints.Types qualified as IDE.InlayHints
@@ -289,3 +291,12 @@ diagnosticsToProto diags =
     diag <- diags
     let path = diag.range.path
     pure (path, [diagnosticToProto diag])
+
+documentLinkToProto :: IDE.DocumentLink.DocumentLink -> LSP.DocumentLink
+documentLinkToProto IDE.DocumentLink.DocumentLink {range, target} =
+  LSP.DocumentLink
+    { _range = lineColRangeToProto range
+    , _target = Just (LSP.Uri target)
+    , _tooltip = Nothing
+    , _data_ = Nothing
+    }

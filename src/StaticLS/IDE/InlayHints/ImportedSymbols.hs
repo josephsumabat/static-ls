@@ -57,17 +57,22 @@ cleanOccName occ = case T.stripPrefix "v:" occ of
     Just rest -> rest
     Nothing -> case T.stripPrefix "c:" occ of
       Just rest -> rest
-      Nothing -> occ
+      -- No prefix - might be a bare field selector like "fTypeName:fieldName"
+      Nothing -> handleFieldSelector occ
   where
     -- Record field selectors look like "fTypeName:fieldName"
     -- We want to convert these to "TypeName(..)"
     handleFieldSelector :: Text -> Text
     handleFieldSelector name
-      | "f" `T.isPrefixOf` name
-      , (typePart, rest) <- T.breakOn ":" name
-      , not (T.null rest) -- has a colon
-      = T.drop 1 typePart <> "(..)" -- drop the 'f' prefix
+      | Just rest <- T.stripPrefix "f" name
+      , not (T.null rest)
+      , isUpper (T.head rest) -- ensure it's fUppercase...
+      , (typePart, colonRest) <- T.breakOn ":" rest
+      , not (T.null colonRest) -- has a colon
+      = typePart <> "(..)"
       | otherwise = name
+
+    isUpper c = c >= 'A' && c <= 'Z'
 
 -- | Group imported symbols by their source module,
 -- collapsing record field selectors into Type(..) syntax

@@ -123,10 +123,12 @@ splitAtPositionR8 (Rope8.Position initPL initPC) rope = do
     x : _ -> x
     [] -> (mempty, rope) -- should be unreachable, as one of the tried positions should split the string neatly
 
--- TODO: return a maybe
-splitAtLineCol :: LineCol -> Rope -> (Rope, Rope)
-splitAtLineCol (LineCol (Pos line) (Pos col)) (Rope rope) = (Rope before, Rope after)
+splitAtLineCol :: LineCol -> Rope -> Maybe (Rope, Rope)
+splitAtLineCol lineCol r
+  | isValidLineColEnd r lineCol = Just (Rope before, Rope after)
+  | otherwise = Nothing
  where
+  (LineCol (Pos line) (Pos col)) = lineCol
   (before, after) =
     splitAtPositionR8
       ( Rope8.Position
@@ -134,7 +136,7 @@ splitAtLineCol (LineCol (Pos line) (Pos col)) (Rope rope) = (Rope before, Rope a
           , posColumn = (fromIntegral col)
           }
       )
-      rope
+      r.rope
 
 indexRange :: Rope -> Range -> Maybe Rope
 indexRange (Rope r) (Range (Pos start) (Pos end))

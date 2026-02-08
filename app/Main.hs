@@ -18,5 +18,5 @@ main = do
     Success (App.GHCIDOptions {args}) -> ghcid args
     argsRes -> do
       staticEnvOpts <- App.handleParseResultWithSuppression jsonOrDefaultOpts argsRes
-      _ <- StaticLS.runServer staticEnvOpts logger
+      StaticLS.runServer staticEnvOpts logger
       pure ()

@@ -8,8 +8,10 @@ where
 
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT)
+import Data.List (nub)
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
+import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple qualified as SQL
@@ -47,13 +49,30 @@ getImportedSymbols hieFilePath =
       [":hieFile" SQL.:= hieFilePath]
 
 -- | Clean the occ name by stripping the type prefix (v:, t:, c:)
+-- and converting record field selectors to Type(..) syntax
 cleanOccName :: Text -> Text
-cleanOccName occ
-  | "t:" `T.isPrefixOf` occ = T.drop 2 occ
-  | "v:" `T.isPrefixOf` occ = T.drop 2 occ
-  | "c:" `T.isPrefixOf` occ = T.drop 2 occ
-  | otherwise = occ
+cleanOccName occ = case T.stripPrefix "v:" occ of
+  Just rest -> handleFieldSelector rest
+  Nothing -> case T.stripPrefix "t:" occ of
+    Just rest -> rest
+    Nothing -> case T.stripPrefix "c:" occ of
+      Just rest -> rest
+      Nothing -> occ
+  where
+    -- Record field selectors look like "fTypeName:fieldName"
+    -- We want to convert these to "TypeName(..)"
+    handleFieldSelector :: Text -> Text
+    handleFieldSelector name
+      | "f" `T.isPrefixOf` name
+      , (typePart, rest) <- T.breakOn ":" name
+      , not (T.null rest) -- has a colon
+      = T.drop 1 typePart <> "(..)" -- drop the 'f' prefix
+      | otherwise = name
 
--- | Group imported symbols by their source module
+-- | Group imported symbols by their source module,
+-- collapsing record field selectors into Type(..) syntax
 groupByModule :: [ImportedSymbol] -> Map Text [Text]
-groupByModule = foldr (\sym -> Map.insertWith (<>) sym.isMod [cleanOccName sym.isOcc]) Map.empty
+groupByModule symbols =
+  let cleaned = [(sym.isMod, cleanOccName sym.isOcc) | sym <- symbols]
+      -- Use nub to deduplicate (multiple fields from same type -> one Type(..))
+   in Map.map nub $ foldr (\(mod', sym) -> Map.insertWith (<>) mod' [sym]) Map.empty cleaned

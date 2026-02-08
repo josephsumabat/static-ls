@@ -56,14 +56,21 @@ mkInlayHint symbolsByModule import_ = do
       LineColRange _start end = node.nodeLineColRange
       -- Get the module name from the import
       mModuleName = getImportModuleName import_
-  case mModuleName of
-    Nothing -> pure Nothing
-    Just moduleName ->
-      case Map.lookup moduleName symbolsByModule of
-        Nothing -> pure Nothing
-        Just symbols ->
-          let symbolsText = " (" <> T.intercalate ", " symbols <> ")"
-           in pure $ Just $ mkInlayText end symbolsText
+      -- Check if import already has an explicit import list
+      hasExplicitList = case import_.names of
+        Right (Just _) -> True
+        _ -> False
+  -- Skip if the import already has an explicit import list
+  if hasExplicitList
+    then pure Nothing
+    else case mModuleName of
+      Nothing -> pure Nothing
+      Just moduleName ->
+        case Map.lookup moduleName symbolsByModule of
+          Nothing -> pure Nothing
+          Just symbols ->
+            let symbolsText = " (" <> T.intercalate ", " symbols <> ")"
+             in pure $ Just $ mkInlayText end symbolsText
 
 -- | Extract the module name from an import statement
 getImportModuleName :: Haskell.ImportP -> Maybe Text

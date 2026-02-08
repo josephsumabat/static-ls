@@ -41,8 +41,14 @@ subRootExtensionFilepathUnchecked :: [AbsPath] -> AbsPath -> String -> RelPath -
 subRootExtensionFilepathUnchecked removeParents addParent extension targetPath = do
   let
     -- Normalize to absolute paths to drop the prefix
+    -- Avoid makeRelativePath here due to some high memory usage in original code.
     noPrefixSrcPath =
-      List.foldl' (\path parent -> Path.makeRelative parent path) targetPath removeParents
+      case filter (\parent -> parent.path `List.isPrefixOf` targetPath.path) removeParents of
+        (parent:_) ->
+          case List.stripPrefix parent.path targetPath.path of
+            Just stripped -> UncheckedPath stripped
+            Nothing -> targetPath
+        [] -> targetPath
     -- Set the directory path and substitute the file extension
     newPath = addParent Path.</> noPrefixSrcPath Path.-<.> extension
    in

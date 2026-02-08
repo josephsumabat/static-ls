@@ -5,16 +5,15 @@ import AST.Haskell.Generated qualified as Haskell
 import AST.Node (nodeToRange)
 import Data.Maybe (catMaybes)
 import Data.Path (AbsPath)
-import Data.Range (Range(..))
+import Data.Range (Range (..))
 import Data.Rope as Rope (posToLineCol)
 import Data.Rope qualified as Rope
-import Data.Text qualified as T
-import StaticLS.Logger (logError)
-import StaticLS.IDE.InlayHints.Common (defaultInlayHint, leaves, mkInlayText, nodeAtLoc, parent, rootToASTLoc)
+import StaticLS.IDE.InlayHints.Common (mkInlayText)
 import StaticLS.IDE.InlayHints.Types
 import StaticLS.IDE.Monad (getHaskell, getSourceRope)
-import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
 import StaticLS.Monad (StaticLsM)
+import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
+import TreeSitter.Api (Node (..))
 
 getInlayHints :: AbsPath -> StaticEnvOptions -> StaticLsM [InlayHint]
 getInlayHints absPath _options = do
@@ -29,16 +28,18 @@ getInlayHints absPath _options = do
   -- pure [defaultInlayHint]
 
 selectNodesToAnn :: Haskell.HaskellP -> [Haskell.ImportP]
-selectNodesToAnn haskell = do
-  let astLocs = leaves $ rootToASTLoc $ getDynNode haskell
-  [ import_
-    | astLoc <- astLocs
-    , Just import_ <- [cast @Haskell.ImportP (nodeAtLoc astLoc)]
-    , Just _ <- [parent astLoc]
-    ]
+selectNodesToAnn haskell = getAllImports (getDynNode haskell)
+  where
+    getAllImports :: Node -> [Haskell.ImportP]
+    getAllImports node =
+      let childImports = concatMap getAllImports node.nodeChildren
+          thisImport = case cast @Haskell.ImportP node of
+            Just imp -> [imp]
+            Nothing -> []
+       in thisImport ++ childImports
 
 mkInlayHint :: AbsPath -> Rope.Rope -> Haskell.ImportP -> StaticLsM (Maybe InlayHint)
-mkInlayHint absPath rope import_ = do
+mkInlayHint _absPath rope import_ = do
   let Range _start end = nodeToRange import_
   -- FIXME: get list
   pure $ Just $ mkInlayText (posToLineCol rope end) "ayooooo"

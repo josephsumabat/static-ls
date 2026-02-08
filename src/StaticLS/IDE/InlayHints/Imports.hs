@@ -25,9 +25,10 @@ selectNodesToAnn haskell = getAllImports (getDynNode haskell)
     getAllImports :: Node -> [Haskell.ImportP]
     getAllImports node =
       let childImports = concatMap getAllImports node.nodeChildren
+          -- Only keep Import nodes that have children (the statement, not the keyword)
           thisImport = case cast @Haskell.ImportP node of
-            Just imp -> [imp]
-            Nothing -> []
+            Just imp | not (null node.nodeChildren) -> [imp]
+            _ -> []
        in thisImport ++ childImports
 
 mkInlayHint :: AbsPath -> Haskell.ImportP -> StaticLsM (Maybe InlayHint)

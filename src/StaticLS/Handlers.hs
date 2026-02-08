@@ -78,7 +78,7 @@ handleTextDocumentHoverRequest :: Handlers (LspT c StaticLsM)
 handleTextDocumentHoverRequest = LSP.requestHandler LSP.SMethod_TextDocumentHover $ \req resp -> do
   let hoverParams = req._params
   path <- ProtoLSP.tdiToAbsPath hoverParams._textDocument
-  hover <- lift $ time "hover!!!!!!" $ retrieveHover path (ProtoLSP.lineColFromProto hoverParams._position)
+  hover <- lift $ time "hover" $ retrieveHover path (ProtoLSP.lineColFromProto hoverParams._position)
   resp $ Right $ maybeToNull hover
 
 handleDefinitionRequest :: Handlers (LspT c StaticLsM)

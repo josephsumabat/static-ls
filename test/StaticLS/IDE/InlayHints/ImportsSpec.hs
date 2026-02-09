@@ -169,11 +169,10 @@ spec = do
           let mainAbsPath = dir Path.</> mainPath
           hints <- Imports.getInlayHints mainAbsPath StaticEnv.Options.defaultStaticEnvOptions
           let hintTexts = map getHintText hints
-          -- Should have hints for LibA and LibB (unqualified imports without explicit lists)
+          -- Should have hints for all imports without explicit lists
           liftIO $ any (T.isInfixOf "funcA") hintTexts `shouldBe` True
           liftIO $ any (T.isInfixOf "funcB") hintTexts `shouldBe` True
-          -- Qualified import (Data.List qualified as L) should not get hints
-          -- since we only show hints for unqualified imports without explicit lists
+          liftIO $ any (T.isInfixOf "sort") hintTexts `shouldBe` True
       pure @IO ()
 
 getHintText :: InlayHint -> Text

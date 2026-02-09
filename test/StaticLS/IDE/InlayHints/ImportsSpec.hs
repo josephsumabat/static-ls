@@ -53,6 +53,7 @@ spec = do
           -- The hint should contain the imported symbols
           let hintTexts = map getHintText hints
           liftIO $ any (T.isInfixOf "myFunction") hintTexts `shouldBe` True
+          liftIO $ any (T.isInfixOf "anotherFunction") hintTexts `shouldBe` True
       pure @IO ()
 
     it "does not show hints for imports with explicit lists" $ do
@@ -124,6 +125,55 @@ spec = do
           -- Should contain both foo and bar (but not baz since it's not used)
           liftIO $ any (T.isInfixOf "foo") hintTexts `shouldBe` True
           liftIO $ any (T.isInfixOf "bar") hintTexts `shouldBe` True
+      pure @IO ()
+
+    it "handles multiple modules and qualified imports" $ do
+      let libAPath = "src/LibA.hs"
+          libBPath = "src/LibB.hs"
+          mainPath = "src/Main.hs"
+      TestImport.Compilation.setupCompilation
+        "ImportsSpec-multi-module"
+        [ ( libAPath
+          , [trimming|
+            module LibA where
+
+            funcA :: Int -> Int
+            funcA x = x + 1
+            |]
+          )
+        , ( libBPath
+          , [trimming|
+            module LibB where
+
+            funcB :: String -> String
+            funcB s = s ++ "!"
+            |]
+          )
+        , ( mainPath
+          , [trimming|
+            module Main where
+
+            import LibA
+            import LibB
+            import Data.List qualified as L
+
+            main :: IO ()
+            main = do
+              print (funcA 5)
+              putStrLn (funcB "hello")
+              print (L.sort [3, 1, 2])
+            |]
+          )
+        ]
+        \dir _sources -> do
+          let mainAbsPath = dir Path.</> mainPath
+          hints <- Imports.getInlayHints mainAbsPath StaticEnv.Options.defaultStaticEnvOptions
+          let hintTexts = map getHintText hints
+          -- Should have hints for LibA and LibB (unqualified imports without explicit lists)
+          liftIO $ any (T.isInfixOf "funcA") hintTexts `shouldBe` True
+          liftIO $ any (T.isInfixOf "funcB") hintTexts `shouldBe` True
+          -- Qualified import (Data.List qualified as L) should not get hints
+          -- since we only show hints for unqualified imports without explicit lists
       pure @IO ()
 
 getHintText :: InlayHint -> Text

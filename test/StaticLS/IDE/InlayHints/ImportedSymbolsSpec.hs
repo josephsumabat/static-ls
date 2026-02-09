@@ -46,7 +46,7 @@ spec = do
             , ImportedSymbol "t:Baz" "Module.A"
             ]
           result = groupByModule symbols
-      Map.lookup "Module.A" result `shouldBe` Just ["foo", "Baz"]
+      Map.lookup "Module.A" result `shouldBe` Just ["Baz", "foo"]
       Map.lookup "Module.B" result `shouldBe` Just ["bar"]
 
     it "deduplicates field selectors from same type" $ do

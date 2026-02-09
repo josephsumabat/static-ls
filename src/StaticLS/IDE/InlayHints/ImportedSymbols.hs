@@ -10,10 +10,10 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT)
 import Data.Char (isUpper)
 import Data.Foldable (asum)
-import Data.List (nub)
 import Data.Map.Strict (Map)
-import Data.Maybe (fromMaybe)
 import Data.Map.Strict qualified as Map
+import Data.Maybe (fromMaybe)
+import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple qualified as SQL
@@ -80,5 +80,5 @@ cleanOccName occ =
 groupByModule :: [ImportedSymbol] -> Map Text [Text]
 groupByModule symbols =
   let cleaned = [(sym.isMod, cleanOccName sym.isOcc) | sym <- symbols]
-      -- Use nub to deduplicate (multiple fields from same type -> one Type(..))
-   in Map.map nub $ foldr (\(mod', sym) -> Map.insertWith (<>) mod' [sym]) Map.empty cleaned
+      -- Use Set for O(n log n) deduplication; toList returns sorted elements
+   in Map.map Set.toList $ foldr (\(mod', sym) -> Map.insertWith (<>) mod' (Set.singleton sym)) Map.empty cleaned

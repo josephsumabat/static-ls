@@ -4,7 +4,6 @@ import Data.Map.Strict qualified as Map
 import StaticLS.IDE.InlayHints.ImportedSymbols
 import Test.Hspec
 
--- $> hspec spec
 spec :: Spec
 spec = do
   describe "cleanOccName" $ do

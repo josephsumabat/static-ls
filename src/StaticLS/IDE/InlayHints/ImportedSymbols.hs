@@ -8,10 +8,11 @@ where
 
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT)
+import Data.Foldable (asum)
 import Data.List (nub)
+import Data.Maybe (fromMaybe)
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
-import Data.Set qualified as Set
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple qualified as SQL
@@ -51,14 +52,15 @@ getImportedSymbols hieFilePath =
 -- | Clean the occ name by stripping the type prefix (v:, t:, c:)
 -- and converting record field selectors to Type(..) syntax
 cleanOccName :: Text -> Text
-cleanOccName occ = case T.stripPrefix "v:" occ of
-  Just rest -> handleFieldSelector rest
-  Nothing -> case T.stripPrefix "t:" occ of
-    Just rest -> rest
-    Nothing -> case T.stripPrefix "c:" occ of
-      Just rest -> rest
-      -- No prefix - might be a bare field selector like "fTypeName:fieldName"
-      Nothing -> handleFieldSelector occ
+cleanOccName occ =
+  -- Try stripping v: prefix (values may be field selectors)
+  -- Then try t: or c: prefixes (types/constructors, just strip prefix)
+  -- Finally try handling as bare field selector
+  case T.stripPrefix "v:" occ of
+    Just rest -> handleFieldSelector rest
+    Nothing ->
+      fromMaybe (handleFieldSelector occ) $
+        asum [T.stripPrefix "t:" occ, T.stripPrefix "c:" occ]
   where
     -- Record field selectors look like "fTypeName:fieldName"
     -- We want to convert these to "TypeName(..)"

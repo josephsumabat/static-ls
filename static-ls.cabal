@@ -146,8 +146,8 @@ library
       StaticLS.IDE.Implementation
       StaticLS.IDE.InlayHints
       StaticLS.IDE.InlayHints.Common
-      StaticLS.IDE.InlayHints.Imports
       StaticLS.IDE.InlayHints.ImportedSymbols
+      StaticLS.IDE.InlayHints.Imports
       StaticLS.IDE.InlayHints.TypeAnnotations
       StaticLS.IDE.InlayHints.Types
       StaticLS.IDE.InlayHints.Wildcard
@@ -506,6 +506,8 @@ test-suite static-ls-test
       StaticLS.IDE.DefinitionSpec
       StaticLS.IDE.Diagnostics.ParseGHCSpec
       StaticLS.IDE.HoverSpec
+      StaticLS.IDE.InlayHints.ImportedSymbolsSpec
+      StaticLS.IDE.InlayHints.ImportsSpec
       StaticLS.IDE.RenameSpec
       StaticLS.PositionDiffSpec
       StaticLS.PositionSpec

@@ -8,10 +8,11 @@ where
 
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Maybe (MaybeT)
+import Data.Char (isUpper)
 import Data.Foldable (asum)
 import Data.List (nub)
-import Data.Maybe (fromMaybe)
 import Data.Map.Strict (Map)
+import Data.Maybe (fromMaybe)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -73,8 +74,6 @@ cleanOccName occ =
       , not (T.null colonRest) -- has a colon
       = typePart <> "(..)"
       | otherwise = name
-
-    isUpper c = c >= 'A' && c <= 'Z'
 
 -- | Group imported symbols by their source module,
 -- collapsing record field selectors into Type(..) syntax

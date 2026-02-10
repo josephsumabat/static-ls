@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+
 module StaticLS.Arborist where
 
 import AST qualified

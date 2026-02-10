@@ -1,51 +1,14 @@
 module StaticLS.IDE.Monad
 where
 
--- (
---   MonadIde,
---   IdeEnv (..),
---   HasIdeEnv (..),
---   getHaskell,
---   getSourceRope,
---   getSource,
---   getHieToSrcDiffMap,
---   getSrcToHieDiffMap,
---   getHieSourceRope,
---   getHieSource,
---   getHieFile,
---   getHieCacheImpl,
---   CachedHieFile (..),
---   MonadHieFile (..),
---   SetHieCache (..),
---   HasHieCache (..),
---   DiffCache (..),
---   HasDiffCacheRef (..),
---   GetDiffCache (..),
---   TouchCachesParallel (..),
---   touchCachesParallelImpl,
---   getDiffCacheImpl,
---   getHieToSource,
---   getSourceToHie,
---   removeDiffCache,
---   removePathImpl,
---   removeHieFromSourcePath,
---   onNewSource,
---   getHieTokenMap,
---   getTokenMap,
---   getHir,
---   getHieView,
---   getThSplice,
---   getFileStateResult,
--- )
-
 import AST.Haskell qualified as Haskell
 import AST.Traversal qualified as AST
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
-import Data.ConcurrentCache (ConcurrentCache)
-import Data.ConcurrentCache qualified as ConcurrentCache
+import Data.Cache.LRU.IO.Internal (AtomicLRU)
+import Data.Cache.LRU.IO.Internal qualified as AtomicLRU
 import Data.HashMap.Strict qualified as HashMap
 import Data.LineCol (LineCol)
 import Data.Maybe
@@ -60,6 +23,7 @@ import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as T
 import Data.Time
+import Debug.Trace
 import StaticLS.FilePath
 import StaticLS.HIE.File qualified as HIE.File
 import StaticLS.HieView qualified as HieView
@@ -73,18 +37,24 @@ import System.Directory (doesFileExist)
 import UnliftIO (MonadUnliftIO)
 import UnliftIO.Exception qualified as Exception
 
+data FileCacheEntry = FileCacheEntry
+  { fileState :: Maybe FileState
+  , hieCache :: Maybe CachedHieFile
+  , diffCache :: Maybe DiffCache
+  }
+
+-- empty
+emptyEntry :: FileCacheEntry
+emptyEntry = FileCacheEntry Nothing Nothing Nothing
+
 data IdeEnv = IdeEnv
-  { fileStateCache :: ConcurrentCache AbsPath FileState
-  , hieCache :: ConcurrentCache AbsPath (Maybe CachedHieFile)
-  , diffCache :: ConcurrentCache AbsPath (Maybe DiffCache)
+  { cache :: AtomicLRU AbsPath FileCacheEntry
   }
 
 newIdeEnv :: IO IdeEnv
 newIdeEnv = do
-  fileStateCache <- ConcurrentCache.new
-  hieCache <- ConcurrentCache.new
-  diffCache <- ConcurrentCache.new
-  pure $ IdeEnv {fileStateCache, hieCache, diffCache}
+  cache <- AtomicLRU.newAtomicLRU (Just 10)
+  pure $ IdeEnv {cache}
 
 class HasIdeEnv m where
   getIdeEnv :: m IdeEnv
@@ -103,35 +73,21 @@ type MonadIde m =
 removePath :: (MonadIde m) => AbsPath -> m ()
 removePath path = do
   env <- getIdeEnv
-  ConcurrentCache.remove path env.fileStateCache
-
--- setFileState :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> FileState -> m ()
--- setFileState path fileState = do
---   sema <- getSemantic
---   setSemantic $
---     sema
---       { fileStates = HashMap.insert path fileState sema.fileStates
---       }
---   pure ()
-
--- updateSemantic :: (Monad m, HasSemantic m, SetSemantic m) => AbsPath -> Rope.Rope -> m ()
--- updateSemantic path contentsRope = do
---   let contentsText = Rope.toText contentsRope
---   let fileState = mkFileState contentsText contentsRope
---   setFileState path fileState
+  _ <- liftIO $ AtomicLRU.delete path env.cache
+  pure ()
 
 getFileState :: (MonadIde m) => AbsPath -> m FileState
 getFileState path = do
   env <- getIdeEnv
-  ConcurrentCache.insert
-    path
-    ( do
-        res <- getFileStateResult path
-        case res of
-          Just fileState -> pure fileState
-          Nothing -> pure Semantic.emptyFileState
-    )
-    env.fileStateCache
+  entry <- liftIO $ AtomicLRU.lookup path env.cache
+  case entry >>= (.fileState) of
+    Just fs -> pure fs
+    Nothing -> do
+      res <- getFileStateResult path
+      let fs = fromMaybe Semantic.emptyFileState res
+      let currentEntry = fromMaybe emptyEntry entry
+      liftIO $ AtomicLRU.insert path (currentEntry {fileState = Just fs}) env.cache
+      pure fs
 
 getHaskell :: (MonadIde m, MonadIO m) => AbsPath -> m Haskell.Haskell
 getHaskell path = do
@@ -139,19 +95,19 @@ getHaskell path = do
   pure fileState.tree
 
 getHir :: (MonadIde m, MonadIO m) => AbsPath -> m Hir.Program
-getHir hir = do
-  fileState <- getFileState hir
+getHir path = do
+  fileState <- getFileState path
   pure fileState.hir
 
 getSourceRope :: (MonadIde m, MonadIO m) => AbsPath -> m Rope
 getSourceRope path = do
-  mFileState <- getFileState path
-  pure mFileState.contentsRope
+  fileState <- getFileState path
+  pure fileState.contentsRope
 
 getSource :: (MonadIde m, MonadIO m) => AbsPath -> m Text
 getSource path = do
-  mFileState <- getFileState path
-  pure mFileState.contentsText
+  fileState <- getFileState path
+  pure fileState.contentsText
 
 getHieToSrcDiffMap :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m PositionDiff.DiffMap
 getHieToSrcDiffMap path = do
@@ -167,15 +123,13 @@ getSrcToHieDiffMap path = do
 
 getFileStateResult :: (HasLogger m, MonadIO m) => AbsPath -> m (Maybe Semantic.FileState)
 getFileStateResult path = do
-  -- use the double liftIO here to avoid the MonadUnliftIO constraint
-  -- we really just want unliftio to handle not catching async exceptions
   doesExist <- liftIO $ doesFileExist (Path.toFilePath path)
   if doesExist
     then do
       contents <-
-        liftIO $
-          Exception.tryAny
-            (liftIO $ T.readFile $ toFilePath path)
+        trace ("Reading from disk (not in cache): " ++ show path) $
+          liftIO $
+            Exception.tryAny (liftIO $ T.readFile $ toFilePath path)
       case contents of
         Left e -> do
           logError $ "Failed to read file: " <> T.pack (show e)
@@ -190,7 +144,6 @@ getFileStateResult path = do
 
 type HieCacheMap = HashMap.HashMap AbsPath CachedHieFile
 
--- keep these fields lazy
 data CachedHieFile = CachedHieFile
   { hieSource :: Text
   , hieSourceRope :: Rope
@@ -223,63 +176,25 @@ invalidateStaleHieCacheFile path = do
   fmap (fromMaybe ()) $ runMaybeT $ do
     env <- getIdeEnv
     latestHieModifiedAt <- getFileModifiedAt path
-    cachedHieFile <- MaybeT $ ConcurrentCache.lookup path env.hieCache
-    case cachedHieFile of
+    entry <- MaybeT $ liftIO $ AtomicLRU.lookup path env.cache
+    case entry.hieCache of
       Just hieFile -> do
-        when (hieFile.modifiedAt < latestHieModifiedAt) $
-          ConcurrentCache.remove path env.hieCache
+        when (hieFile.modifiedAt < latestHieModifiedAt) $ do
+          liftIO $ AtomicLRU.insert path (entry {hieCache = Nothing, diffCache = Nothing}) env.cache
       Nothing -> pure ()
 
 getHieCache :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m CachedHieFile
 getHieCache path = do
   env <- getIdeEnv
   _ <- lift $ invalidateStaleHieCacheFile path
-  MaybeT $
-    ConcurrentCache.insert
-      path
-      (runMaybeT $ getHieCacheResult path)
-      env.hieCache
-
-forceCachedHieFile :: CachedHieFile -> CachedHieFile
-forceCachedHieFile
-  CachedHieFile
-    { hieSource = !hieSource
-    , hieSourceRope = !hieSourceRope
-    , file = !file
-    , fileView = !fileView
-    , hieTokenMap = hieTokenMap
-    , modifiedAt = !modifiedAt
-    } =
-    CachedHieFile
-      { hieSource
-      , hieSourceRope
-      , file
-      , fileView
-      , hieTokenMap
-      , modifiedAt
-      }
-
-getHieCacheWithMap :: (MonadIO m, HasStaticEnv m, HasLogger m) => AbsPath -> HieCacheMap -> MaybeT m CachedHieFile
-getHieCacheWithMap path hieCacheMap =
-  case HashMap.lookup path hieCacheMap of
-    Just hieFile -> do
-      MaybeT $ pure $ Just hieFile
+  entry <- liftIO $ AtomicLRU.lookup path env.cache
+  case entry >>= (.hieCache) of
+    Just hie -> pure hie
     Nothing -> do
-      file <- HIE.File.getHieFileFromPath path
-      modifiedAt <- getFileModifiedAt path
-      let fileView = HieView.viewHieFile file
-      let hieSource = fileView.source
-      let tokens = PositionDiff.lex $ T.unpack hieSource
-      let hieFile =
-            CachedHieFile
-              { hieSource
-              , hieSourceRope = Rope.fromText hieSource
-              , file = file
-              , fileView
-              , hieTokenMap = PositionDiff.tokensToRangeMap tokens
-              , modifiedAt = modifiedAt
-              }
-      pure hieFile
+      hie <- getHieCacheResult path
+      let currentEntry = fromMaybe emptyEntry entry
+      liftIO $ AtomicLRU.insert path (currentEntry {hieCache = Just hie}) env.cache
+      pure hie
 
 getTokenMap :: (MonadIde m, MonadIO m) => AbsPath -> m (RangeMap PositionDiff.Token)
 getTokenMap path = do
@@ -313,13 +228,13 @@ getHieSourceRope path = do
 
 getSourceToHie :: (MonadIde m) => AbsPath -> MaybeT m PositionDiff.DiffMap
 getSourceToHie path = do
-  hieCache <- getDiffCache path
-  pure $ hieCache.sourceToHie
+  diffCache <- getDiffCache path
+  pure $ diffCache.sourceToHie
 
 getHieToSource :: (MonadIde m) => AbsPath -> MaybeT m PositionDiff.DiffMap
 getHieToSource path = do
-  hieCache <- getDiffCache path
-  pure $ hieCache.hieToSource
+  diffCache <- getDiffCache path
+  pure $ diffCache.hieToSource
 
 lineColToPos :: (MonadIde m, MonadIO m) => AbsPath -> LineCol -> m Pos
 lineColToPos path lineCol = do
@@ -335,11 +250,14 @@ data DiffCache = DiffCache
 getDiffCache :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m DiffCache
 getDiffCache path = do
   env <- getIdeEnv
-  MaybeT $
-    ConcurrentCache.insert
-      path
-      (runMaybeT $ getDiffCacheResult path)
-      env.diffCache
+  entry <- liftIO $ AtomicLRU.lookup path env.cache
+  case entry >>= (.diffCache) of
+    Just diff -> pure diff
+    Nothing -> do
+      diff <- getDiffCacheResult path
+      let currentEntry = fromMaybe emptyEntry entry
+      liftIO $ AtomicLRU.insert path (currentEntry {diffCache = Just diff}) env.cache
+      pure diff
 
 getDiffCacheResult :: (MonadIde m, MonadIO m) => AbsPath -> MaybeT m DiffCache
 getDiffCacheResult path = do
@@ -352,21 +270,44 @@ getDiffCacheResult path = do
           }
   pure diffCache
 
--- this function is not thread safe
 onNewSource :: (MonadIde m) => AbsPath -> Rope.Rope -> m ()
 onNewSource path source = do
   env <- getIdeEnv
-  ConcurrentCache.remove path env.fileStateCache
-  _ <- ConcurrentCache.insert path (pure (Semantic.mkFileState (Rope.toText source) source)) env.fileStateCache
-  ConcurrentCache.remove path env.diffCache
-  pure ()
+  let fileState = Semantic.mkFileState (Rope.toText source) source
+  liftIO $ AtomicLRU.insert path (FileCacheEntry (Just fileState) Nothing Nothing) env.cache
 
 removeHieFromSourcePath :: (MonadIde m) => AbsPath -> m ()
 removeHieFromSourcePath path = do
   env <- getIdeEnv
-  ConcurrentCache.remove path env.hieCache
-  ConcurrentCache.remove path env.diffCache
-  pure ()
+  entry <- liftIO $ AtomicLRU.lookup path env.cache
+  case entry of
+    Just e -> liftIO $ AtomicLRU.insert path (e {hieCache = Nothing, diffCache = Nothing}) env.cache
+    Nothing -> pure ()
+
+forceCachedHieFile :: CachedHieFile -> CachedHieFile
+forceCachedHieFile hie = hie
+
+getHieCacheWithMap :: (MonadIO m, HasStaticEnv m, HasLogger m) => AbsPath -> HieCacheMap -> MaybeT m CachedHieFile
+getHieCacheWithMap path hieCacheMap =
+  case HashMap.lookup path hieCacheMap of
+    Just hieFile -> do
+      MaybeT $ pure $ Just hieFile
+    Nothing -> do
+      file <- HIE.File.getHieFileFromPath path
+      modifiedAt <- getFileModifiedAt path
+      let fileView = HieView.viewHieFile file
+      let hieSource = fileView.source
+      let tokens = PositionDiff.lex $ T.unpack hieSource
+      let hieFile =
+            CachedHieFile
+              { hieSource
+              , hieSourceRope = Rope.fromText hieSource
+              , file = file
+              , fileView
+              , hieTokenMap = PositionDiff.tokensToRangeMap tokens
+              , modifiedAt = modifiedAt
+              }
+      pure hieFile
 
 throwIfInThSplice :: (HasCallStack, MonadIde m, MonadIO m) => String -> AbsPath -> Pos -> m ()
 throwIfInThSplice msg path pos = do

@@ -25,11 +25,9 @@ import Data.Rope qualified as Rope
 import Data.Text (Text)
 import Data.Text qualified as T
 import Database.SQLite.Simple qualified as SQL
-import Debug.Trace
 import GHC qualified
 import GHC.Types.Name qualified as GHC
 import HieDb
-import HieDb qualified
 import Hir.Parse qualified as Hir
 import Hir.Types qualified as Hir
 import StaticLS.Arborist
@@ -126,7 +124,6 @@ getHieDefinition path lineCol = do
       res <- persistentModelNameToFileLc persistentModelName
       pure $ maybeToList res
     Nothing -> do
-      let qual = Hir.getQualifiedAtPoint (Range.point pos) hs
       identifiers <- runMaybeT $ do
         hieLineCol <- lineColToHieLineCol path lineCol
         hiePos <- hieLineColToPos path hieLineCol

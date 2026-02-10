@@ -277,13 +277,15 @@ getCompletion :: Context -> StaticLsM (Bool, [Completion])
 getCompletion cx = do
   mode <- getCompletionMode cx
   logInfo $ "mode: " <> T.pack (show mode)
+  let importMode modPrefix = do
+        mods <- getModules
+        let modsWithoutPrefix = case modPrefix of
+              Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
+              Nothing -> mods
+        pure (False, textCompletion <$> modsWithoutPrefix)
   case mode of
-    ImportMode modPrefix -> do
-      mods <- getModules
-      let modsWithoutPrefix = case modPrefix of
-            Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
-            Nothing -> mods
-      pure (False, textCompletion <$> modsWithoutPrefix)
+    ImportMode modPrefix -> importMode modPrefix
+    QualifiedMode modPrefix match | match == "" -> importMode (Just modPrefix)
     HeaderMode mod -> do
       let label = "module " <> mod <> " where"
       pure

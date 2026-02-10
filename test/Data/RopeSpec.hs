@@ -24,9 +24,7 @@ spec = do
   describe "line col split at" do
     let check name t lineCol (before, after) = it name do
           let r = Rope.fromText t
-          let (before', after') = Rope.splitAtLineCol lineCol r
-          before' `shouldBe` before
-          after' `shouldBe` after
+          Rope.splitAtLineCol lineCol r `shouldBe` Just (before, after)
           pure @IO ()
 
     check "index past the line" "abcd\n1234" (LineCol (Pos 0) (Pos 4)) ("abcd", "\n1234")
@@ -34,26 +32,20 @@ spec = do
     it "index on newline" do
       let t = "abcd\n1234"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAtLineCol (LineCol (Pos 0) (Pos 5)) r
-      before `shouldBe` "abcd\n"
-      after `shouldBe` "1234"
+      Rope.splitAtLineCol (LineCol (Pos 0) (Pos 5)) r `shouldBe` Just ("abcd\n", "1234")
       pure @IO ()
 
     -- TODO: prevent the rope from doing this
     it "index past newline" do
       let t = "abcd\n1234"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAtLineCol (LineCol (Pos 0) (Pos 6)) r
-      before `shouldBe` "abcd\n1"
-      after `shouldBe` "234"
+      Rope.splitAtLineCol (LineCol (Pos 0) (Pos 6)) r `shouldBe` Nothing 
       pure @IO ()
 
     it "index past newline" do
       let t = "abcd\n1234\n"
       let r = Rope.fromText t
-      let (before, after) = Rope.splitAtLineCol (LineCol (Pos 2) (Pos 0)) r
-      before `shouldBe` "abcd\n1234\n"
-      after `shouldBe` ""
+      Rope.splitAtLineCol (LineCol (Pos 2) (Pos 0)) r `shouldBe` Just ("abcd\n1234\n", "")
       pure @IO ()
 
     it "convert line col at the end" do

@@ -284,7 +284,7 @@ getCompletion cx = do
         let modsWithoutPrefix = case modPrefix of
               Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
               Nothing -> mods
-        pure (False, textCompletion <$> modsWithoutPrefix)
+        pure (False, textCompletion CompletionItemKind.Text <$> modsWithoutPrefix)
   case mode of
     ImportMode modPrefix -> do
       mods <- getModules

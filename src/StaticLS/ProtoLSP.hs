@@ -47,6 +47,8 @@ import Data.Traversable (for)
 import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.CodeActions.Types (Assist (..))
 import StaticLS.IDE.Completion qualified as IDE.Completion
+import StaticLS.IDE.CompletionItemKind (CompletionItemKind)
+import StaticLS.IDE.CompletionItemKind qualified as CompletionItemKind
 import StaticLS.IDE.Diagnostics qualified as IDE.Diagnostics
 import StaticLS.IDE.DocumentSymbols (SymbolTree (..))
 import StaticLS.IDE.FileWith (FileLcRange, FileWith' (..))
@@ -118,6 +120,12 @@ symbolKindToProto = \case
   SymbolKind.Class -> LSP.SymbolKind_Interface
   SymbolKind.Constructor -> LSP.SymbolKind_Constructor
   SymbolKind.Field -> LSP.SymbolKind_Property
+
+completionItemKindToProto :: CompletionItemKind -> LSP.CompletionItemKind
+completionItemKindToProto = \case
+  CompletionItemKind.Module -> LSP.CompletionItemKind_Module
+  CompletionItemKind.File -> LSP.CompletionItemKind_File
+  CompletionItemKind.Text -> LSP.CompletionItemKind_Text
 
 symbolToProto :: Symbol -> LSP.SymbolInformation
 symbolToProto Symbol {name, kind, loc} =
@@ -191,7 +199,7 @@ assistToCodeAction Assist {label, sourceEdit} = do
       }
 
 completionToProto :: Rope -> IDE.Completion.Completion -> LSP.CompletionItem
-completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, description, insertText, edit, msg, isSnippet} =
+completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, description, insertText, edit, msg, isSnippet, completionItemKind} =
   LSP.CompletionItem
     { _label = label
     , _labelDetails =
@@ -200,7 +208,7 @@ completionToProto rope IDE.Completion.Completion {label, detail, labelDetail, de
             { _detail = labelDetail
             , _description = description
             }
-    , _kind = Just LSP.CompletionItemKind_Function
+    , _kind = Just $ completionItemKindToProto completionItemKind
     , _textEditText = Nothing
     , _data_ = case msg of
         Nothing -> Nothing

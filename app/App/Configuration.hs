@@ -19,6 +19,7 @@ data StaticEnvJson = StaticEnvJson
   , srcDirs :: Maybe [FilePath]
   , immutableSrcDirs :: Maybe [FilePath]
   , fourmoluCommand :: Maybe FilePath
+  , issueTracker :: Maybe IssueTrackerConfig
   }
 
 $(deriveJSON defaultOptions ''StaticEnvJson)
@@ -74,4 +75,5 @@ toOptions jsonOptions =
         if null jsonOptions.fourmoluCommand
           then defaultStaticEnvOptions.fourmoluCommand
           else jsonOptions.fourmoluCommand
+    , issueTracker = jsonOptions.issueTracker
     }

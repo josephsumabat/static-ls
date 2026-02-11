@@ -137,6 +137,7 @@ library
       StaticLS.IDE.Definition
       StaticLS.IDE.Diagnostics
       StaticLS.IDE.Diagnostics.ParseGHC
+      StaticLS.IDE.DocumentLink
       StaticLS.IDE.DocumentSymbols
       StaticLS.IDE.FileWith
       StaticLS.IDE.Format

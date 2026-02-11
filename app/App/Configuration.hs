@@ -20,6 +20,7 @@ data StaticEnvJson = StaticEnvJson
   , immutableSrcDirs :: Maybe [FilePath]
   , fourmoluCommand :: Maybe FilePath
   , restartInterval :: Maybe Int
+  , issueTracker :: Maybe IssueTrackerConfig
   }
 
 $(deriveJSON defaultOptions ''StaticEnvJson)
@@ -76,4 +77,5 @@ toOptions jsonOptions =
           then defaultStaticEnvOptions.fourmoluCommand
           else jsonOptions.fourmoluCommand
     , restartIntervalMinutes = fromMaybe defaultStaticEnvOptions.restartIntervalMinutes jsonOptions.restartInterval
+    , issueTracker = jsonOptions.issueTracker
     }

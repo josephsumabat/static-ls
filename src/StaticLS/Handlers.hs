@@ -43,6 +43,7 @@ import StaticLS.IDE.Completion qualified as IDE.Completion
 import StaticLS.IDE.Definition
 import StaticLS.IDE.Diagnostics qualified as IDE.Diagnostics
 import StaticLS.IDE.Diagnostics.ParseGHC qualified as IDE.Diagnostics.ParseGHC
+import StaticLS.IDE.DocumentLink qualified as IDE.DocumentLink
 import StaticLS.IDE.DocumentSymbols (getDocumentSymbols)
 import StaticLS.IDE.Format qualified as IDE.Format
 import StaticLS.IDE.Hover
@@ -107,6 +108,14 @@ handleImplementationRequest = LSP.requestHandler LSP.SMethod_TextDocumentImpleme
   defs <- lift $ IDE.Implementation.getImplementation path (ProtoLSP.lineColFromProto params._position)
   let locations = fmap (LSP.DefinitionLink . ProtoLSP.locationToLocationLink . ProtoLSP.fileLcRangeToLocation) defs
   resp $ Right . InR . InL $ locations
+
+handleDocumentLinkRequest :: StaticEnvOptions -> Handlers (LspT c StaticLsM)
+handleDocumentLinkRequest options = LSP.requestHandler LSP.SMethod_TextDocumentDocumentLink $ \req resp -> do
+  let params = req._params
+  path <- ProtoLSP.tdiToAbsPath params._textDocument
+  links <- lift $ IDE.DocumentLink.getDocumentLinks options.issueTracker path
+  let lspLinks = ProtoLSP.documentLinkToProto <$> links
+  resp $ Right $ InL lspLinks
 
 handleInlayHintRequest :: StaticEnvOptions -> Handlers (LspT c StaticLsM)
 handleInlayHintRequest options = LSP.requestHandler LSP.SMethod_TextDocumentInlayHint $ \req res -> do

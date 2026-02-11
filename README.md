@@ -263,6 +263,16 @@ You can technically use any LSP compliant client - for a generic one we generall
   :language-id "haskell"))
 ```
 
+Alternatively, if you would like to use `eglot` (a builtin package
+since Emacs 29), you can configure eglot like this:
+
+1. Give `static-ls` higher precedence than the default
+   `haskell-language-server-wrapper`:
+
+```
+  (add-to-list 'eglot-server-programs `(haskell-mode . ,(eglot-alternatives '("static-ls" ("haskell-language-server-wrapper" "--lsp")))))
+```
+
 ### Helix
 Modify your `languages.toml` config file to add the following:
 

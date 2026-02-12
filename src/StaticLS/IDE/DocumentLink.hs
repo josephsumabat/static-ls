@@ -74,7 +74,7 @@ findTicketsInLine template (Pos startLine) (Pos startCol) (lineOffset, lineText)
                     { range
                     , target = T.replace "{ticketId}" ticket template
                     }
-            in link : go ticketEnd after
+             in link : go ticketEnd after
 
 -- Find the next ticket pattern (e.g., ATV-2065) in text.
 -- Returns (text before, ticket, text after) or Nothing.
@@ -85,33 +85,33 @@ findNextTicket text = go text
     | T.null remaining = Nothing
     | otherwise =
         if isUpperAlpha (T.head remaining)
-            then case tryMatchTicket remaining of
-              Just (ticket, after) ->
-                let before = T.take (T.length text - T.length remaining) text
-                in if isInsideUrl before
+          then case tryMatchTicket remaining of
+            Just (ticket, after) ->
+              let before = T.take (T.length text - T.length remaining) text
+               in if isInsideUrl before
                     then go after
                     else Just (before, ticket, after)
-              Nothing -> go (T.tail remaining)
-            else go (T.tail remaining)
+            Nothing -> go (T.tail remaining)
+          else go (T.tail remaining)
 
   isInsideUrl :: Text -> Bool
   isInsideUrl before =
     let reversed = T.reverse before
         -- Walk backwards: if we hit whitespace before "://", we're not in a URL
         nonSpace = T.takeWhile (\c -> c /= ' ' && c /= '\t' && c /= '\n') reversed
-    in T.isInfixOf "://" (T.reverse nonSpace)
+     in T.isInfixOf "://" (T.reverse nonSpace)
 
   tryMatchTicket :: Text -> Maybe (Text, Text)
   tryMatchTicket t =
     let (prefix, rest1) = T.span isUpperAlpha t
-    in if T.length prefix >= 2 && not (T.null rest1) && T.head rest1 == '-'
-        then
-          let rest2 = T.tail rest1
-              (digits, after) = T.span isDigit rest2
-          in if not (T.null digits) && not (isContinuation after)
-              then Just (prefix <> "-" <> digits, after)
-              else Nothing
-        else Nothing
+     in if T.length prefix >= 2 && not (T.null rest1) && T.head rest1 == '-'
+          then
+            let rest2 = T.tail rest1
+                (digits, after) = T.span isDigit rest2
+             in if not (T.null digits) && not (isContinuation after)
+                  then Just (prefix <> "-" <> digits, after)
+                  else Nothing
+          else Nothing
 
   -- Check if the character after the ticket is a continuation character
   -- (letter, digit, or hyphen), which means this isn't actually a ticket boundary
@@ -120,7 +120,7 @@ findNextTicket text = go text
     | T.null t = False
     | otherwise =
         let c = T.head t
-        in isUpperAlpha c || isLowerAlpha c || isDigit c || c == '-'
+         in isUpperAlpha c || isLowerAlpha c || isDigit c || c == '-'
 
 isUpperAlpha :: Char -> Bool
 isUpperAlpha c = c >= 'A' && c <= 'Z'

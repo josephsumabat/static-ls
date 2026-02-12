@@ -51,6 +51,7 @@ spec = do
           , experimentalFeatures = False
           , fourmoluCommand = Nothing
           , restartIntervalMinutes = 0
+          , issueTracker = Nothing
           }
         Test.myFunRef1TdiAndPosition
         (pure @[] <$> Test.myFunDefLocation)
@@ -68,6 +69,7 @@ spec = do
           , experimentalFeatures = False
           , fourmoluCommand = Nothing
           , restartIntervalMinutes = 0
+          , issueTracker = Nothing
           }
         Test.myFunRef1TdiAndPosition
         (pure [])

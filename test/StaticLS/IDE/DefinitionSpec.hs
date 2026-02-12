@@ -50,6 +50,7 @@ spec = do
           , inlayLengthCap = Just 32
           , experimentalFeatures = False
           , fourmoluCommand = Nothing
+          , issueTracker = Nothing
           }
         Test.myFunRef1TdiAndPosition
         (pure @[] <$> Test.myFunDefLocation)
@@ -66,6 +67,7 @@ spec = do
           , inlayLengthCap = Just 32
           , experimentalFeatures = False
           , fourmoluCommand = Nothing
+          , issueTracker = Nothing
           }
         Test.myFunRef1TdiAndPosition
         (pure [])

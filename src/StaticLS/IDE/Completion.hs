@@ -46,6 +46,8 @@ import StaticLS.HieView.Name qualified as HieView.Name
 import StaticLS.HieView.Query qualified as HieView.Query
 import StaticLS.IDE.AllExtensions (allExtensions)
 import StaticLS.IDE.CodeActions.AutoImport qualified as IDE.CodeActions.AutoImport
+import StaticLS.IDE.CompletionItemKind (CompletionItemKind)
+import StaticLS.IDE.CompletionItemKind qualified as CompletionItemKind
 import StaticLS.IDE.Monad
 import StaticLS.IDE.Utils qualified as IDE.Utils
 import StaticLS.Logger (logInfo)
@@ -120,7 +122,7 @@ getFileCompletions cx = do
       hieView <- getHieView path
       let symbols = fmap HieView.Name.toText $ HieView.Query.fileSymbolsList hieView
       let symbolsNubbed = nubOrd symbols
-      let completions = fmap textCompletion symbolsNubbed
+      let completions = fmap (textCompletion CompletionItemKind.File) symbolsNubbed
       pure completions
   fileCompletions <- pure $ Maybe.fromMaybe [] fileCompletions
   pure fileCompletions
@@ -132,12 +134,12 @@ getUnqualifiedImportCompletions cx = do
   let imports = prog.imports
   let unqualifiedImports = filter (\imp -> not imp.qualified) imports
   completions <- getCompletionsForMods $ (.mod.text) <$> unqualifiedImports
-  pure $ fmap textCompletion completions
+  pure $ fmap (textCompletion CompletionItemKind.Module) completions
 
 -- Why don't we need the text for this?
 getLangextCompletions :: Text -> StaticLsM [Completion]
 getLangextCompletions _ = do
-  pure (textCompletion <$> (allExtensions <> ["LANGUAGE"]))
+  pure (textCompletion CompletionItemKind.Module <$> (allExtensions <> ["LANGUAGE"]))
 
 data CompletionMode
   = ImportMode !(Maybe Text)
@@ -247,7 +249,7 @@ formatQualifiedAs mod alias = "import qualified " <> mod <> " as " <> alias
 getFlyImports :: Context -> HashSet Text -> Text -> Text -> StaticLsM [Completion]
 getFlyImports cx qualifiedCompletions prefix match = do
   let expandedPrefix = Maybe.fromMaybe prefix (defaultAlias prefix)
-  let bootCompletions = [mkBootCompletion expandedPrefix prefix match cx.path | isBootModule expandedPrefix]
+  let bootCompletions = [mkBootCompletion CompletionItemKind.Module expandedPrefix prefix match cx.path | isBootModule expandedPrefix]
   mods <- getModules
   mods <- pure $ filter (expandedPrefix `isModSuffixOf`) mods
   completions <- for mods \mod -> do
@@ -263,7 +265,7 @@ getFlyImports cx qualifiedCompletions prefix match = do
     pure $
       fmap
         ( \completion ->
-            (textCompletion completion)
+            (textCompletion CompletionItemKind.Module completion)
               { description = Just $ formatQualifiedAs mod prefix
               , msg = Just $ CompletionMessage {path = cx.path, kind = FlyImportCompletionKind mod prefix}
               }
@@ -282,16 +284,21 @@ getCompletion cx = do
         let modsWithoutPrefix = case modPrefix of
               Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
               Nothing -> mods
-        pure (False, textCompletion <$> modsWithoutPrefix)
+        pure (False, textCompletion CompletionItemKind.Text <$> modsWithoutPrefix)
   case mode of
-    ImportMode modPrefix -> importMode modPrefix
+    ImportMode modPrefix -> do
+      mods <- getModules
+      let modsWithoutPrefix = case modPrefix of
+            Just prefix -> Maybe.mapMaybe (T.stripPrefix (prefix <> ".")) mods
+            Nothing -> mods
+      pure (False, textCompletion CompletionItemKind.Module <$> modsWithoutPrefix)
     QualifiedMode modPrefix match | match == "" -> importMode (Just modPrefix)
     HeaderMode mod -> do
       let label = "module " <> mod <> " where"
       pure
         ( False
         ,
-          [ (mkCompletion label (label <> "\n$0"))
+          [ (mkCompletion CompletionItemKind.Text label (label <> "\n$0"))
               { isSnippet = True
               }
           ]
@@ -309,7 +316,7 @@ getCompletion cx = do
       flyImports <- case match of
         "" -> pure []
         _ -> getFlyImports cx (HashSet.fromList qualifiedCompletions) mod match
-      pure (match == "", (textCompletion <$> qualifiedCompletions) ++ flyImports)
+      pure (match == "", (textCompletion CompletionItemKind.Module <$> qualifiedCompletions) ++ flyImports)
     LangextMode match -> do
       comps <- getLangextCompletions match
       pure (True, comps)
@@ -357,12 +364,13 @@ data Completion = Completion
   , edit :: !Edit
   , msg :: Maybe CompletionMessage
   , isSnippet :: !Bool
+  , completionItemKind :: CompletionItemKind
   }
   deriving (Show, Eq, Ord)
 
-mkBootCompletion :: Text -> Text -> Text -> AbsPath -> Completion
-mkBootCompletion mod alias match path =
-  (mkCompletion match "")
+mkBootCompletion :: CompletionItemKind -> Text -> Text -> Text -> AbsPath -> Completion
+mkBootCompletion completionItemKind mod alias match path =
+  (mkCompletion completionItemKind match "")
     { description = Just $ formatQualifiedAs mod alias
     , msg =
         Just $
@@ -372,11 +380,11 @@ mkBootCompletion mod alias match path =
             }
     }
 
-textCompletion :: Text -> Completion
-textCompletion text = mkCompletion text text
+textCompletion :: CompletionItemKind -> Text -> Completion
+textCompletion completionItemKind text = mkCompletion completionItemKind text text
 
-mkCompletion :: Text -> Text -> Completion
-mkCompletion label insertText =
+mkCompletion :: CompletionItemKind -> Text -> Text -> Completion
+mkCompletion completionItemKind label insertText =
   Completion
     { label
     , detail = Nothing
@@ -386,6 +394,7 @@ mkCompletion label insertText =
     , edit = Edit.empty
     , msg = Nothing
     , isSnippet = False
+    , completionItemKind
     }
 
 data TriggerKind = TriggerCharacter | TriggerUnknown

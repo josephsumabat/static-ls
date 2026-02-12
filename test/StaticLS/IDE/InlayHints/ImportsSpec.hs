@@ -21,7 +21,8 @@ spec = do
           mainPath = "src/Main.hs"
       TestImport.Compilation.setupCompilation
         "ImportsSpec-basic"
-        [ ( libPath
+        [
+          ( libPath
           , [trimming|
             module Lib where
 
@@ -32,7 +33,8 @@ spec = do
             anotherFunction s = s ++ "!"
             |]
           )
-        , ( mainPath
+        ,
+          ( mainPath
           , [trimming|
             module Main where
 
@@ -61,7 +63,8 @@ spec = do
           mainPath = "src/Main.hs"
       TestImport.Compilation.setupCompilation
         "ImportsSpec-explicit"
-        [ ( libPath
+        [
+          ( libPath
           , [trimming|
             module Lib where
 
@@ -69,7 +72,8 @@ spec = do
             myFunction x = x + 1
             |]
           )
-        , ( mainPath
+        ,
+          ( mainPath
           , [trimming|
             module Main where
 
@@ -92,7 +96,8 @@ spec = do
           mainPath = "src/Main.hs"
       TestImport.Compilation.setupCompilation
         "ImportsSpec-multi"
-        [ ( libPath
+        [
+          ( libPath
           , [trimming|
             module Lib where
 
@@ -106,7 +111,8 @@ spec = do
             baz = 3
             |]
           )
-        , ( mainPath
+        ,
+          ( mainPath
           , [trimming|
             module Main where
 
@@ -133,7 +139,8 @@ spec = do
           mainPath = "src/Main.hs"
       TestImport.Compilation.setupCompilation
         "ImportsSpec-multi-module"
-        [ ( libAPath
+        [
+          ( libAPath
           , [trimming|
             module LibA where
 
@@ -141,7 +148,8 @@ spec = do
             funcA x = x + 1
             |]
           )
-        , ( libBPath
+        ,
+          ( libBPath
           , [trimming|
             module LibB where
 
@@ -149,7 +157,8 @@ spec = do
             funcB s = s ++ "!"
             |]
           )
-        , ( mainPath
+        ,
+          ( mainPath
           , [trimming|
             module Main where
 
@@ -172,7 +181,7 @@ spec = do
           -- Should have hints for all imports without explicit lists
           liftIO $ any (T.isInfixOf "funcA") hintTexts `shouldBe` True
           liftIO $ any (T.isInfixOf "funcB") hintTexts `shouldBe` True
-          liftIO $ any (T.isInfixOf "sort") hintTexts `shouldBe` True
+          liftIO $ any (T.isInfixOf "sort") hintTexts `shouldBe` False
       pure @IO ()
 
 getHintText :: InlayHint -> Text

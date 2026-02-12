@@ -37,6 +37,13 @@ spec = do
       it "preserves names without prefix" $ do
         cleanOccName "regularName" `shouldBe` "regularName"
 
+    describe "handles operators" $ do
+      it "strips module suffix after pipe" $ do
+        cleanOccName "v:==|GHC.Classes" `shouldBe` "=="
+
+      it "leaves operators without suffix untouched" $ do
+        cleanOccName "v:=." `shouldBe` "=."
+
   describe "groupByModule" $ do
     it "groups symbols by module" $ do
       let symbols =
@@ -56,3 +63,11 @@ spec = do
           result = groupByModule symbols
       -- Both field selectors should collapse to one MyRecord(..)
       Map.lookup "Module.A" result `shouldBe` Just ["MyRecord(..)"]
+
+    it "normalizes module names with unit ids" $ do
+      let symbols =
+            [ ImportedSymbol "v:foo" "base-4.19.1.0:Data.List"
+            , ImportedSymbol "v:bar" "Data.List"
+            ]
+          result = groupByModule symbols
+      Map.lookup "Data.List" result `shouldBe` Just ["bar", "foo"]

@@ -228,9 +228,10 @@ serverDef options logger = do
                 , handleCompletion
                 , handleCompletionItemResolve
                 ]
-                  <> (case options.issueTracker of
+                  <> ( case options.issueTracker of
                         Just _ -> [handleDocumentLinkRequest options]
-                        Nothing -> [])
+                        Nothing -> []
+                     )
                   <> (if options.provideInlays then [handleInlayHintRequest options, handleResolveInlayHint] else [])
                   <> ( case options.fourmoluCommand of
                         Just _ -> [handleFormat]

@@ -41,10 +41,14 @@ subRootExtensionFilepathUnchecked :: [AbsPath] -> AbsPath -> String -> RelPath -
 subRootExtensionFilepathUnchecked removeParents addParent extension targetPath = do
   let
     -- Normalize to absolute paths to drop the prefix
-    noPrefixSrcPath =
-      case filter (\parent -> parent.path `List.isPrefixOf` targetPath.path) removeParents of
-        (parent : _) -> Path.makeRelative parent targetPath
-        [] -> targetPath
+    -- Use the LONGEST matching prefix to ensure we match the most specific directory
+    matchingParents = filter (\parent -> parent.path `List.isPrefixOf` targetPath.path) removeParents
+    longestParent = case matchingParents of
+      [] -> Nothing
+      parents -> Just $ List.maximumBy (\a b -> compare (length a.path) (length b.path)) parents
+    noPrefixSrcPath = case longestParent of
+      Just parent -> Path.makeRelative parent targetPath
+      Nothing -> targetPath
     -- Set the directory path and substitute the file extension
     newPath = addParent Path.</> noPrefixSrcPath Path.-<.> extension
    in

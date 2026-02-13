@@ -194,11 +194,23 @@ nameToLocation name = fmap (fromMaybe []) <$> runMaybeT $ do
           staticEnv <- getStaticEnv
           pathFromMod <- modSrcFile name
           let mModRange = (\f -> FileWith f hieRange.loc) <$> pathFromMod
-          mRange <- liftIO (checkFileRange hieRange) >>= maybe (pure mModRange) (pure . Just)
+          checkedRange <- liftIO (checkFileRange hieRange)
+          let (mRange, fromHieRange) =
+                case checkedRange of
+                  Just range -> (Just range, True)
+                  Nothing -> (mModRange, False)
           logInfo (T.pack $ show mRange)
           case mRange of
             Just range -> do
-              let absRange = FileWith.mapPath (staticEnv.wsRoot Path.</>) range
+              absRange <-
+                if fromHieRange
+                  then -- HIE paths are relative to the compiler's cwd
+                    liftIO $
+                      FileWith.traversePath
+                        (Path.filePathToAbs . Path.toFilePath)
+                        range
+                  else
+                    pure $ FileWith.mapPath (staticEnv.wsRoot Path.</>) range
               pure [absRange]
             Nothing ->
               MaybeT $ pure Nothing

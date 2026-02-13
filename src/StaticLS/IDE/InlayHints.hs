@@ -20,5 +20,5 @@ getInlayHints path options = concat <$> sequenceA hints
   hints =
     ( [TypeAnnotations.getInlayHints options path]
         ++ [Wildcard.getInlayHints path | options.experimentalFeatures]
-        ++ [Imports.getInlayHints path options]
+        -- ++ [Imports.getInlayHints path options]
     )

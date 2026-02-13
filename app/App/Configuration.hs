@@ -11,6 +11,7 @@ import StaticLS.Logger
 import StaticLS.StaticEnv.Options
 import System.Directory
 import System.Directory.Internal.Prelude
+import System.FilePath (takeDirectory, (</>))
 
 data StaticEnvJson = StaticEnvJson
   { hiedb :: Maybe FilePath
@@ -31,15 +32,39 @@ data ConfigResult = ConfigResult
 
 getFileConfig :: (HasCallStack) => Colog.LogAction IO Msg -> IO (Maybe StaticEnvOptions)
 getFileConfig logger = do
-  localConfig <- readConfig "static-ls.local.json"
-  globalConfig <- readConfig "static-ls.json"
+  localConfig <- findAndReadConfig logger "static-ls.local.json"
+  globalConfig <- findAndReadConfig logger "static-ls.json"
   let eFileConfig = localConfig <|> globalConfig
   case eFileConfig of
     (Just (Left e)) -> do
       logWithLogger logger Colog.Error (T.pack e) callStack
       exitFailure
     (Just (Right f)) -> pure (Just f)
-    Nothing -> pure Nothing
+    Nothing -> do
+      logWithLogger logger Colog.Info "No configuration file found, using defaults" callStack
+      pure Nothing
+
+-- | Search for a config file in the current directory and parent directories
+findAndReadConfig :: Colog.LogAction IO Msg -> FilePath -> IO (Maybe (Either String StaticEnvOptions))
+findAndReadConfig logger fileName = do
+  cwd <- getCurrentDirectory
+  findConfigInTree cwd fileName
+ where
+  findConfigInTree :: FilePath -> FilePath -> IO (Maybe (Either String StaticEnvOptions))
+  findConfigInTree dir fileName = do
+    let configPath = dir </> fileName
+    configExists <- doesFileExist configPath
+    if configExists
+      then do
+        absPath <- makeAbsolute configPath
+        logWithLogger logger Colog.Info (T.pack $ "Loading configuration from: " <> absPath) callStack
+        readConfig configPath
+      else do
+        let parentDir = takeDirectory dir
+        -- Stop if we've reached the root
+        if parentDir == dir
+          then pure Nothing
+          else findConfigInTree parentDir fileName
 
 readConfig :: FilePath -> IO (Maybe (Either String StaticEnvOptions))
 readConfig fileName = do

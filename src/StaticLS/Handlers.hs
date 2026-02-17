@@ -54,6 +54,7 @@ import System.Directory (doesFileExist)
 import System.FSNotify qualified as FSNotify
 import Text.Parsec.Text qualified as Parsec
 import UnliftIO.Exception qualified as Exception
+import Control.Concurrent.MVar
 
 -----------------------------------------------------------------
 --------------------- LSP event handlers ------------------------
@@ -352,3 +353,8 @@ clearDiagnostics = LSP.flushDiagnosticsBySource 100 (Just "haskell")
 
 testing :: (Show a) => [a] -> String
 testing = show
+
+handleExit :: MVar () -> Handlers (LspT c StaticLsM)
+handleExit clientMsgVar = LSP.notificationHandler LSP.SMethod_Exit $ \_ -> do
+  _ <- liftIO $ tryPutMVar clientMsgVar ()
+  pure ()

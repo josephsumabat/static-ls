@@ -20,7 +20,7 @@ The following snippet can be used in a project so that alloglot users don't need
 
 ## Indexing dependencies
 
-The following snippet can used for indexing dependecies in hiedb allowing jump to dependency definition. The following snippet is
+The following snippet can used for indexing dependencies in hiedb allowing jump to dependency definition. The following snippet is
 taken from Mercury's internal setup with permission to share:
 
 ```
@@ -86,7 +86,7 @@ lib.indexHaskellDependencies {your haskell packages}
 ```
 say saved at `nix/packages/dependencies` for example.
 
-Finally you can use the following command to copy an indexed version of your depencies into .hiedb which will enable functionality such as go-to-definition on dependencies as well ask:
+Finally you can use the following command to copy an indexed version of your dependencies into .hiedb which will enable functionality such as go-to-definition on dependencies as well ask:
 
 ```
 	nix build .#pkgs.dependencies --no-link --print-out-paths | xargs -I_ cp --remove-destination _/.hiedb ./.hiedb --no-preserve=mode,ownership,timestamps

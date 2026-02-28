@@ -42,6 +42,8 @@ import System.FSNotify qualified as FSNotify
 import System.FilePath qualified as FilePath
 import UnliftIO.Concurrent qualified as Conc
 import UnliftIO.Exception qualified as Exception
+import Control.Concurrent.MVar
+import Control.Concurrent.Async
 
 type LspConfig = ()
 
@@ -168,8 +170,8 @@ initServer reactorChan staticEnvOptions logger serverConfig _ = do
       Just p -> Right p
 #endif
 
-serverDef :: StaticEnvOptions -> LoggerM IO -> IO (ServerDefinition ())
-serverDef options logger = do
+serverDef :: StaticEnvOptions -> LoggerM IO -> MVar () -> IO (ServerDefinition ())
+serverDef options logger clientMsgVar = do
   reactorChan <- liftIO Conc.newChan
   let
     -- TODO: actually respond to the client with an error
@@ -227,6 +229,7 @@ serverDef options logger = do
                 , handleDocumentSymbols
                 , handleCompletion
                 , handleCompletionItemResolve
+                , handleExit clientMsgVar
                 ]
                   <> (if options.provideInlays then [handleInlayHintRequest options, handleResolveInlayHint] else [])
                   <> ( case options.fourmoluCommand of
@@ -276,7 +279,21 @@ lspOptions =
     , LSP.optCompletionTriggerCharacters = Just ['.']
     }
 
-runServer :: StaticEnvOptions -> LoggerM IO -> IO Int
+runServer :: StaticEnvOptions -> LoggerM IO -> IO ()
 runServer argOptions logger = do
-  server <- serverDef argOptions logger
-  LSP.runServer server
+  -- This MVar becomes full when the server thread exits or we receive exit message from client.
+  -- LSP server will be canceled when it's full.
+  clientMsgVar <- newEmptyMVar
+
+  server <- serverDef argOptions logger clientMsgVar
+  untilMVar clientMsgVar $ do
+    _ <- LSP.runServer server
+    pure ()
+
+-- | Runs the action until it ends or until the given MVar is put.
+--   It is important, that the thread that puts the 'MVar' is not dropped before it puts the 'MVar' i.e. it should
+--   occur as the final action in a 'finally' or 'bracket', because otherwise this thread will finish early (as soon
+--   as the thread receives the BlockedIndefinitelyOnMVar exception)
+--   Rethrows any exceptions.
+untilMVar :: MVar () -> IO a -> IO ()
+untilMVar mvar io = race_ (readMVar mvar) io

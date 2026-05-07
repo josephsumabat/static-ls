@@ -68,7 +68,7 @@ library
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-ast
-    , haskell-lexer >=1.1.1 && <1.2.0
+    , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
     , lens
     , lsp >=2.4.0.0 && <2.8.0.0
@@ -222,7 +222,7 @@ executable print-hie
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-ast
-    , haskell-lexer >=1.1.1 && <1.2.0
+    , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
     , lens
     , lsp >=2.4.0.0 && <2.8.0.0
@@ -291,7 +291,7 @@ executable static-ls
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-ast
-    , haskell-lexer >=1.1.1 && <1.2.0
+    , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
     , lens
     , lsp >=2.4.0.0 && <2.8.0.0
@@ -376,7 +376,7 @@ test-suite expect_tests
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-ast
-    , haskell-lexer >=1.1.1 && <1.2.0
+    , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
     , hspec ==2.*
     , lens
@@ -450,7 +450,7 @@ test-suite static-ls-test
     , ghc-paths >=0.1.0 && <0.2
     , hashable
     , haskell-ast
-    , haskell-lexer >=1.1.1 && <1.2.0
+    , haskell-lexer >=1.1.1 && <1.3
     , hiedb ==0.6.*
     , hspec ==2.*
     , lens

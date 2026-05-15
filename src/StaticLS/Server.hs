@@ -227,6 +227,9 @@ serverDef options logger = do
                 , handleDocumentSymbols
                 , handleCompletion
                 , handleCompletionItemResolve
+                , handleSemanticTokensFull
+                , handleSemanticTokensFullDelta
+                , handleSemanticTokensRange
                 ]
                   <> (if options.provideInlays then [handleInlayHintRequest options, handleResolveInlayHint] else [])
                   <> ( case options.fourmoluCommand of

@@ -112,6 +112,24 @@ handleResolveInlayHint :: Handlers (LspT c StaticLsM)
 handleResolveInlayHint = LSP.requestHandler LSP.SMethod_InlayHintResolve $ \_ _ -> do
   pure ()
 
+-- The lsp library (>=2.7.0.1) unconditionally advertises `semanticTokensProvider`
+-- in initialize, even when no semantic-token handlers are registered. Clients
+-- (notably Neovim's built-in LSP client) then send `textDocument/semanticTokens/*`
+-- requests, which fall through to the library's `missingRequestHandler` and are
+-- logged at Error severity -- the default logger surfaces those as `window/showMessage`
+-- popups. Register stub handlers that return Null so the requests resolve quietly.
+handleSemanticTokensFull :: Handlers (LspT c StaticLsM)
+handleSemanticTokensFull = LSP.requestHandler LSP.SMethod_TextDocumentSemanticTokensFull $ \_ res ->
+  res $ Right $ InR Null
+
+handleSemanticTokensFullDelta :: Handlers (LspT c StaticLsM)
+handleSemanticTokensFullDelta = LSP.requestHandler LSP.SMethod_TextDocumentSemanticTokensFullDelta $ \_ res ->
+  res $ Right $ InR $ InR Null
+
+handleSemanticTokensRange :: Handlers (LspT c StaticLsM)
+handleSemanticTokensRange = LSP.requestHandler LSP.SMethod_TextDocumentSemanticTokensRange $ \_ res ->
+  res $ Right $ InR Null
+
 handleReferencesRequest :: Handlers (LspT c StaticLsM)
 handleReferencesRequest = LSP.requestHandler LSP.SMethod_TextDocumentReferences $ \req res -> do
   let params = req._params

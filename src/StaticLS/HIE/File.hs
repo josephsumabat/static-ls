@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module StaticLS.HIE.File (
+  getHieFileFromTdi,
   modToHieFile,
   modToSrcFile,
   srcFilePathToHieFilePath,
@@ -25,7 +26,7 @@ import Control.Monad.IO.Unlift (MonadIO, liftIO)
 import Control.Monad.Trans.Maybe
 import Data.Bifunctor (first, second)
 import Data.Map qualified as Map
-import Data.Path (AbsPath)
+import Data.Path (AbsPath, filePathToAbs)
 import Data.Path qualified as Path
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as T.Encoding
@@ -33,6 +34,7 @@ import GHC.Iface.Ext.Binary qualified as GHC
 import GHC.Iface.Ext.Types qualified as GHC
 import GHC.Types.Name.Cache qualified as GHC
 import HieDb qualified
+import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.FilePath
 import StaticLS.HIE.File.Except
 import StaticLS.HieDb qualified as HieDb
@@ -46,6 +48,13 @@ import System.FilePath ((</>))
 
 type HieFile = GHC.HieFile
 
+-- | Retrieve a hie info from a lsp text document identifier
+getHieFileFromTdi :: (HasStaticEnv m, HasLogger m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m GHC.HieFile
+getHieFileFromTdi = getHieFileFromPath <=< tdiToHieFilePath
+
+tdiToHieFilePath :: (HasStaticEnv m, MonadIO m) => LSP.TextDocumentIdentifier -> MaybeT m AbsPath
+tdiToHieFilePath = srcFilePathToHieFilePath <=< filePathToAbs <=< (MaybeT . pure . LSP.uriToFilePath . (._uri))
+
 getHieSource :: GHC.HieFile -> T.Text
 getHieSource hieFile = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
 
@@ -53,7 +62,7 @@ getHieSource hieFile = T.Encoding.decodeUtf8 $ GHC.hie_hs_src hieFile
 -- Returns a Maybe instead of throwing because we want to handle
 -- the case when there is no hie file and do something reasonable
 -- Most functions that get the file text will throw if the file text is not found
-getHieFileFromPath :: (HasStaticEnv m, HasLogger m, MonadIO m, HasLogger m) => AbsPath -> MaybeT m HieFile
+getHieFileFromPath :: (HasStaticEnv m, HasLogger m, MonadIO m) => AbsPath -> MaybeT m HieFile
 getHieFileFromPath = ((exceptToMaybeT . getHieFileFromHiePath) <=< srcFilePathToHieFilePath)
 
 -- | Retrieve an hie file from a module name

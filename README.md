@@ -59,11 +59,14 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
      - -Werror=deferred-type-errors
      - -Werror=deferred-out-of-scope-variables
      - -fno-defer-typed-holes
+     - -ddump-splices
+     - -ddump-to-file
      ```
   
-    These flags will allow hie files to be refreshed even if compilation fails to
+    The first four flags will allow hie files to be refreshed even if compilation fails to
     type check and will ensure that type check failures are still thrown as
     errors.
+    The last two supports go to definition for template haskell.
 
     - If you're using hpack you can add:
       ```
@@ -74,6 +77,8 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
           - -Werror=deferred-type-errors
           - -Werror=deferred-out-of-scope-variables
           - -fno-defer-typed-holes
+          - -ddump-splices
+          - -ddump-to-file
       ```
       to  your `package.yaml`. See this project's `package.yaml` or `static-ls.cabal` for examples
     - You may instead add the following to your `cabal.project.local` file:
@@ -87,6 +92,8 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
           -Werror=deferred-type-errors
           -Werror=deferred-out-of-scope-variables
           -fno-defer-typed-holes
+          -ddump-splices
+          -ddump-to-file
       ```
     
 2. You can index your project in hiedb running:

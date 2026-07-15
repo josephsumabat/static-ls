@@ -58,6 +58,7 @@ spec = do
             , inlayLengthCap = Just 32
             , experimentalFeatures = False
             , fourmoluCommand = Nothing
+            , restartIntervalMinutes = 0
             }
 
     check

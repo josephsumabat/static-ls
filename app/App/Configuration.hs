@@ -19,6 +19,7 @@ data StaticEnvJson = StaticEnvJson
   , srcDirs :: Maybe [FilePath]
   , immutableSrcDirs :: Maybe [FilePath]
   , fourmoluCommand :: Maybe FilePath
+  , restartInterval :: Maybe Int
   }
 
 $(deriveJSON defaultOptions ''StaticEnvJson)
@@ -74,4 +75,5 @@ toOptions jsonOptions =
         if null jsonOptions.fourmoluCommand
           then defaultStaticEnvOptions.fourmoluCommand
           else jsonOptions.fourmoluCommand
+    , restartIntervalMinutes = fromMaybe defaultStaticEnvOptions.restartIntervalMinutes jsonOptions.restartInterval
     }

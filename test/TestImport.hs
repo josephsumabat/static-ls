@@ -61,6 +61,7 @@ defaultTestStaticEnvOptions =
     , provideInlays = True
     , inlayLengthCap = Just 32
     , fourmoluCommand = Nothing
+    , restartIntervalMinutes = 0
     , experimentalFeatures = False
     }
 

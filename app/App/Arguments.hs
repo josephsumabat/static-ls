@@ -154,6 +154,15 @@ staticEnvOptParser defaultStaticEnvOptions =
             )
             defaultStaticEnvOptions.fourmoluCommand
         )
+    <*> option
+      auto
+      ( long "restartInterval"
+          <> metavar "MINUTES"
+          <> value defaultStaticEnvOptions.restartIntervalMinutes
+          <> help
+            "Exit after this many minutes so the client relaunches the server, mitigating a memory leak in long-running sessions. Use 0 to disable."
+          <> showDefault
+      )
     <*> switch (long "experimentalFeatures" <> help "Enable experimental features.")
  where
   -- Parse a list of comma delimited strings

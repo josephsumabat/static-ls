@@ -19,6 +19,10 @@ data StaticEnvOptions = StaticEnvOptions
   , inlayLengthCap :: Maybe Int
   , fourmoluCommand :: Maybe FilePath
   -- ^ path to fourmolu
+  , restartIntervalMinutes :: Int
+  -- ^ Restart (exit) the server after this many minutes so the client relaunches it.
+  -- Mitigates a known memory leak that grows over long-running sessions.
+  -- A value of 0 (or less) disables the timed restart.
   , -- Include experimental features?
     experimentalFeatures :: Bool
   }
@@ -39,6 +43,10 @@ defaultImmutableSrcDirs = []
 defaultHiFiles :: FilePath
 defaultHiFiles = ".hifiles"
 
+-- | Default restart interval in minutes (2 hours). See 'restartIntervalMinutes'.
+defaultRestartIntervalMinutes :: Int
+defaultRestartIntervalMinutes = 120
+
 defaultStaticEnvOptions :: StaticEnvOptions
 defaultStaticEnvOptions =
   StaticEnvOptions
@@ -50,5 +58,6 @@ defaultStaticEnvOptions =
     , provideInlays = True
     , inlayLengthCap = Just 32
     , fourmoluCommand = Nothing
+    , restartIntervalMinutes = defaultRestartIntervalMinutes
     , experimentalFeatures = False
     }

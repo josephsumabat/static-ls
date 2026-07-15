@@ -1,5 +1,11 @@
 # Revision history for static-ls
 
+## Unreleased
+  * Add a timed self-restart to mitigate a memory leak in long-running sessions.
+    The server exits after `--restartInterval` minutes (default `120`, `0` to
+    disable) so the LSP client relaunches it. Also configurable via
+    `restartInterval` in `static-ls.json`.
+
 ## 1.0.0 -- 2024-09-24
   * Re-architect to use tree-sitter and in memory representation of file system
   * New features:

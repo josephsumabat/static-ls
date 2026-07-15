@@ -299,3 +299,13 @@ Configured language servers:
 Some editors watch all folders in your project directory for changes and report those to the LSP server. This might cause significant slowdown when `.hiefiles` or `.hifiles` are tracked (documented in #175).
 
 This is currently an issue with `Emacs`, (but should be fixed in `lsp-mode` with [this PR](https://github.com/emacs-lsp/lsp-mode/pull/4855)). It's not clear what other editors are affected.
+
+### Memory growth over long sessions
+There is a known memory leak that causes `static-ls` to grow to several GB over very long-running sessions. As a mitigation, `static-ls` exits itself after a configurable interval so that the editor's LSP client relaunches it (which frees the leaked memory). This is enabled by default with a 2 hour (`120` minute) interval.
+
+You can tune or disable it:
+
+- CLI flag: `--restartInterval MINUTES` (use `0` to disable).
+- Config file (`static-ls.json` / `static-ls.local.json`): `"restartInterval": 120` (use `0` to disable).
+
+Most LSP clients relaunch the server automatically when it exits; if yours does not, disable the timed restart with `--restartInterval 0`.

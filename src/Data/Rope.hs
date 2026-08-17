@@ -21,6 +21,7 @@ module Data.Rope (
   indexRange,
   empty,
   splitAt,
+  getLeadingSpaceCountAtLine,
 )
 where
 
@@ -35,6 +36,7 @@ import Data.Pos (Pos (..))
 import Data.Range (Range (..))
 import Data.String (IsString)
 import Data.Text (Text)
+import Data.Text qualified as T
 import Data.Text.Utf16.Rope.Mixed qualified as Rope16
 import Data.Text.Utf8.Rope qualified as Rope8
 import Prelude hiding (getLine, length, splitAt)
@@ -174,6 +176,11 @@ isValidLineColEnd r (LineCol (Pos line) (Pos col)) =
   rope = r.rope
 linesLength :: Rope -> Int
 linesLength (Rope rope) = fromIntegral . Rope8.lengthInLines $ rope
+
+getLeadingSpaceCountAtLine :: Pos -> Rope -> Int
+getLeadingSpaceCountAtLine (Pos lineNumber) (Rope rope) = do
+  let line = Rope8.toText $ Rope8.getLine (fromIntegral lineNumber) rope
+  T.length $ T.takeWhile (== ' ') line
 
 -- | get the line, including the newline!
 getLine :: Rope -> Pos -> Maybe Rope

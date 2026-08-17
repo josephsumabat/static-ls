@@ -23,7 +23,7 @@ workflow with some setup and usage of a file watcher to recompile your project.
 If you want to use `static-ls` in your IDE then
 [ghciwatch](https://github.com/MercuryTechnologies/ghciwatch) for recompilation is strongly
 recommended alongside `-fdefer-type-errors flag` for better UX
-and the [ghc hiedb plugin](https://github.com/josephsumabat/hiedb-plugin) for re-indexing. 
+and the [ghc hiedb plugin](https://github.com/josephsumabat/hiedb-plugin) for re-indexing.
 
 Currently only ghc 9.4.4 and 9.6.1 are explicitly supported but I'm happy to add support for other versions of ghc if desired.
 
@@ -38,12 +38,28 @@ If you use nix, you can checkout the section below to see how to install
 
 See [Advanced setup](docs/advanced-setup.md) for additional options
 
-1. Compile your project with the following flags: 
+1. Clone this repo and run `cabal install`.
+
+   You should compile static-ls from source rather than using the version on Hackage
+   since it is not currently up to date.
+
+2. Compile your project with the following flags:
 
     ```
     -fwrite-ide-info
     -hiedir .hiefiles
     ```
+   This will write IDE info to the .hiefiles directory. Note that if you are using
+   [weeder](https://hackage.haskell.org/package/weeder), you may want to make this
+   directory a symlink like so:
+
+   ```
+   HIE_DIRECTORY=$(find . -type f -name "*.hie" | head -n 1 | grep -o '.*/hie/')
+   if [ -n "$HIE_DIRECTORY" ]; then
+     ln -sf "$HIE_DIRECTORY" '.hiefiles'
+   fi
+   ```
+
    You can also add `-hidir .hifiles` for haddock support (Only supported on 64
    bit systems right now) though this may also require some extra build
    configuration.
@@ -51,7 +67,7 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
    Note if you don't want to change the output directories of these files you
    can symlink them instead or point `static-ls` to them with its arguments.
    (See `static-ls --help` for info)
-    
+
     For a better UX, the following flags are *strongly* recommended.
 
      ```
@@ -60,10 +76,17 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
      - -Werror=deferred-out-of-scope-variables
      - -fno-defer-typed-holes
      ```
-  
+
     These flags will allow hie files to be refreshed even if compilation fails to
     type check and will ensure that type check failures are still thrown as
     errors.
+
+    It is also recommended to increase the number of patterns shown by the "Insert Missing Cases"
+    code action like so:
+
+    ```
+    - -fmax-uncovered-patterns=50
+    ```
 
     - If you're using hpack you can add:
       ```
@@ -74,6 +97,7 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
           - -Werror=deferred-type-errors
           - -Werror=deferred-out-of-scope-variables
           - -fno-defer-typed-holes
+          - -fmax-uncovered-patterns=50
       ```
       to  your `package.yaml`. See this project's `package.yaml` or `static-ls.cabal` for examples
     - You may instead add the following to your `cabal.project.local` file:
@@ -87,9 +111,10 @@ See [Advanced setup](docs/advanced-setup.md) for additional options
           -Werror=deferred-type-errors
           -Werror=deferred-out-of-scope-variables
           -fno-defer-typed-holes
+          -fmax-uncovered-patterns=50
       ```
-    
-2. You can index your project in hiedb running:
+
+3. You can index your project in hiedb running:
       ```
         hiedb -D .hiedb index .hiefiles --src-base-dir .
       ```

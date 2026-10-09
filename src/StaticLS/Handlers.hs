@@ -335,11 +335,11 @@ handleDocumentSymbols = LSP.requestHandler LSP.SMethod_TextDocumentDocumentSymbo
 handleGhcidFileChange :: LspT c StaticLsM ()
 handleGhcidFileChange = do
   lift $ logInfo "handleGhcidFileChange"
-  exists <- liftIO $ doesFileExist "ghcid.txt"
+  staticEnv <- lift StaticEnv.getStaticEnv
+  exists <- liftIO $ doesFileExist $ Path.toFilePath staticEnv.ghciErrorFile
   let ghcidSess = ".ghcid_session"
   Monad.when exists do
-    contents <- liftIO $ T.IO.readFile "ghcid.txt"
-    staticEnv <- lift StaticEnv.getStaticEnv
+    contents <- liftIO $ T.IO.readFile $ Path.toFilePath staticEnv.ghciErrorFile
     ghcidSessExists <- liftIO $ doesFileExist ghcidSess
     pathPrefix <-
       if ghcidSessExists

@@ -26,6 +26,7 @@ import Database.SQLite.Simple (SQLError)
 import HieDb qualified
 import StaticLS.Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
+import System.FilePath qualified as FilePath
 
 type HieDbPath = FilePath
 
@@ -53,6 +54,7 @@ data StaticEnv = StaticEnv
   -- ^ Path to the hiedb file
   , hieDirs :: [AbsPath]
   , hiFilesPath :: AbsPath
+  , ghciErrorFile :: AbsPath
   , wsRoot :: AbsPath
   , modelsFilesDir :: AbsPath
   -- ^ workspace root
@@ -88,12 +90,14 @@ initStaticEnv wsRoot staticEnvOptions = do
       mutableSrcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionSrcDirs)
       immutableSrcDirs = fmap ((wsRoot Path.</>) . Path.filePathToRel) (staticEnvOptions.optionImmutableSrcDirs)
       allSrcDirs = mutableSrcDirs <> immutableSrcDirs
-      hiFilesPath = wsRoot Path.</> (Path.filePathToRel staticEnvOptions.optionHiFilesPath)
+      hiFilesPath = wsRoot Path.</> Path.filePathToRel staticEnvOptions.optionHiFilesPath
+      ghciErrorFile = wsRoot Path.</> Path.filePathToRel (FilePath.normalise staticEnvOptions.optionGhciErrorFile)
   let serverStaticEnv =
         StaticEnv
           { hieDbPath = databasePath
           , hieDirs = hieDirs
           , hiFilesPath = hiFilesPath
+          , ghciErrorFile = ghciErrorFile
           , wsRoot = wsRoot
           , modelsFilesDir = wsRoot Path.</> "config" Path.</> "modelsFiles"
           , mutableSrcDirs = mutableSrcDirs

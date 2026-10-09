@@ -75,7 +75,7 @@ fileWatcher chan staticEnv _logger = do
     FSNotify.watchDir
       mgr
       (Path.toFilePath staticEnv.wsRoot)
-      (\e -> FilePath.takeFileName e.eventPath == "ghcid.txt")
+      (\e -> e.eventPath == Path.toFilePath staticEnv.ghciErrorFile)
       ( \e -> Conc.writeChan chan $ ReactorMsgLspAct $ do
           lift $ logInfo $ "ghcid file changed: " <> T.pack (show e)
           Handlers.handleGhcidFileChange

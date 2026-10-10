@@ -13,6 +13,8 @@ data StaticEnvOptions = StaticEnvOptions
   -- hie files are required for all functionality
   , optionHiFilesPath :: FilePath
   -- ^ Relative path to hi files directory
+  , optionGhciErrorFile :: FilePath
+  -- ^ Relative path to hi files directory
   , optionSrcDirs :: [FilePath]
   , optionImmutableSrcDirs :: [FilePath]
   , provideInlays :: Bool
@@ -39,6 +41,9 @@ defaultImmutableSrcDirs = []
 defaultHiFiles :: FilePath
 defaultHiFiles = ".hifiles"
 
+defaultOptionGhciErrorFile :: FilePath
+defaultOptionGhciErrorFile = "ghcid.txt"
+
 defaultStaticEnvOptions :: StaticEnvOptions
 defaultStaticEnvOptions =
   StaticEnvOptions
@@ -47,6 +52,7 @@ defaultStaticEnvOptions =
     , optionSrcDirs = defaultSrcDirs
     , optionImmutableSrcDirs = defaultImmutableSrcDirs
     , optionHiFilesPath = defaultHiFiles
+    , optionGhciErrorFile = defaultOptionGhciErrorFile
     , provideInlays = True
     , inlayLengthCap = Just 32
     , fourmoluCommand = Nothing

@@ -1,4 +1,5 @@
 module StaticLS.IDE.CodeActions.Parse (
+  VariableNotInScopeFixes (..),
   ActionableIssue (..),
   Ignored (..),
   KnownExtension (..),
@@ -12,12 +13,15 @@ module StaticLS.IDE.CodeActions.Parse (
   validHoleFits,
   missingMethods,
   missingAssociatedType,
+  variableNotInScope,
 ) where
 
+import Control.Applicative ((<|>))
 import Control.Monad (guard, (<=<))
 import Data.Foldable (asum, toList)
-import Data.Functor (($>))
+import Data.Functor (($>), (<&>))
 import Data.Text qualified as T
+import Debug.Trace
 import Language.Haskell.TH.LanguageExtensions (Extension)
 import Language.LSP.Protocol.Types qualified as LSP
 import Text.Regex.TDFA (getAllTextMatches, (=~), (=~~))
@@ -35,6 +39,15 @@ data KnownExtension = KnownExtension {-# UNPACK #-} !Extension {-# UNPACK #-} !T
 knownExtensions :: [KnownExtension]
 knownExtensions = (\ext -> KnownExtension ext $ T.pack $ show ext) <$> [minBound .. maxBound]
 
+data VariableNotInScopeFixes
+  = MissSpelled T.Text T.Text
+  | AddToImportList T.Text T.Text
+  deriving
+    ( Eq
+    , Ord
+    , Show
+    )
+
 data ActionableIssue
   = RequiredExtension (Ignored LSP.Diagnostic) KnownExtension
   | TypedHoleFits (Ignored LSP.Diagnostic) [T.Text]
@@ -42,7 +55,12 @@ data ActionableIssue
   | MissingMethods (Ignored LSP.Diagnostic) [T.Text]
   | MissingAssociatedType (Ignored LSP.Diagnostic) T.Text
   | MissingCases (Ignored LSP.Diagnostic) [T.Text]
-  deriving (Eq, Ord, Show)
+  | VariableNotInScope (Ignored LSP.Diagnostic) [VariableNotInScopeFixes]
+  deriving
+    ( Eq
+    , Ord
+    , Show
+    )
 
 actionableIssue :: LSP.Diagnostic -> Maybe ActionableIssue
 actionableIssue diag =
@@ -53,6 +71,7 @@ actionableIssue diag =
     , checkMissingCases
     , checkMissingMethods
     , checkMissingAssociatedType
+    , checkVariableNotInScope
     ]
  where
   message :: NormalText
@@ -80,6 +99,9 @@ actionableIssue diag =
 
   checkMissingAssociatedType :: Maybe ActionableIssue
   checkMissingAssociatedType = MissingAssociatedType (Ignored diag) . getNormalText <$> missingAssociatedType message
+
+  checkVariableNotInScope :: Maybe ActionableIssue
+  checkVariableNotInScope = VariableNotInScope (Ignored diag) <$> variableNotInScope message
 
 newtype NormalText = Normal T.Text
   deriving (Eq, Ord, Show)
@@ -153,3 +175,52 @@ missingFields t1 = do
   braces <- between (getNormalText constructor <> " \\{") "\\}" t4
   let existingFields = if T.null (getNormalText braces) then Nothing else Just braces
   pure (constructor, existingFields, missingFields)
+
+variableNotInScope :: NormalText -> Maybe [VariableNotInScopeFixes]
+variableNotInScope diagTxt = do
+  (_, _, t1) <- cut "Variable not in scope:" diagTxt
+
+  notInScope <- capture " " ident " :: " t1
+  -- TODO: properly get case of only one fix (Suggested fix vs Suggested fixes)
+  textFixes <- traceShowId $ oneFix t1 <|> multipleFixes t1
+  pure $
+    traceShowId $
+      concat $
+        [ action
+        | fix <- textFixes
+        , Just action <- getFixesDecs notInScope <&> ($ fix)
+        ]
+ where
+  oneFix txt = do
+    (_, _, t1) <- cut "Suggested fix:" txt
+    pure $ captures "Perhaps" "[^•]*" "" t1
+  multipleFixes txt = do
+    (_, _, t1) <- cut "Suggested fixes:" txt
+    pure $ captures "• Perhaps" "[^•]*" "" t1
+
+  getFixesDecs :: NormalText -> [NormalText -> Maybe [VariableNotInScopeFixes]]
+  getFixesDecs notInScope =
+    [ -- For matching: • Perhaps use ‘sum’ (imported from Prelude)
+      \t -> do
+        (_, _, t1) <- cut "use ‘" t
+        (name, _, _) <- cut "’ " t1
+        pure [MissSpelled (getNormalText notInScope) (getNormalText name)]
+    , -- For matching:
+      --  • Perhaps you want to add ‘asum’ to the import list
+      --  in the import of ‘Data.Foldable’
+      \t -> do
+        (_, _, t1) <- cut "you want to add ‘" t
+        (name, _, t2) <- cut "’ to the import list" t1
+        (_, _, t3) <- cut "in the import of ‘" t2
+        (mdl, _, _) <- cut "’" t3
+        pure [AddToImportList (getNormalText name) (getNormalText mdl)]
+    , -- For matching:
+      --  • Perhaps you want to add ‘asum’ to one of these import lists:
+      --      ‘Control.Applicative’ (…)
+      --      ‘Data.Foldable’ (…)
+      \t -> do
+        (_, _, t1) <- cut "you want to add ‘" t
+        (name, _, t2) <- cut "’ to one of these import lists:" t1
+        let mdls = traceShowId $ captures "‘" ident "’" t2
+        pure [AddToImportList (getNormalText name) (getNormalText mdl) | mdl <- mdls]
+    ]

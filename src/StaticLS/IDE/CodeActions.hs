@@ -8,6 +8,7 @@ module StaticLS.IDE.CodeActions where
 import Control.Error (mapMaybe)
 import Control.Monad (join)
 import Data.LineCol (LineCol (..))
+import Data.Maybe (catMaybes)
 import Data.Path (AbsPath)
 import Data.Rope qualified as Rope
 import Data.Set qualified as S
@@ -15,6 +16,7 @@ import Language.LSP.Protocol.Types qualified as LSP
 import StaticLS.IDE.CodeActions.AddRequiredExtension qualified as AddRequiredExtension
 import StaticLS.IDE.CodeActions.AddTypeSig qualified as AddTypeSig
 import StaticLS.IDE.CodeActions.AutoImport qualified as AutoImport
+import StaticLS.IDE.CodeActions.BringVariableInScope qualified as BringVariableInScope
 import StaticLS.IDE.CodeActions.InsertAssociatedType qualified as InsertAssociatedType
 import StaticLS.IDE.CodeActions.InsertCases qualified as InsertCases
 import StaticLS.IDE.CodeActions.InsertFields qualified as InsertFields
@@ -44,7 +46,7 @@ getCodeActions tdi ctx path lineCol = do
   importCodeActions <- AutoImport.codeAction cx
   removeRedundantImports <- RemoveRedundantImports.codeAction cx
   let issues = S.fromList (mapMaybe Parse.actionableIssue ctx._diagnostics)
-  issueActions <- join <$> traverse (issueToActions tdi leadingSpaces) (S.toList issues)
+  issueActions <- join <$> traverse (issueToActions tdi path leadingSpaces) (S.toList issues)
   assistActions <-
     traverse assistToCodeAction $
       typesCodeActions
@@ -61,10 +63,11 @@ resolveLazyAssist (CodeActionMessage {kind, path}) = do
 
 issueToActions ::
   LSP.TextDocumentIdentifier ->
+  AbsPath ->
   Int ->
   Parse.ActionableIssue ->
   StaticLsM [LSP.CodeAction]
-issueToActions tdi leadingSpaces issue =
+issueToActions tdi path leadingSpaces issue =
   case issue of
     Parse.MissingMethods (Parse.Ignored diag) methods ->
       pure [InsertMissingMethods.codeAction tdi diag methods]
@@ -78,3 +81,5 @@ issueToActions tdi leadingSpaces issue =
       pure [AddRequiredExtension.codeAction tdi diag ext]
     Parse.TypedHoleFits (Parse.Ignored diag) fits ->
       pure $ UseValidHoleFit.codeAction tdi diag <$> fits
+    Parse.VariableNotInScope (Parse.Ignored diag) fixes ->
+      catMaybes <$> traverse (BringVariableInScope.codeAction path tdi diag) fixes

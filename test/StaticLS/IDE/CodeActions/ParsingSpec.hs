@@ -2,6 +2,7 @@
 
 module StaticLS.IDE.CodeActions.ParsingSpec (spec) where
 
+import Language.LSP.Protocol.Types qualified as LSP
 import NeatInterpolation
 import StaticLS.IDE.CodeActions.InsertFields
 import StaticLS.IDE.CodeActions.Parse
@@ -121,3 +122,88 @@ spec = do
               • In the instance declaration for ‘A Int’
             |]
       result `shouldBe` (Just $ normalize "AssocType")
+    describe "variable not in scope" do
+      it "parses a single spelling suggestion" do
+        let result =
+              variableNotInScope . normalize $
+                [trimming|
+                Variable not in scope: summ :: [Int] -> Int
+                Suggested fix: Perhaps use ‘sum’ (imported from Prelude)
+              |]
+        result `shouldBe` Just [MissSpelled "summ" "sum"]
+      it "parses adding to the import list of a single module" do
+        let result =
+              variableNotInScope . normalize $
+                [trimming|
+                Variable not in scope: asum :: [Maybe Int] -> Maybe Int
+                Suggested fix:
+                  Perhaps you want to add ‘asum’ to the import list
+                  in the import of ‘Data.Foldable’
+                  (src/StaticLS/IDE/CodeActions/Parse.hs:20:1-34).
+              |]
+        result `shouldBe` Just [AddToImportList "asum" "Data.Foldable"]
+      it "parses adding to one of several import lists" do
+        let result =
+              variableNotInScope . normalize $
+                [trimming|
+                Variable not in scope: asum :: [Maybe Int] -> Maybe Int
+                Suggested fix:
+                  Perhaps you want to add ‘asum’ to one of these import lists:
+                    ‘Control.Applicative’ (src/StaticLS/IDE/CodeActions/Parse.hs:18:1-37)
+                    ‘Data.Foldable’ (src/StaticLS/IDE/CodeActions/Parse.hs:20:1-34)
+              |]
+        result
+          `shouldBe` Just
+            [ AddToImportList "asum" "Control.Applicative"
+            , AddToImportList "asum" "Data.Foldable"
+            ]
+      it "parses multiple suggested fixes" do
+        let result =
+              variableNotInScope . normalize $
+                [trimming|
+                Variable not in scope: asum :: [Maybe Int] -> Maybe Int
+                Suggested fixes:
+                  • Perhaps use ‘sum’ (imported from Prelude)
+                  • Perhaps you want to add ‘asum’ to the import list
+                    in the import of ‘Data.Foldable’
+                    (src/StaticLS/IDE/CodeActions/Parse.hs:20:1-34).
+              |]
+        result
+          `shouldBe` Just
+            [ MissSpelled "asum" "sum"
+            , AddToImportList "asum" "Data.Foldable"
+            ]
+      it "does not parse when there are no suggested fixes" do
+        let result =
+              variableNotInScope . normalize $
+                [trimming|
+                Variable not in scope: foo :: Int
+              |]
+        result `shouldBe` Nothing
+      it "does not parse other diagnostics" do
+        let result =
+              variableNotInScope . normalize $
+                [trimming|
+                • No explicit associated type or default declaration for ‘AssocType’
+                • In the instance declaration for ‘A Int’
+              |]
+        result `shouldBe` Nothing
+      it "is recognised as an actionable issue" do
+        let pos = LSP.Position 3 8
+            diag =
+              LSP.Diagnostic
+                { _range = LSP.Range pos pos
+                , _severity = Just LSP.DiagnosticSeverity_Error
+                , _code = Nothing
+                , _codeDescription = Nothing
+                , _source = Just "haskell"
+                , _message =
+                    [trimming|
+                    Variable not in scope: summ :: [Int] -> Int
+                    Suggested fix: Perhaps use ‘sum’ (imported from Prelude)
+                  |]
+                , _tags = Nothing
+                , _relatedInformation = Nothing
+                , _data_ = Nothing
+                }
+        actionableIssue diag `shouldBe` Just (VariableNotInScope (Ignored diag) [MissSpelled "summ" "sum"])

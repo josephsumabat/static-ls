@@ -37,9 +37,6 @@ import StaticLS.StaticEnv
 import StaticLS.Tree
 import System.FilePath
 
-ghcidFile :: FilePath
-ghcidFile = "ghcid.txt"
-
 codeAction :: CodeActionContext -> StaticLsM [Assist]
 codeAction CodeActionContext {path} = do
   diagnostics <- getDiagnostics
@@ -56,8 +53,7 @@ getDiagnostics = do
   staticEnv <- getStaticEnv
   let wsRootPath = toFilePath staticEnv.wsRoot
   let makeAbsPath = unsafeFilePathToAbs . (wsRootPath System.FilePath.</>) . toFilePath
-  let ghcidPath = wsRootPath System.FilePath.</> ghcidFile
-  info <- liftIO $ catch @IOException (TextIO.readFile ghcidPath) (const $ pure "")
+  info <- liftIO $ catch @IOException (TextIO.readFile $ toFilePath staticEnv.ghciErrorFile) (const $ pure "")
   let diagnostics = parse makeAbsPath info
   pure diagnostics
 

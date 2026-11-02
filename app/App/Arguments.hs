@@ -123,6 +123,13 @@ staticEnvOptParser defaultStaticEnvOptions =
           <> help "Path to hifiles specified by -hidir in ghc"
           <> showDefault
       )
+    <*> strOption
+      ( long "ghciErrorFile"
+          <> metavar "TARGET"
+          <> value defaultStaticEnvOptions.optionGhciErrorFile
+          <> help "Path to error file specified by --outputfile in ghcid or --error-file in ghciwatch"
+          <> showDefault
+      )
     <*> listOption
       ( long "srcDirs"
           <> metavar "TARGET1,TARGET2,TARGET3..."

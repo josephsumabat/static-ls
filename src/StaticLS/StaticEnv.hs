@@ -16,13 +16,17 @@ module StaticLS.StaticEnv (
 )
 where
 
-import Control.Exception (Exception, IOException, SomeException, catch)
+import Control.Concurrent (getNumCapabilities)
+import Control.Exception (Exception, IOException, SomeException, catch, mask, onException)
+import Control.Monad (unless)
 import Control.Monad.Reader
 import Control.Monad.Trans.Except (ExceptT (..))
 import Control.Monad.Trans.Maybe (MaybeT (..), exceptToMaybeT)
+import Data.IORef (IORef, atomicModifyIORef', newIORef)
 import Data.Path (AbsPath)
 import Data.Path qualified as Path
 import Database.SQLite.Simple (SQLError)
+import Database.SQLite.Simple qualified as SQL
 import HieDb qualified
 import StaticLS.Logger
 import StaticLS.StaticEnv.Options (StaticEnvOptions (..))
@@ -66,7 +70,39 @@ data StaticEnv = StaticEnv
   -- ^ directories to search for source code in order of priority (muttable and imuttable directories)
   , fourmoluCommand :: Maybe FilePath
   -- ^ path to fourmolu binary
+  , hieDbPool :: HieDbPool
   }
+
+data HieDbPool = HieDbPool
+  { idle :: IORef [HieDb.HieDb]
+  , maxIdle :: Int
+  }
+
+newHieDbPool :: IO HieDbPool
+newHieDbPool = do
+  idle <- newIORef []
+  maxIdle <- getNumCapabilities
+  pure HieDbPool {idle, maxIdle}
+
+withPooledHieDb :: HieDbPool -> FilePath -> (HieDb.HieDb -> IO a) -> IO a
+withPooledHieDb pool path f = mask \restore -> do
+  db <- acquire
+  res <- restore (f db) `onException` SQL.close (HieDb.getConn db)
+  release db
+  pure res
+ where
+  acquire = do
+    existing <- atomicModifyIORef' pool.idle \case
+      [] -> ([], Nothing)
+      db : dbs -> (dbs, Just db)
+    maybe open pure existing
+  open = do
+    conn <- SQL.open path
+    HieDb.checkVersion pure (HieDb.HieDb conn) `onException` SQL.close conn
+  release db = do
+    kept <- atomicModifyIORef' pool.idle \dbs ->
+      if length dbs < pool.maxIdle then (db : dbs, True) else (dbs, False)
+    unless kept $ SQL.close (HieDb.getConn db)
 
 class (Monad m) => HasStaticEnv m where
   getStaticEnv :: m StaticEnv
@@ -92,6 +128,7 @@ initStaticEnv wsRoot staticEnvOptions = do
       allSrcDirs = mutableSrcDirs <> immutableSrcDirs
       hiFilesPath = wsRoot Path.</> Path.filePathToRel staticEnvOptions.optionHiFilesPath
       ghciErrorFile = wsRoot Path.</> Path.filePathToRel (FilePath.normalise staticEnvOptions.optionGhciErrorFile)
+  hieDbPool <- newHieDbPool
   let serverStaticEnv =
         StaticEnv
           { hieDbPath = databasePath
@@ -104,6 +141,7 @@ initStaticEnv wsRoot staticEnvOptions = do
           , immutableSrcDirs = immutableSrcDirs
           , allSrcDirs = allSrcDirs
           , fourmoluCommand = staticEnvOptions.fourmoluCommand
+          , hieDbPool
           }
   pure serverStaticEnv
 
@@ -114,7 +152,7 @@ runHieDbExceptT hieDbFn =
     >>= \staticEnv ->
       ( \hiedbPath ->
           ExceptT . liftIO $
-            HieDb.withHieDb (Path.toFilePath hiedbPath) (fmap Right . hieDbFn)
+            withPooledHieDb staticEnv.hieDbPool (Path.toFilePath hiedbPath) (fmap Right . hieDbFn)
               `catch` (pure . Left . HieDbIOException)
               `catch` (pure . Left . HieDbSqlException)
               `catch` (\(e :: SomeException) -> pure . Left $ HieDbOtherException e)
